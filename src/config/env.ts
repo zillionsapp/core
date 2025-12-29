@@ -24,6 +24,11 @@ const envSchema = z.object({
     MAX_DAILY_DRAWDOWN_PERCENT: z.coerce.number().default(5), // 5%
     DEFAULT_STOP_LOSS_PERCENT: z.coerce.number().default(0.05), // 5%
     DEFAULT_TAKE_PROFIT_PERCENT: z.coerce.number().default(0.10), // 10%
+
+    // Strategy Configuration
+    STRATEGY_NAME: z.string().default('SMA_CROSSOVER'),
+    STRATEGY_SYMBOL: z.string().default('BTC/USDT'),
+    STRATEGY_INTERVAL: z.string().default('1m'),
 });
 
 export const config = envSchema.parse(process.env);
