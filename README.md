@@ -154,6 +154,9 @@ The `RiskManager` module (`src/core/risk.manager.ts`) intercepts every order bef
 - [ ] **UI**: Build a simple in-built dashboard.
 - [ ] **Intelligence**: AI/ML implementation for signal optimization.
 
+## 🤝 Contributing
+We welcome contributions! Please read our [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.
+
 ---
 
 **License**: Apache License 2.0. contains **NOTICE** file with mandatory attribution to **Zillions.app** / **@christonomous**.
