@@ -142,6 +142,23 @@ export class BacktestRunner {
         const winrate = tradesCount > 0 ? (winningTrades / tradesCount) * 100 : 0;
         const profitFactor = totalGrossLoss > 0 ? totalGrossProfit / totalGrossLoss : totalGrossProfit > 0 ? Infinity : 0;
 
+        const result = {
+            strategyName,
+            symbol,
+            interval,
+            tradesCount,
+            winrate,
+            profitFactor,
+            initialBalance,
+            finalBalance,
+            pnlUSDT,
+            pnlPercent,
+            buyHoldPercent,
+            timestamp: Date.now()
+        };
+
+        await this.db.saveBacktestResult(result);
+
         console.log('--- Backtest Complete ---');
         console.log(`Trades: ${tradesCount} `);
         console.log(`Winrate: ${winrate.toFixed(2)}% `);
@@ -150,6 +167,8 @@ export class BacktestRunner {
         console.log(`Final USDT: ${finalBalance.toFixed(2)} `);
         console.log(`Strategy PnL: ${pnlUSDT.toFixed(2)} USDT (${pnlPercent.toFixed(2)}%)`);
         console.log(`Buy & Hold PnL: ${buyHoldPercent.toFixed(2)}%`);
+
+        return result;
     }
 }
 

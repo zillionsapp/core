@@ -44,6 +44,23 @@ export class SupabaseDataStore implements IDataStore {
         if (error) console.error('Error saving snapshot:', error);
     }
 
+    async getLatestPortfolioSnapshot(): Promise<PortfolioSnapshot | null> {
+        if (!this.supabase) return null;
+
+        const { data, error } = await this.supabase
+            .from('portfolio_snapshots')
+            .select('*')
+            .order('timestamp', { ascending: false })
+            .limit(1)
+            .single();
+
+        if (error) {
+            console.error('Error fetching snapshot:', error);
+            return null;
+        }
+        return data as PortfolioSnapshot;
+    }
+
     async saveBacktestResult(result: any): Promise<void> {
         if (!this.supabase) {
             console.log('[InMemoryDB] Saved Backtest result');
@@ -51,5 +68,21 @@ export class SupabaseDataStore implements IDataStore {
         }
         const { error } = await this.supabase.from('backtest_results').insert({ result, timestamp: Date.now() });
         if (error) console.error('Error saving backtest:', error);
+    }
+
+    async getBacktestResults(limit: number = 10): Promise<any[]> {
+        if (!this.supabase) return [];
+
+        const { data, error } = await this.supabase
+            .from('backtest_results')
+            .select('*')
+            .order('timestamp', { ascending: false })
+            .limit(limit);
+
+        if (error) {
+            console.error('Error fetching backtests:', error);
+            return [];
+        }
+        return data || [];
     }
 }

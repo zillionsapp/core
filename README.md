@@ -198,9 +198,39 @@ The `RiskManager` module (`src/core/risk.manager.ts`) intercepts every order bef
 - [ ] **Exchange Support**: Implement Drift.trade adapter.
 - [ ] **Exchange Support**: Implement Hyperliquid adapter.
 - [ ] **Strategies**: Implement standard strategy library (RSI, MACD, etc.).
-- [ ] **Connectivity**: WebSocket and REST APIs for custom dashboards.
+- [/] **Connectivity**: WebSocket and REST APIs for custom dashboards.
 - [ ] **UI**: Build a simple in-built dashboard.
 - [ ] **Intelligence**: AI/ML implementation for signal optimization.
+
+## 🚀 REST API
+
+Zillion Core includes a built-in REST API to expose data and control the bot.
+
+### Running the API
+```bash
+npm run api
+```
+
+### Endpoints
+
+| Endpoint | Method | Description |
+| :--- | :--- | :--- |
+| `/health` | `GET` | System health check. |
+| `/api/portfolio` | `GET` | Get the latest portfolio snapshot (balance, equity). |
+| `/api/trades` | `GET` | Get recent trade execution history. |
+| `/api/backtests` | `GET` | Get previous backtest results. |
+| `/api/backtest/run` | `POST` | Trigger a new backtest. |
+
+#### Triggering a Backtest
+**Request Body:**
+```json
+{
+  "strategyName": "SMA_CROSSOVER",
+  "symbol": "BTC/USDT",
+  "interval": "1h"
+}
+```
+
 
 ## 🤝 Contributing
 We welcome contributions! Please read our [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct and the process for submitting pull requests.

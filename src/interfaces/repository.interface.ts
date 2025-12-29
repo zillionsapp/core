@@ -26,4 +26,14 @@ export interface IDataStore {
      * Save backtesting execution results
      */
     saveBacktestResult(result: any): Promise<void>;
+
+    /**
+     * Get backtest results
+     */
+    getBacktestResults(limit?: number): Promise<any[]>;
+
+    /**
+     * Get latest portfolio snapshot
+     */
+    getLatestPortfolioSnapshot(): Promise<PortfolioSnapshot | null>;
 }
