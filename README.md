@@ -139,11 +139,26 @@ The `RiskManager` module (`src/core/risk.manager.ts`) intercepts every order bef
 
 ## 🔮 Roadmap
 
-- [ ] Implement live API calls for Binance/Hyperliquid adapters.
-- [ ] Add WebSocket support for real-time orderbook updates.
-- [ ] Implement a REST API / Dashboard for monitoring.
-- [ ] Add generic CCXT adapter implementation.
+- [ ] **Exchange Support**: Implement Drift.trade and Hyperliquid adapters.
+- [ ] **Strategies**: Implement standard strategy library (RSI, MACD, etc.).
+- [ ] **Connectivity**: WebSocket and REST APIs for custom dashboards.
+- [ ] **UI**: Build a simple in-built dashboard.
+- [ ] **Intelligence**: AI/ML implementation for signal optimization.
 
 ---
 
 **License**: Apache License 2.0. contains **NOTICE** file with mandatory attribution to **Zillions.app** / **@christonomous**.
+
+---
+
+## 🔗 Connect
+
+*   **App**: 
+    *   [Website](https://zillions.app)
+    *   [GitHub](https://github.com/zillionsapp)
+*   **Founder**: **@christonomous**
+    *   [Website](https://chris.berlin)
+    *   [GitHub](https://github.com/christonomous)
+    *   [X.com](https://x.com/christonomous)
+    *   [LinkedIn](https://linkedin.com/in/christonomous)
+    *   [Instagram](https://instagram.com/christonomous)
