@@ -18,6 +18,12 @@ const envSchema = z.object({
     // Database
     SUPABASE_URL: z.string().optional(),
     SUPABASE_KEY: z.string().optional(),
+
+    // Risk Management
+    MAX_ORDER_VALUE: z.coerce.number().default(10000), // USDT
+    MAX_DAILY_DRAWDOWN_PERCENT: z.coerce.number().default(5), // 5%
+    DEFAULT_STOP_LOSS_PERCENT: z.coerce.number().default(0.05), // 5%
+    DEFAULT_TAKE_PROFIT_PERCENT: z.coerce.number().default(0.10), // 10%
 });
 
 export const config = envSchema.parse(process.env);

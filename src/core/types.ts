@@ -50,6 +50,8 @@ export interface Trade {
     timestamp: number;
     commission?: number;
     commissionAsset?: string;
+    stopLossPrice?: number;
+    takeProfitPrice?: number;
 }
 
 export interface Signal {
@@ -57,4 +59,6 @@ export interface Signal {
     symbol: string;
     confidence?: number; // 0-1
     metadata?: any; // Extra info from strategy
+    stopLoss?: number; // Optional override price
+    takeProfit?: number; // Optional override price
 }

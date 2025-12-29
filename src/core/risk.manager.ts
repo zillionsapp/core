@@ -48,4 +48,27 @@ export class RiskManager {
 
         return true;
     }
+
+    calculateExitPrices(entryPrice: number, side: 'BUY' | 'SELL',
+        signalSL?: number, signalTP?: number): { stopLoss: number, takeProfit: number } {
+
+        // Use Defaults from Config (or hardcoded for now until config is wired)
+        // Hardcoded as fallback if config import fails or is circular, but ideally use config.
+        const defaultSL = 0.05; // 5%
+        const defaultTP = 0.10; // 10%
+
+        let stopLoss = 0;
+        let takeProfit = 0;
+
+        if (side === 'BUY') {
+            stopLoss = signalSL ? signalSL : entryPrice * (1 - defaultSL);
+            takeProfit = signalTP ? signalTP : entryPrice * (1 + defaultTP);
+        } else {
+            // SHORT logic (future proofing)
+            stopLoss = signalSL ? signalSL : entryPrice * (1 + defaultSL);
+            takeProfit = signalTP ? signalTP : entryPrice * (1 - defaultTP);
+        }
+
+        return { stopLoss, takeProfit };
+    }
 }

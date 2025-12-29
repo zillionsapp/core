@@ -43,4 +43,40 @@ describe('BotEngine Integration', () => {
 
         expect(tickSpy).toHaveBeenCalledWith('BTC/USDT', '1m');
     }, 30000);
+
+    it('should trigger Stop Loss when price drops', async () => {
+        // 1. Setup: Mock Strategy to return BUY
+        const strategySpy = jest.spyOn(engine['strategy'], 'update').mockResolvedValue({
+            action: 'BUY',
+            symbol: 'BTC/USDT'
+        });
+
+        // 2. Setup: Spy on Exchange Data Provider methods (bypassing fetch)
+        const getCandlesSpy = jest.spyOn(engine['exchange'], 'getCandles')
+            .mockResolvedValueOnce([{
+                symbol: 'BTC/USDT', interval: '1m', open: 100, high: 100, low: 100, close: 100, volume: 100, startTime: Date.now()
+            }]) // Tick 1: Signal Generation
+            .mockResolvedValueOnce([{
+                symbol: 'BTC/USDT', interval: '1m', open: 90, high: 90, low: 90, close: 90, volume: 100, startTime: Date.now()
+            }]); // Tick 2: Stop Loss Check (Price 90 < 95)
+
+        const getTickerSpy = jest.spyOn(engine['exchange'], 'getTicker')
+            .mockResolvedValueOnce({ symbol: 'BTC/USDT', price: 100, timestamp: Date.now() }) // Tick 1: Risk Check
+            .mockResolvedValueOnce({ symbol: 'BTC/USDT', price: 100, timestamp: Date.now() }) // Tick 1: Execution
+            .mockResolvedValueOnce({ symbol: 'BTC/USDT', price: 90, timestamp: Date.now() }); // Tick 2: Execution (Sell at 90)
+
+        // Tick 1: BUY
+        await engine.tick('BTC/USDT', '1m');
+        expect(engine['activeTrade']).toBeDefined();
+        expect(engine['activeTrade']?.stopLossPrice).toBe(95); // 100 * 0.95
+
+        // Tick 2: STOP LOSS CHECK
+        const placeOrderSpy = jest.spyOn(engine['exchange'], 'placeOrder');
+        await engine.tick('BTC/USDT', '1m');
+
+        expect(placeOrderSpy).toHaveBeenCalledWith(expect.objectContaining({
+            side: 'SELL'
+        }));
+        expect(engine['activeTrade']).toBeNull();
+    });
 });

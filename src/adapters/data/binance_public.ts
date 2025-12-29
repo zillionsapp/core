@@ -48,9 +48,14 @@ export class BinancePublicData implements IMarketDataProvider {
             }
 
             const data = await response.json();
+            console.log(`[BinancePublicData] getTicker raw data:`, JSON.stringify(data));
+            const price = parseFloat(data.price);
+            if (isNaN(price)) {
+                console.error(`[BinancePublicData] Price format error. Price raw: '${data.price}'`);
+            }
             return {
                 symbol,
-                price: parseFloat(data.price),
+                price: price,
                 timestamp: Date.now()
             };
         } catch (error) {
