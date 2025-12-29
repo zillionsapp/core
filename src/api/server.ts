@@ -21,10 +21,15 @@ app.get('/health', (req, res) => {
     res.json({ status: 'ok', timestamp: Date.now() });
 });
 
-if (require.main === module) {
-    app.listen(port, () => {
-        console.log(`[Zillion API] Server running at http://localhost:${port}`);
+export const startApi = (p?: number | string) => {
+    const serverPort = p || port;
+    app.listen(serverPort, () => {
+        console.log(`[Zillion API] Server running at http://localhost:${serverPort}`);
     });
+};
+
+if (require.main === module) {
+    startApi();
 }
 
 export default app;
