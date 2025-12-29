@@ -18,8 +18,10 @@ export class BacktestRunner {
         this.db = new SupabaseDataStore();
         this.riskManager = new RiskManager(this.exchange);
     }
-
     async run(strategyName: string, symbol: string, interval: string) {
+        // 0. Capture Initial Balance
+        const initialBalance = await this.exchange.getBalance('USDT');
+
         console.log(`[Backtest] Running ${strategyName} on ${symbol} ${interval}...`);
 
         // 1. Get History (Mocking 1000 candles)
@@ -82,7 +84,7 @@ export class BacktestRunner {
                             stopLossPrice: exitPrices.stopLoss,
                             takeProfitPrice: exitPrices.takeProfit
                         };
-                        console.log(`[Backtest] BUY Entry. SL: ${this.activeTrade.stopLossPrice}, TP: ${this.activeTrade.takeProfitPrice}`);
+                        console.log(`[Backtest] BUY Entry.SL: ${this.activeTrade.stopLossPrice}, TP: ${this.activeTrade.takeProfitPrice} `);
 
                     } catch (e) {
                         // Ignore funds error in simple loop
@@ -105,10 +107,14 @@ export class BacktestRunner {
 
         // 3. Report
         const finalBalance = await this.exchange.getBalance('USDT');
+        const pnlUSDT = finalBalance - initialBalance;
+        const pnlPercent = (pnlUSDT / initialBalance) * 100;
 
         console.log('--- Backtest Complete ---');
-        console.log(`Trades: ${tradesCount}`);
-        console.log(`Final USDT: ${finalBalance}`);
+        console.log(`Trades: ${tradesCount} `);
+        console.log(`Initial USDT: ${initialBalance.toFixed(2)} `);
+        console.log(`Final USDT: ${finalBalance.toFixed(2)} `);
+        console.log(`PnL: ${pnlUSDT.toFixed(2)} USDT(${pnlPercent.toFixed(2)} %)`);
     }
 }
 

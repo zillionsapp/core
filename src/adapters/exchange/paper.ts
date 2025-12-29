@@ -48,6 +48,9 @@ export class PaperExchange implements IExchange {
                 throw new Error(`Insufficient funds. Required: ${cost}, Available: ${balance}`);
             }
             this.balances.set(quoteAsset, balance - cost);
+        } else if (orderRequest.side === 'SELL') {
+            const balance = this.balances.get(quoteAsset) || 0;
+            this.balances.set(quoteAsset, balance + cost);
         }
 
         const order: Order = {
