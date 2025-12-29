@@ -7,6 +7,7 @@ import { SupabaseDataStore } from '../adapters/database/supabase';
 import { OrderRequest, Trade } from './types';
 import { logger } from './logger';
 import { RiskManager } from './risk.manager';
+import { TimeUtils } from './time.utils';
 
 export class BotEngine {
     private exchange: IExchange;
@@ -131,8 +132,9 @@ export class BotEngine {
         while (this.isRunning) {
             await this.tick(symbol, interval);
 
-            // Wait for next tick (simulated)
-            await new Promise(resolve => setTimeout(resolve, 5000));
+            const sleepTime = TimeUtils.getSleepDuration(interval);
+            logger.info(`[BotEngine] Sleeping for ${(sleepTime / 1000).toFixed(1)}s until next candle boundary...`);
+            await new Promise(resolve => setTimeout(resolve, sleepTime));
         }
     }
 
