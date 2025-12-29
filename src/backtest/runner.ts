@@ -110,11 +110,16 @@ export class BacktestRunner {
         const pnlUSDT = finalBalance - initialBalance;
         const pnlPercent = (pnlUSDT / initialBalance) * 100;
 
+        const startPrice = candles[50].close;
+        const endPrice = candles[candles.length - 1].close;
+        const buyHoldPercent = ((endPrice - startPrice) / startPrice) * 100;
+
         console.log('--- Backtest Complete ---');
         console.log(`Trades: ${tradesCount} `);
         console.log(`Initial USDT: ${initialBalance.toFixed(2)} `);
         console.log(`Final USDT: ${finalBalance.toFixed(2)} `);
-        console.log(`PnL: ${pnlUSDT.toFixed(2)} USDT(${pnlPercent.toFixed(2)} %)`);
+        console.log(`Strategy PnL: ${pnlUSDT.toFixed(2)} USDT (${pnlPercent.toFixed(2)}%)`);
+        console.log(`Buy & Hold PnL: ${buyHoldPercent.toFixed(2)}%`);
     }
 }
 
