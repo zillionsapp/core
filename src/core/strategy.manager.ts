@@ -1,5 +1,5 @@
 import { IStrategy } from '../interfaces/strategy.interface';
-import { SmaCrossoverStrategy } from '../strategies/examples/sma_crossover';
+import { SmaCrossoverStrategy } from '../strategies/sma_crossover';
 
 export class StrategyManager {
     private static strategies: Map<string, any> = new Map([
