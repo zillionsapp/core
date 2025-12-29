@@ -1,6 +1,6 @@
-# Zillion Core - Scalable Node.js Trading Bot
+# Zillions Core - Scalable Node.js Trading Bot
 
-**Zillion Core** is a professional-grade, scalable, and modular trading bot engine built with Node.js, TypeScript, and a Hexagonal Architecture. It is designed to be exchange-agnostic, strategy-pluggable, and production-ready with built-in risk management and structured logging.
+**Zillions Core** is a professional-grade, scalable, and modular trading bot engine built with Node.js, TypeScript, and a Hexagonal Architecture. It is designed to be exchange-agnostic, strategy-pluggable, and production-ready with built-in risk management and structured logging.
 
 ---
 
