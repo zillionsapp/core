@@ -214,7 +214,8 @@ The `RiskManager` module (`src/core/risk.manager.ts`) intercepts every order bef
 
 Zillion Core includes a built-in REST API to expose data and control the bot.
 
-### Running the API
+### Running the API & Dashboard
+Open [http://localhost:3000](http://localhost:3000) in your browser to access the **Trader Dashboard**.
 ```bash
 npm run api
 ```
