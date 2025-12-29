@@ -58,6 +58,7 @@
     PAPER_INITIAL_BALANCE=10000
     SUPABASE_URL=your-supabase-url
     SUPABASE_KEY=your-supabase-key
+    STRATEGY_NAME=SMA_CROSSOVER
     ```
 
 4.  **Database Setup (Supabase)**:
