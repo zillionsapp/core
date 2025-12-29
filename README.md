@@ -8,10 +8,13 @@
 
 *   **Hexagonal Architecture**: Core logic is isolated from external adapters (Exchanges, Database), allowing easy swapping of components.
 *   **Multi-Exchange Support**:
-    *   **Paper Trading**: Simulated matching engine for safe testing.
+    *   **Real Market Data**: Decoupled data provider supporting `Binance Public API` (Free, no-auth) for Paper Trading and Backtesting.
+    *   **Paper Trading**: Simulated matching engine using real-world price data for realistic testing.
     *   **Prepared for**: Binance, Hyperliquid, Drift, CCXT, OKX (Stubs ready).
-*   **Robust Risk Management**: Middleware layer preventing catastrophic losses (Max Order Size, Daily Drawdown limits).
-*   **Backtesting Engine**: Dedicated runner to validate strategies against historical data.
+*   **Robust Risk Management**:
+    *   **Automated Protection**: Stop Loss and Take Profit execution engine.
+    *   **Middleware Checks**: Max Order Size and Daily Drawdown limits.
+*   **Backtesting Engine**: Dedicated runner to validate strategies against historical market data (no random walks).
 *   **Strategy System**: Pluggable strategy interface. Simply add a new class to `src/strategies`.
 *   **Persistence**: Integration with **Supabase** (PostgreSQL) for trade history and portfolio snapshots.
 *   **Production Ready**:
@@ -142,6 +145,7 @@ src/
 The `RiskManager` module (`src/core/risk.manager.ts`) intercepts every order before execution.
 - **Max Order Value**: Prevents fat-finger errors (Default: 10,000 USDT).
 - **Daily Drawdown**: Halts trading if equity drops by 5% in a single day.
+- **Stop Loss / Take Profit**: Automatically tracks positions and triggers exit orders if price limits are crossed (Default: 5% SL / 10% TP).
 
 ---
 
