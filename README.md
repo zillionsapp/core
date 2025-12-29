@@ -198,7 +198,7 @@ The `RiskManager` module (`src/core/risk.manager.ts`) intercepts every order bef
 - [ ] **Exchange Support**: Implement Drift.trade adapter.
 - [ ] **Exchange Support**: Implement Hyperliquid adapter.
 - [ ] **Strategies**: Implement standard strategy library (RSI, MACD, etc.).
-- [/] **Connectivity**: WebSocket and REST APIs for custom dashboards.
+- [x] **Connectivity**: WebSocket and REST APIs for custom dashboards.
 - [ ] **UI**: Build a simple in-built dashboard.
 - [ ] **Intelligence**: AI/ML implementation for signal optimization.
 
