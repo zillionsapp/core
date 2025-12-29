@@ -18,6 +18,7 @@
 *   **Strategy System**: Pluggable strategy interface. Simply add a new class to `src/strategies`.
 *   **Persistence**: Integration with **Supabase** (PostgreSQL) for trade history and portfolio snapshots.
 *   **Production Ready**:
+    *   **Smart Polling**: Interval-based execution loop to minimize API overhead and synchronize with candle boundaries.
     *   **Structured Logging**: JSON-formatted logs via `winston`.
     *   **Dockerized**: Optimized multi-stage `Dockerfile`.
     *   **Process Management**: `PM2` ecosystem config included.
@@ -59,6 +60,8 @@
     SUPABASE_URL=your-supabase-url
     SUPABASE_KEY=your-supabase-key
     STRATEGY_NAME=SMA_CROSSOVER
+    STRATEGY_SYMBOL=BTC/USDT
+    STRATEGY_INTERVAL=1m
     ```
 
 4.  **Database Setup (Supabase)**:
@@ -82,7 +85,7 @@ npm start
 ```
 
 ### Backtesting
-Runs the simulation runner against the active strategy.
+Runs the simulation runner against historical data. Includes Winrate, Profit Factor, and Buy & Hold benchmarks.
 ```bash
 npm run backtest
 ```
@@ -177,9 +180,11 @@ Zillion's strategy system is pluggable. To add your own logic:
         ['MY_STRATEGY', MyStrategy] // <-- Add this
     ]);
     ```
-4.  **Run it**: Update `.env` or use the backtester.
+4.  **Run it**: Update `.env` or use environment variables:
     ```env
-    ACTIVE_STRATEGY=MY_STRATEGY
+    STRATEGY_NAME=MY_STRATEGY
+    STRATEGY_SYMBOL=ETH/USDT
+    STRATEGY_INTERVAL=5m
     ```
 
 ---
