@@ -1,5 +1,5 @@
-import { IStrategy, StrategyConfig } from '../../interfaces/strategy.interface';
-import { Candle, Signal } from '../../core/types';
+import { IStrategy, StrategyConfig } from '../interfaces/strategy.interface';
+import { Candle, Signal } from '../core/types';
 import { SMA } from 'technicalindicators';
 
 export class SmaCrossoverStrategy implements IStrategy {
