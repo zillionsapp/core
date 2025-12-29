@@ -1,4 +1,5 @@
 import { IExchange } from '../../interfaces/exchange.interface';
+import { IMarketDataProvider } from '../../interfaces/market_data.interface';
 import { Candle, Order, OrderRequest, OrderStatus, Ticker } from '../../core/types';
 import { config } from '../../config/env';
 
@@ -9,8 +10,10 @@ export class PaperExchange implements IExchange {
     name = 'PAPER';
     private balances: Map<string, number> = new Map();
     private orders: Map<string, Order> = new Map();
+    private dataProvider: IMarketDataProvider;
 
-    constructor() {
+    constructor(dataProvider: IMarketDataProvider) {
+        this.dataProvider = dataProvider;
         this.balances.set(config.PAPER_BALANCE_ASSET, config.PAPER_INITIAL_BALANCE);
     }
 
@@ -19,37 +22,12 @@ export class PaperExchange implements IExchange {
     }
 
     async getCandles(symbol: string, interval: string, limit: number = 100): Promise<Candle[]> {
-        const candles: Candle[] = [];
-        let lastClose = 1000;
-        const now = Date.now();
-
-        for (let i = limit; i > 0; i--) {
-            const open = lastClose;
-            const close = lastClose * (1 + (Math.random() - 0.5) * 0.02);
-            const high = Math.max(open, close) * 1.01;
-            const low = Math.min(open, close) * 0.99;
-
-            candles.push({
-                symbol,
-                interval,
-                open,
-                high,
-                low,
-                close,
-                volume: Math.random() * 100,
-                startTime: now - (i * 60000),
-            });
-            lastClose = close;
-        }
-        return candles;
+        // Delegate to real data provider
+        return this.dataProvider.getCandles(symbol, interval, limit);
     }
 
     async getTicker(symbol: string): Promise<Ticker> {
-        return {
-            symbol,
-            price: 1000 + (Math.random() * 10),
-            timestamp: Date.now()
-        };
+        return this.dataProvider.getTicker(symbol);
     }
 
     async getBalance(asset: string): Promise<number> {

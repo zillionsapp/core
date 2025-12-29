@@ -12,6 +12,10 @@ describe('BotEngine Integration', () => {
         engine = new BotEngine('SMA_CROSSOVER');
     });
 
+    afterEach(() => {
+        jest.restoreAllMocks();
+    });
+
     it('should instantiate correctly', () => {
         expect(engine).toBeDefined();
     });
@@ -38,5 +42,5 @@ describe('BotEngine Integration', () => {
         await engine.tick('BTC/USDT', '1m');
 
         expect(tickSpy).toHaveBeenCalledWith('BTC/USDT', '1m');
-    });
+    }, 30000);
 });

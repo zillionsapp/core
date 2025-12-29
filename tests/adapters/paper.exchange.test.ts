@@ -1,4 +1,5 @@
 import { PaperExchange } from '../../src/adapters/exchange/paper';
+import { BinancePublicData } from '../../src/adapters/data/binance_public';
 import { OrderRequest } from '../../src/core/types';
 
 describe('PaperExchange', () => {
@@ -8,7 +9,10 @@ describe('PaperExchange', () => {
         // Reset env vars if needed or mock config
         process.env.PAPER_INITIAL_BALANCE = '1000';
         process.env.PAPER_BALANCE_ASSET = 'USDT';
-        exchange = new PaperExchange();
+
+        // Use Real Data as requested
+        const realProvider = new BinancePublicData();
+        exchange = new PaperExchange(realProvider);
     });
 
     it('should initialize with correct balance', async () => {
@@ -19,8 +23,13 @@ describe('PaperExchange', () => {
     });
 
     it('should generate candles', async () => {
+        jest.setTimeout(30000);
         const candles = await exchange.getCandles('BTC/USDT', '1m', 10);
         expect(candles.length).toBe(10);
+
+        const latestPrice = candles[candles.length - 1].close;
+        console.log(`[TEST] Latest Price Loaded: ${latestPrice} USDT`);
+
         expect(candles[0].symbol).toBe('BTC/USDT');
     });
 

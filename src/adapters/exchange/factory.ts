@@ -1,5 +1,6 @@
 import { IExchange } from '../../interfaces/exchange.interface';
 import { PaperExchange } from './paper';
+import { BinancePublicData } from '../data/binance_public';
 import { HyperliquidExchange } from './hyperliquid';
 import { DriftExchange } from './drift';
 import { CCXTExchange } from './ccxt';
@@ -10,7 +11,9 @@ export class ExchangeFactory {
     static getExchange(): IExchange {
         switch (config.EXCHANGE_DRIVER) {
             case 'PAPER':
-                return new PaperExchange();
+                // Shared Data Provider
+                const publicData = new BinancePublicData();
+                return new PaperExchange(publicData);
             case 'HYPERLIQUID':
                 return new HyperliquidExchange();
             case 'DRIFT':

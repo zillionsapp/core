@@ -9,7 +9,15 @@ describe('RiskManager', () => {
     beforeEach(async () => {
         // Reset Env
         process.env.PAPER_INITIAL_BALANCE = '10000';
-        exchange = new PaperExchange();
+
+        // Mock Provider
+        const mockProvider = {
+            name: 'MOCK',
+            getCandles: jest.fn().mockResolvedValue([]),
+            getTicker: jest.fn().mockResolvedValue({ symbol: 'BTC/USDT', price: 1000, timestamp: Date.now() })
+        };
+
+        exchange = new PaperExchange(mockProvider);
         await exchange.start();
         riskManager = new RiskManager(exchange);
         await riskManager.init();
