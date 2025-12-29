@@ -111,6 +111,14 @@ npm run build
 pm2 start ecosystem.config.js
 ```
 
+### Vercel (Serverless)
+Zillion is configured for Vercel Cron deployment.
+1.  **Push** your code to GitHub.
+2.  **Import** the project into Vercel.
+3.  **Deploy**. Vercel will automatically detect `vercel.json` and trigger `api/cron.ts` every minute.
+
+*Note: Paper Trading on serverless will reset state every minute unless you connect a database.*
+
 ---
 
 ## 🏛 Architecture
