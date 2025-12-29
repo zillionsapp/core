@@ -1,6 +1,6 @@
 import { IExchange } from '../../interfaces/exchange.interface';
 import { IMarketDataProvider } from '../../interfaces/market_data.interface';
-import { Candle, Order, OrderRequest, OrderStatus, Ticker } from '../../core/types';
+import { Candle, Order, OrderRequest, Ticker } from '../../core/types';
 import { config } from '../../config/env';
 
 // Helper for ID generation
@@ -40,16 +40,19 @@ export class PaperExchange implements IExchange {
 
         // Calculate cost
         const cost = orderRequest.quantity * price;
+        const leverage = config.LEVERAGE_ENABLED ? config.LEVERAGE_VALUE : 1;
+        const requiredMargin = cost / leverage;
         const quoteAsset = 'USDT';
 
         if (orderRequest.side === 'BUY') {
             const balance = this.balances.get(quoteAsset) || 0;
-            if (balance < cost) {
-                throw new Error(`Insufficient funds. Required: ${cost}, Available: ${balance}`);
+            if (balance < requiredMargin) {
+                throw new Error(`Insufficient funds (Margin). Required: ${requiredMargin.toFixed(2)}, Available: ${balance.toFixed(2)} (Cost: ${cost.toFixed(2)}, Leverage: ${leverage}x)`);
             }
-            this.balances.set(quoteAsset, balance - cost);
+            this.balances.set(quoteAsset, balance - requiredMargin);
         } else if (orderRequest.side === 'SELL') {
             const balance = this.balances.get(quoteAsset) || 0;
+            // For simplicity in paper trading, we credit the full cost (margin + profit/loss)
             this.balances.set(quoteAsset, balance + cost);
         }
 
@@ -66,7 +69,7 @@ export class PaperExchange implements IExchange {
         };
 
         this.orders.set(order.id, order);
-        console.log(`[PaperExchange] Order Executed: ${order.side} ${order.quantity} ${order.symbol} @ ${order.price}`);
+        console.log(`[PaperExchange] Order Executed: ${order.side} ${order.quantity} ${order.symbol} @ ${order.price} (Leverage: ${leverage}x)`);
         return order;
     }
 

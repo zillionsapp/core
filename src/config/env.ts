@@ -29,6 +29,10 @@ const envSchema = z.object({
     STRATEGY_NAME: z.string().default('SMA_CROSSOVER'),
     STRATEGY_SYMBOL: z.string().default('BTC/USDT'),
     STRATEGY_INTERVAL: z.string().default('1m'),
+
+    // Leverage Configuration
+    LEVERAGE_ENABLED: z.string().transform(v => v === 'true').default(false as any),
+    LEVERAGE_VALUE: z.coerce.number().default(1),
 });
 
 export const config = envSchema.parse(process.env);

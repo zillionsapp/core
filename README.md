@@ -62,6 +62,8 @@
     STRATEGY_NAME=SMA_CROSSOVER
     STRATEGY_SYMBOL=BTC/USDT
     STRATEGY_INTERVAL=1m
+    LEVERAGE_ENABLED=false
+    LEVERAGE_VALUE=10
     ```
 
 4.  **Database Setup (Supabase)**:
