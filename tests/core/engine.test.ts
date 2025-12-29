@@ -30,4 +30,13 @@ describe('BotEngine Integration', () => {
 
         await engine.stop();
     });
+
+    it('should execute a single tick successfully', async () => {
+        // This test simulates the Serverless / Vercel invocation
+        const tickSpy = jest.spyOn(engine, 'tick');
+
+        await engine.tick('BTC/USDT', '1m');
+
+        expect(tickSpy).toHaveBeenCalledWith('BTC/USDT', '1m');
+    });
 });
