@@ -1,5 +1,6 @@
 import { StrategyManager } from '../core/strategy.manager';
 import { PaperExchange } from '../adapters/exchange/paper';
+import { BinancePublicData } from '../adapters/data/binance_public';
 import { Candle, OrderRequest } from '../core/types';
 import { SupabaseDataStore } from '../adapters/database/supabase';
 
@@ -8,7 +9,9 @@ export class BacktestRunner {
     private db: SupabaseDataStore;
 
     constructor() {
-        this.exchange = new PaperExchange();
+        // Shared Data Provider
+        const publicData = new BinancePublicData();
+        this.exchange = new PaperExchange(publicData);
         this.db = new SupabaseDataStore();
     }
 
