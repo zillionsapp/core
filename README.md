@@ -140,6 +140,49 @@ src/
 
 ---
 
+## 🧩 Adding Strategies
+
+Zillion's strategy system is pluggable. To add your own logic:
+
+1.  **Create a file**: `src/strategies/my_strategy.ts`
+2.  **Implement the Interface**:
+    ```typescript
+    import { IStrategy } from '../interfaces/strategy.interface';
+    import { Candle, Signal } from '../core/types';
+
+    export class MyStrategy implements IStrategy {
+        name = 'MY_STRATEGY';
+
+        init(config: any): void {
+            // Load parameters
+        }
+
+        async update(candle: Candle): Promise<Signal | null> {
+            // Logic here...
+            if (candle.close > 100) {
+                return { action: 'BUY', symbol: candle.symbol, stopLoss: 95, takeProfit: 110 };
+            }
+            return null;
+        }
+    }
+    ```
+3.  **Register it**:
+    Open `src/core/strategy.manager.ts` and add it to the map:
+    ```typescript
+    import { MyStrategy } from '../strategies/my_strategy';
+    // ...
+    private static strategies = new Map([
+        ['SMA_CROSSOVER', SmaCrossoverStrategy],
+        ['MY_STRATEGY', MyStrategy] // <-- Add this
+    ]);
+    ```
+4.  **Run it**: Update `.env` or use the backtester.
+    ```env
+    ACTIVE_STRATEGY=MY_STRATEGY
+    ```
+
+---
+
 ## 🛡 Risk Management
 
 The `RiskManager` module (`src/core/risk.manager.ts`) intercepts every order before execution.
