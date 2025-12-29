@@ -30,6 +30,9 @@ export class BacktestRunner {
         strategy.init({});
 
         let tradesCount = 0;
+        let winningTrades = 0;
+        let totalGrossProfit = 0;
+        let totalGrossLoss = 0;
 
         // 2. Iterate
         for (let i = 50; i < candles.length; i++) {
@@ -49,12 +52,23 @@ export class BacktestRunner {
                 if (exitReason) {
                     // Execute SELL
                     try {
+                        const entryValue = this.activeTrade.price * this.activeTrade.quantity;
                         const order = await this.exchange.placeOrder({
                             symbol,
                             side: 'SELL',
                             type: 'MARKET',
                             quantity: this.activeTrade.quantity
                         });
+                        const exitValue = order.price * order.quantity;
+                        const tradePnL = exitValue - entryValue;
+
+                        if (tradePnL > 0) {
+                            winningTrades++;
+                            totalGrossProfit += tradePnL;
+                        } else {
+                            totalGrossLoss += Math.abs(tradePnL);
+                        }
+
                         console.log(`[Backtest] ${exitReason} triggered at ${currentCandle.close} (High: ${currentCandle.high}, Low: ${currentCandle.low})`);
                         this.activeTrade = null;
                     } catch (e) { console.error(e); }
@@ -92,12 +106,23 @@ export class BacktestRunner {
                 } else if (signal.action === 'SELL' && this.activeTrade) {
                     // Strategy explicit close
                     try {
-                        await this.exchange.placeOrder({
+                        const entryValue = this.activeTrade.price * this.activeTrade.quantity;
+                        const order = await this.exchange.placeOrder({
                             symbol,
                             side: 'SELL',
                             type: 'MARKET',
                             quantity: this.activeTrade.quantity
                         });
+                        const exitValue = order.price * order.quantity;
+                        const tradePnL = exitValue - entryValue;
+
+                        if (tradePnL > 0) {
+                            winningTrades++;
+                            totalGrossProfit += tradePnL;
+                        } else {
+                            totalGrossLoss += Math.abs(tradePnL);
+                        }
+
                         this.activeTrade = null;
                         console.log(`[Backtest] Strategy SELL Exit.`);
                     } catch (e) { }
@@ -114,8 +139,13 @@ export class BacktestRunner {
         const endPrice = candles[candles.length - 1].close;
         const buyHoldPercent = ((endPrice - startPrice) / startPrice) * 100;
 
+        const winrate = tradesCount > 0 ? (winningTrades / tradesCount) * 100 : 0;
+        const profitFactor = totalGrossLoss > 0 ? totalGrossProfit / totalGrossLoss : totalGrossProfit > 0 ? Infinity : 0;
+
         console.log('--- Backtest Complete ---');
         console.log(`Trades: ${tradesCount} `);
+        console.log(`Winrate: ${winrate.toFixed(2)}% `);
+        console.log(`Profit Factor: ${profitFactor === Infinity ? '∞' : profitFactor.toFixed(2)} `);
         console.log(`Initial USDT: ${initialBalance.toFixed(2)} `);
         console.log(`Final USDT: ${finalBalance.toFixed(2)} `);
         console.log(`Strategy PnL: ${pnlUSDT.toFixed(2)} USDT (${pnlPercent.toFixed(2)}%)`);
