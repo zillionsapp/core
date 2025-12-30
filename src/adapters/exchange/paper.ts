@@ -12,6 +12,7 @@ interface Position {
     entryPrice: number;
     margin: number;
     leverage: number;
+    side: 'BUY' | 'SELL'; // Track if this is a long or short position
 }
 
 export class PaperExchange implements IExchange {
@@ -48,7 +49,41 @@ export class PaperExchange implements IExchange {
         const quoteAsset = 'USDT';
         const leverage = config.LEVERAGE_ENABLED ? config.LEVERAGE_VALUE : 1;
 
-        if (orderRequest.side === 'BUY') {
+        // Check if this order closes an existing position
+        const existingPos = this.positions.get(orderRequest.symbol);
+        if (existingPos) {
+            // This is a closing order
+            const closeQty = Math.min(orderRequest.quantity, existingPos.quantity);
+            let pnl = 0;
+
+            if (existingPos.side === 'BUY') {
+                // Closing a long position
+                const entryValue = existingPos.entryPrice * closeQty;
+                const exitValue = price * closeQty;
+                pnl = exitValue - entryValue;
+            } else {
+                // Closing a short position
+                const entryValue = existingPos.entryPrice * closeQty;
+                const exitValue = price * closeQty;
+                pnl = entryValue - exitValue;
+            }
+
+            // Return margin used for this portion + PnL
+            const marginToReturn = (existingPos.margin / existingPos.quantity) * closeQty;
+            const balance = this.balances.get(quoteAsset) || 0;
+            this.balances.set(quoteAsset, balance + marginToReturn + pnl);
+
+            if (closeQty >= existingPos.quantity) {
+                this.positions.delete(orderRequest.symbol);
+            } else {
+                this.positions.set(orderRequest.symbol, {
+                    ...existingPos,
+                    quantity: existingPos.quantity - closeQty,
+                    margin: existingPos.margin - marginToReturn
+                });
+            }
+        } else {
+            // This is an opening order
             const cost = orderRequest.quantity * price;
             const requiredMargin = cost / leverage;
             const balance = this.balances.get(quoteAsset) || 0;
@@ -59,57 +94,14 @@ export class PaperExchange implements IExchange {
 
             this.balances.set(quoteAsset, balance - requiredMargin);
 
-            // Track position (simple one-position-per-symbol for now)
-            const existing = this.positions.get(orderRequest.symbol);
-            if (existing) {
-                // Average entry for additive positions
-                const totalQty = existing.quantity + orderRequest.quantity;
-                const avgPrice = ((existing.entryPrice * existing.quantity) + (price * orderRequest.quantity)) / totalQty;
-                this.positions.set(orderRequest.symbol, {
-                    ...existing,
-                    quantity: totalQty,
-                    entryPrice: avgPrice,
-                    margin: existing.margin + requiredMargin
-                });
-            } else {
-                this.positions.set(orderRequest.symbol, {
-                    symbol: orderRequest.symbol,
-                    quantity: orderRequest.quantity,
-                    entryPrice: price,
-                    margin: requiredMargin,
-                    leverage
-                });
-            }
-        } else if (orderRequest.side === 'SELL') {
-            const pos = this.positions.get(orderRequest.symbol);
-            if (!pos) {
-                // Shorting logic would go here, but for now we assume closing a long
-                // To support backtesting properly, we'll just treat it as a normal sell if no position exists
-                // (e.g. for strategies that sell first)
-                const balance = this.balances.get(quoteAsset) || 0;
-                this.balances.set(quoteAsset, balance + (orderRequest.quantity * price));
-            } else {
-                // Closing a long position
-                const sellQty = Math.min(orderRequest.quantity, pos.quantity);
-                const entryValue = pos.entryPrice * sellQty;
-                const exitValue = price * sellQty;
-                const pnl = exitValue - entryValue;
-
-                // Return margin used for this portion + PnL
-                const marginToReturn = (pos.margin / pos.quantity) * sellQty;
-                const balance = this.balances.get(quoteAsset) || 0;
-                this.balances.set(quoteAsset, balance + marginToReturn + pnl);
-
-                if (sellQty >= pos.quantity) {
-                    this.positions.delete(orderRequest.symbol);
-                } else {
-                    this.positions.set(orderRequest.symbol, {
-                        ...pos,
-                        quantity: pos.quantity - sellQty,
-                        margin: pos.margin - marginToReturn
-                    });
-                }
-            }
+            this.positions.set(orderRequest.symbol, {
+                symbol: orderRequest.symbol,
+                quantity: orderRequest.quantity,
+                entryPrice: price,
+                margin: requiredMargin,
+                leverage,
+                side: orderRequest.side
+            });
         }
 
         const order: Order = {
