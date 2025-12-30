@@ -1,4 +1,3 @@
--- Trades Table
 create table public.trades (
   id text primary key,
   "orderId" text,
@@ -7,8 +6,13 @@ create table public.trades (
   quantity numeric,
   price numeric,
   timestamp bigint,
+  status text default 'OPEN',
   commission numeric,
   "commissionAsset" text,
+  "stopLossPrice" numeric,
+  "takeProfitPrice" numeric,
+  "exitPrice" numeric,
+  "exitTimestamp" bigint,
   created_at timestamp with time zone default timezone('utc'::text, now())
 );
 
