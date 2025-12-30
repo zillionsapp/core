@@ -120,13 +120,25 @@ npm run build
 pm2 start ecosystem.config.js
 ```
 
-### Vercel (Serverless)
-Zillion is configured for Vercel Cron deployment.
-1.  **Push** your code to GitHub.
-2.  **Import** the project into Vercel.
-3.  **Deploy**. Vercel will automatically detect `vercel.json` and trigger `api/cron.ts` every minute.
+### Vercel (Serverless / Production)
+Zillion is optimized for Vercel Cron deployment. This mode uses a "pulsed" execution model where the bot runs once per minute and state is recovered from Supabase.
 
-*Note: Paper Trading on serverless will reset state every minute unless you connect a database.*
+1.  **Preparation**:
+    - **Database**: You **must** use Supabase for Vercel deployment. Run the SQL in `supabase_schema.sql` AND the migration script in `walkthrough.md` in your Supabase SQL Editor.
+2.  **Deployment**:
+    - Import your project into Vercel.
+    - Add the following **Environment Variables** in the Vercel Dashboard:
+        - `SUPABASE_URL` / `SUPABASE_KEY`
+        - `EXCHANGE_DRIVER` (use `BINANCE` or `CCXT` for real trading)
+        - `EXCHANGE_API_KEY` / `EXCHANGE_API_SECRET`
+        - `STRATEGY_NAME`, `STRATEGY_SYMBOL`, `STRATEGY_INTERVAL`
+        - `CRON_SECRET`: Generate a random string (e.g. via `openssl rand -base64 32`).
+3.  **Security**:
+    - Vercel will automatically detect `vercel.json` and protect your cron endpoint using the `CRON_SECRET`.
+    - The Express Dashboard API is also accessible at `https://your-domain.vercel.app/api/...` via the bridging setup.
+
+> [!IMPORTANT]
+> When running on Vercel, the bot does **not** use `npm start`. It is triggered automatically by the Vercel Cron scheduler. Ensure you do not have the same account running locally simultaneously to avoid duplicate orders.
 
 ---
 
