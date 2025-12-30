@@ -1,6 +1,6 @@
 import { IStrategy, StrategyConfig } from '../interfaces/strategy.interface';
 import { Candle, Signal } from '../core/types';
-import { SMA } from 'technicalindicators';
+import { sma } from 'indicatorts';
 
 export class SmaCrossoverStrategy implements IStrategy {
     name = 'SMA_CROSSOVER';
@@ -26,8 +26,8 @@ export class SmaCrossoverStrategy implements IStrategy {
             return null;
         }
 
-        const smaShort = SMA.calculate({ period: this.shortPeriod, values: this.prices });
-        const smaLong = SMA.calculate({ period: this.longPeriod, values: this.prices });
+        const smaShort = sma(this.prices, { period: this.shortPeriod });
+        const smaLong = sma(this.prices, { period: this.longPeriod });
 
         const lastShort = smaShort[smaShort.length - 1];
         const prevShort = smaShort[smaShort.length - 2];
