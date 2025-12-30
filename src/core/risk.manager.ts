@@ -3,10 +3,6 @@ import { logger } from './logger';
 import { IExchange } from '../interfaces/exchange.interface';
 import { config } from '../config/env';
 
-// Hardcoded limits for MVP - should be config driven
-const MAX_ORDER_AMOUNT_USDT = 10000;
-const DAILY_LOSS_LIMIT_PERCENT = 0.05; // 5%
-
 export class RiskManager {
     private exchange: IExchange;
     private initialBalance: number = 0;
@@ -25,23 +21,15 @@ export class RiskManager {
     async validateOrder(order: OrderRequest): Promise<boolean> {
         if (!this.isInitialized) await this.init();
 
-        const ticker = await this.exchange.getTicker(order.symbol);
-        const estimatedValue = order.quantity * ticker.price;
-
-        // 1. Max Order Value Check
-        if (estimatedValue > MAX_ORDER_AMOUNT_USDT) {
-            logger.warn(`[RiskManager] REJECTED order. Value ${estimatedValue} > Limit ${MAX_ORDER_AMOUNT_USDT}`);
-            return false;
-        }
-
-        // 2. Daily Drawdown Check
+        // 1. Daily Drawdown Check
         if (order.side === 'BUY') { // Check before entering new risk
             const currentBalance = await this.exchange.getBalance(config.PAPER_BALANCE_ASSET);
             // Simplified drawdown tracking: just checking Balance drop. 
             // In real app, we need equity (Balance + Open PnL).
 
             const drop = (this.initialBalance - currentBalance) / this.initialBalance;
-            if (drop > DAILY_LOSS_LIMIT_PERCENT) {
+            const limit = config.MAX_DAILY_DRAWDOWN_PERCENT / 100;
+            if (drop > limit) {
                 logger.error(`[RiskManager] HALT. Max Drawdown hit: ${(drop * 100).toFixed(2)}%`);
                 return false;
             }
@@ -50,13 +38,20 @@ export class RiskManager {
         return true;
     }
 
+    async calculateQuantity(symbol: string, price: number): Promise<number> {
+        const balance = await this.exchange.getBalance(config.PAPER_BALANCE_ASSET);
+        const tradeValue = balance * (config.POSITION_SIZE_PERCENT / 100);
+        const quantity = tradeValue / price;
+
+        logger.info(`[RiskManager] Calculated quantity for ${symbol}: ${quantity.toFixed(6)} (Value: ${tradeValue.toFixed(2)} ${config.PAPER_BALANCE_ASSET})`);
+        return quantity;
+    }
+
     calculateExitPrices(entryPrice: number, side: 'BUY' | 'SELL',
         signalSL?: number, signalTP?: number): { stopLoss: number, takeProfit: number } {
 
-        // Use Defaults from Config (or hardcoded for now until config is wired)
-        // Hardcoded as fallback if config import fails or is circular, but ideally use config.
-        const defaultSL = 0.05; // 5%
-        const defaultTP = 0.10; // 10%
+        const defaultSL = config.DEFAULT_STOP_LOSS_PERCENT / 100;
+        const defaultTP = config.DEFAULT_TAKE_PROFIT_PERCENT / 100;
 
         let stopLoss = 0;
         let takeProfit = 0;

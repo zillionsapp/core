@@ -62,8 +62,12 @@
     STRATEGY_NAME=MACD
     STRATEGY_SYMBOL=BTC/USDT
     STRATEGY_INTERVAL=1m
+    POSITION_SIZE_PERCENT=10
+    MAX_DAILY_DRAWDOWN_PERCENT=5
+    DEFAULT_STOP_LOSS_PERCENT=5
+    DEFAULT_TAKE_PROFIT_PERCENT=10
     LEVERAGE_ENABLED=false
-    LEVERAGE_VALUE=10
+    LEVERAGE_VALUE=5
     ```
 
 4.  **Database Setup (Supabase)**:
@@ -228,9 +232,12 @@ Zillion's strategy system is pluggable. To add your own logic:
 ## 🛡 Risk Management
 
 The `RiskManager` module (`src/core/risk.manager.ts`) intercepts every order before execution.
-- **Max Order Value**: Prevents fat-finger errors (Default: 10,000 USDT).
-- **Daily Drawdown**: Halts trading if equity drops by 5% in a single day.
+- **Position Sizing**: Dynamically calculates order quantity based on a percentage of your total balance (Default: 10%).
+- **Daily Drawdown**: Halts trading if equity drops by a specific percentage in a single day (Default: 5%).
 - **Stop Loss / Take Profit**: Automatically tracks positions and triggers exit orders if price limits are crossed (Default: 5% SL / 10% TP).
+
+> [!NOTE]
+> All risk management percentages are configured as full numbers in the `.env` file (e.g., `5` means `5%`).
 
 ---
 

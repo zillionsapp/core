@@ -100,11 +100,13 @@ export class BotEngine {
 
                 if (signal.action !== 'HOLD') {
                     // 3. Risk Check
+                    const quantity = await this.riskManager.calculateQuantity(signal.symbol, lastCandle.close);
+
                     const orderRequest: OrderRequest = {
                         symbol: signal.symbol,
                         side: signal.action as 'BUY' | 'SELL',
                         type: 'MARKET',
-                        quantity: 0.001, // Fixed for demo, should come from risk management
+                        quantity: quantity,
                     };
 
                     const isSafe = await this.riskManager.validateOrder(orderRequest);
