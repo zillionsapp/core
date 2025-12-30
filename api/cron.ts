@@ -2,12 +2,7 @@ import { BotEngine } from '../src/core/engine';
 import { logger } from '../src/core/logger';
 import { config } from '../src/config/env';
 
-// Initialize engine outside handler to potentially reuse warm instance (best effort)
-const STRATEGY = 'SMA_CROSSOVER'; // Should probably be env var
-const SYMBOL = 'BTC/USDT';
-const INTERVAL = '1m';
-
-const bot = new BotEngine(STRATEGY);
+const bot = new BotEngine(config.STRATEGY_NAME);
 
 export default async function handler(request: any, response: any) {
     try {
@@ -15,12 +10,14 @@ export default async function handler(request: any, response: any) {
 
         // Validate Auth (Basic security for Cron)
         const authHeader = request.headers.authorization;
-        if (config.NODE_ENV === 'production' && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-            // Optional: Implement CRON_SECRET check if needed, Vercel verifies via signature usually
-            // For now, open
+        if (config.NODE_ENV === 'production' && process.env.CRON_SECRET) {
+            if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+                logger.warn('[Vercel] Unauthorized Cron Access Attempt');
+                return response.status(401).json({ error: 'Unauthorized' });
+            }
         }
 
-        await bot.tick(SYMBOL, INTERVAL);
+        await bot.tick(config.STRATEGY_SYMBOL, config.STRATEGY_INTERVAL);
 
         response.status(200).json({ status: 'ok', timestamp: Date.now() });
     } catch (error) {

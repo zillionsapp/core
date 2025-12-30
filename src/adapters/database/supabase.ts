@@ -85,4 +85,36 @@ export class SupabaseDataStore implements IDataStore {
         }
         return data || [];
     }
+
+    async getActiveTrade(symbol: string): Promise<Trade | null> {
+        if (!this.supabase) return null;
+
+        const { data, error } = await this.supabase
+            .from('trades')
+            .select('*')
+            .eq('symbol', symbol)
+            .eq('status', 'OPEN')
+            .order('timestamp', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+        if (error) {
+            console.error('Error fetching active trade:', error);
+            return null;
+        }
+        return data as Trade;
+    }
+
+    async updateTrade(id: string, updates: Partial<Trade>): Promise<void> {
+        if (!this.supabase) return;
+
+        const { error } = await this.supabase
+            .from('trades')
+            .update(updates)
+            .eq('id', id);
+
+        if (error) {
+            console.error('Error updating trade:', error);
+        }
+    }
 }

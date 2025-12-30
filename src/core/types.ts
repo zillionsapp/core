@@ -48,10 +48,13 @@ export interface Trade {
     quantity: number;
     price: number;
     timestamp: number;
+    status: 'OPEN' | 'CLOSED';
     commission?: number;
     commissionAsset?: string;
     stopLossPrice?: number;
     takeProfitPrice?: number;
+    exitPrice?: number;
+    exitTimestamp?: number;
 }
 
 export interface Signal {

@@ -40,6 +40,14 @@ export class BotEngine {
             await this.exchange.start(); // Ensure connection (stateless safe)
             if (!this.riskManager['isInitialized']) await this.riskManager.init(); // Access private or make public
 
+            // 0. State Recovery (for Serverless / Cold Starts)
+            if (!this.activeTrade) {
+                this.activeTrade = await this.db.getActiveTrade(symbol);
+                if (this.activeTrade) {
+                    logger.info(`[BotEngine] Recovered active trade: ${this.activeTrade.id} (${this.activeTrade.side})`);
+                }
+            }
+
             // 1. Fetch Data
             const candles = await this.exchange.getCandles(symbol, interval, 200);
             if (candles.length === 0) return;
@@ -69,8 +77,13 @@ export class BotEngine {
 
                     const order = await this.exchange.placeOrder(orderRequest);
 
-                    // Close Trade in DB (update exit price, etc - simplified here as new trade entry)
-                    // Real implementation should update the existing trade row. 
+                    // Close Trade in DB
+                    await this.db.updateTrade(this.activeTrade.id, {
+                        status: 'CLOSED',
+                        exitPrice: order.price,
+                        exitTimestamp: order.timestamp
+                    });
+
                     this.activeTrade = null;
                     logger.info(`[BotEngine] Position Closed: ${exitReason}`);
                     return; // Exit tick after closing
@@ -109,6 +122,7 @@ export class BotEngine {
                         quantity: order.quantity,
                         price: order.price,
                         timestamp: order.timestamp,
+                        status: 'OPEN',
                         stopLossPrice: exitPrices.stopLoss,
                         takeProfitPrice: exitPrices.takeProfit
                     };

@@ -36,4 +36,14 @@ export interface IDataStore {
      * Get latest portfolio snapshot
      */
     getLatestPortfolioSnapshot(): Promise<PortfolioSnapshot | null>;
+
+    /**
+     * Get active trade for a symbol
+     */
+    getActiveTrade(symbol: string): Promise<Trade | null>;
+
+    /**
+     * Update a trade record
+     */
+    updateTrade(id: string, updates: Partial<Trade>): Promise<void>;
 }
