@@ -1,16 +1,10 @@
 {
-    "crons": [
-        {
-            "path": "/api/cron",
-            "schedule": "* * * * *"
-        }
-    ],
     "functions": {
         "api/cron.ts": {
-            "maxDuration": 60
+            "maxDuration": 10
         },
         "api/index.ts": {
-            "maxDuration": 30
+            "maxDuration": 10
         }
     },
     "rewrites": [
