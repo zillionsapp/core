@@ -50,19 +50,21 @@ export class RiskManager {
     calculateExitPrices(entryPrice: number, side: 'BUY' | 'SELL',
         signalSL?: number, signalTP?: number): { stopLoss: number, takeProfit: number } {
 
-        const defaultSL = config.DEFAULT_STOP_LOSS_PERCENT / 100;
-        const defaultTP = config.DEFAULT_TAKE_PROFIT_PERCENT / 100;
+        // Use signal percentages if provided, otherwise use defaults from config
+        // All values are percentages (e.g., 5 means 5%)
+        const slPercent = (signalSL ?? config.DEFAULT_STOP_LOSS_PERCENT) / 100;
+        const tpPercent = (signalTP ?? config.DEFAULT_TAKE_PROFIT_PERCENT) / 100;
 
         let stopLoss = 0;
         let takeProfit = 0;
 
         if (side === 'BUY') {
-            stopLoss = signalSL ? signalSL : entryPrice * (1 - defaultSL);
-            takeProfit = signalTP ? signalTP : entryPrice * (1 + defaultTP);
+            stopLoss = entryPrice * (1 - slPercent);
+            takeProfit = entryPrice * (1 + tpPercent);
         } else {
             // SHORT logic (future proofing)
-            stopLoss = signalSL ? signalSL : entryPrice * (1 + defaultSL);
-            takeProfit = signalTP ? signalTP : entryPrice * (1 - defaultTP);
+            stopLoss = entryPrice * (1 + slPercent);
+            takeProfit = entryPrice * (1 - tpPercent);
         }
 
         return { stopLoss, takeProfit };

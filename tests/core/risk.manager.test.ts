@@ -70,4 +70,56 @@ describe('RiskManager', () => {
             config.POSITION_SIZE_PERCENT = originalValue; // Restore
         });
     });
+
+    describe('calculateExitPrices', () => {
+        it('should calculate SL/TP as percentages for BUY position with defaults', () => {
+            const entryPrice = 50000;
+            const { stopLoss, takeProfit } = riskManager.calculateExitPrices(entryPrice, 'BUY');
+
+            // Default SL = 5%, TP = 10%
+            expect(stopLoss).toBe(47500); // 50000 * (1 - 0.05)
+            expect(takeProfit).toBeCloseTo(55000, 2); // 50000 * (1 + 0.10)
+        });
+
+        it('should calculate SL/TP as percentages for BUY position with custom percentages', () => {
+            const entryPrice = 50000;
+            const customSL = 3; // 3%
+            const customTP = 8; // 8%
+            const { stopLoss, takeProfit } = riskManager.calculateExitPrices(entryPrice, 'BUY', customSL, customTP);
+
+            expect(stopLoss).toBe(48500); // 50000 * (1 - 0.03)
+            expect(takeProfit).toBe(54000); // 50000 * (1 + 0.08)
+        });
+
+        it('should calculate SL/TP as percentages for SELL position with defaults', () => {
+            const entryPrice = 50000;
+            const { stopLoss, takeProfit } = riskManager.calculateExitPrices(entryPrice, 'SELL');
+
+            // Default SL = 5%, TP = 10%
+            // For SHORT: SL is above entry, TP is below entry
+            expect(stopLoss).toBe(52500); // 50000 * (1 + 0.05)
+            expect(takeProfit).toBe(45000); // 50000 * (1 - 0.10)
+        });
+
+        it('should calculate SL/TP as percentages for SELL position with custom percentages', () => {
+            const entryPrice = 50000;
+            const customSL = 2; // 2%
+            const customTP = 6; // 6%
+            const { stopLoss, takeProfit } = riskManager.calculateExitPrices(entryPrice, 'SELL', customSL, customTP);
+
+            expect(stopLoss).toBe(51000); // 50000 * (1 + 0.02)
+            expect(takeProfit).toBe(47000); // 50000 * (1 - 0.06)
+        });
+
+        it('should always use percentage-based calculation even when signal values provided', () => {
+            const entryPrice = 100000;
+            const signalSL = 10; // This should be treated as 10%, not an absolute price
+            const signalTP = 15; // This should be treated as 15%, not an absolute price
+            const { stopLoss, takeProfit } = riskManager.calculateExitPrices(entryPrice, 'BUY', signalSL, signalTP);
+
+            expect(stopLoss).toBe(90000); // 100000 * (1 - 0.10)
+            expect(takeProfit).toBeCloseTo(115000, 2); // 100000 * (1 + 0.15)
+        });
+    });
 });
+

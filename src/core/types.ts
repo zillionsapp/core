@@ -62,6 +62,6 @@ export interface Signal {
     symbol: string;
     confidence?: number; // 0-1
     metadata?: any; // Extra info from strategy
-    stopLoss?: number; // Optional override price
-    takeProfit?: number; // Optional override price
+    stopLoss?: number; // Optional SL percentage (e.g., 5 for 5%)
+    takeProfit?: number; // Optional TP percentage (e.g., 10 for 10%)
 }
