@@ -137,8 +137,17 @@ Zillion is optimized for Vercel Cron deployment. This mode uses a "pulsed" execu
     - Vercel will automatically detect `vercel.json` and protect your cron endpoint using the `CRON_SECRET`.
     - The Express Dashboard API is also accessible at `https://your-domain.vercel.app/api/...` via the bridging setup.
 
+#### 💡 Vercel Hobby Plan (Free Tier)
+Vercel Hobby limited crons to **once per day**. To run your bot every minute for free:
+1.  **Use an External Pinger**: Sign up for a free service like [Cron-job.org](https://cron-job.org/).
+2.  **Configure the Job**:
+    - **URL**: `https://your-project.vercel.app/api/cron`
+    - **Schedule**: Every 1 minute.
+    - **Headers**: Add `Authorization: Bearer your_cron_secret_here`.
+3.  **Execution**: This will "wake up" your Vercel function every minute, bypassing the built-in cron limit.
+
 > [!IMPORTANT]
-> When running on Vercel, the bot does **not** use `npm start`. It is triggered automatically by the Vercel Cron scheduler. Ensure you do not have the same account running locally simultaneously to avoid duplicate orders.
+> When running on Vercel, the bot does **not** use `npm start`. It is triggered automatically by the Vercel Cron scheduler (Pro) or an External Pinger (Hobby). Ensure you do not have the same account running locally simultaneously to avoid duplicate orders.
 
 ---
 
