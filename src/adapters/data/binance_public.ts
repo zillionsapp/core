@@ -14,7 +14,8 @@ export class BinancePublicData implements IMarketDataProvider {
 
             const response = await fetch(url);
             if (!response.ok) {
-                throw new Error(`Binance API Error: ${response.statusText}`);
+                const errorBody = await response.text();
+                throw new Error(`Binance API Error: ${response.status} ${response.statusText} - ${errorBody}`);
             }
 
             const rawData = await response.json();
@@ -44,7 +45,8 @@ export class BinancePublicData implements IMarketDataProvider {
 
             const response = await fetch(url);
             if (!response.ok) {
-                throw new Error(`Binance API Error: ${response.statusText}`);
+                const errorBody = await response.text();
+                throw new Error(`Binance API Error: ${response.status} ${response.statusText} - ${errorBody}`);
             }
 
             const data = await response.json();
