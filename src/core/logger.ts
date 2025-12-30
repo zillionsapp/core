@@ -17,7 +17,11 @@ export const logger = winston.createLogger({
         new winston.transports.Console({
             format: combine(colorize(), logFormat),
         }),
-        new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
-        new winston.transports.File({ filename: 'logs/combined.log' }),
     ],
 });
+
+// Add file transports only if not in a serverless/Vercel environment
+if (!process.env.VERCEL && !process.env.LAMBDA_TASK_ROOT) {
+    logger.add(new winston.transports.File({ filename: 'logs/error.log', level: 'error' }));
+    logger.add(new winston.transports.File({ filename: 'logs/combined.log' }));
+}
