@@ -8,6 +8,7 @@ import { OrderRequest, Trade } from './types';
 import { logger } from './logger';
 import { RiskManager } from './risk.manager';
 import { TimeUtils } from './time.utils';
+import { config } from '../config/env';
 
 export class BotEngine {
     private exchange: IExchange;
@@ -53,6 +54,7 @@ export class BotEngine {
             if (candles.length === 0) return;
 
             const lastCandle = candles[candles.length - 1];
+            await this.logPortfolioState(symbol, lastCandle.close);
 
             // 2. Risk Checks (Stop Loss / Take Profit) independent of Strategy
             if (this.activeTrade) {
@@ -84,8 +86,8 @@ export class BotEngine {
                         exitTimestamp: order.timestamp
                     });
 
+                    logger.info(`[BotEngine] Position Closed: ${exitReason} | ID: ${this.activeTrade.id}`);
                     this.activeTrade = null;
-                    logger.info(`[BotEngine] Position Closed: ${exitReason}`);
                     return; // Exit tick after closing
                 }
             }
@@ -140,6 +142,35 @@ export class BotEngine {
     async stop() {
         this.isRunning = false;
         logger.info('[BotEngine] Stopped.');
+    }
+
+    private async logPortfolioState(symbol: string, currentPrice: number) {
+        if (process.env.NODE_ENV === 'test') return;
+        try {
+            const asset = config.PAPER_BALANCE_ASSET;
+            const balance = await this.exchange.getBalance(asset);
+            let equity = balance;
+            let pnl = 0;
+            let pnlPercent = 0;
+
+            if (this.activeTrade) {
+                const entryValue = this.activeTrade.price * this.activeTrade.quantity;
+                const currentValue = currentPrice * this.activeTrade.quantity;
+
+                if (this.activeTrade.side === 'BUY') {
+                    pnl = currentValue - entryValue;
+                } else {
+                    pnl = entryValue - currentValue;
+                }
+
+                pnlPercent = (pnl / entryValue) * 100;
+                equity = balance + pnl; // Simplified: balance is after margin deduction in PaperExchange
+            }
+
+            logger.info(`[Portfolio] ${symbol} | Balance: ${balance.toFixed(2)} ${asset} | Equity: ${equity.toFixed(2)} ${asset} | PnL: ${pnl.toFixed(2)} ${asset} (${pnlPercent.toFixed(2)}%)`);
+        } catch (error) {
+            logger.error('[BotEngine] Error logging portfolio state:', error);
+        }
     }
 
     private async runLoop(symbol: string, interval: string) {

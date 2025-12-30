@@ -19,9 +19,10 @@ export class BacktestRunner {
         this.db = new SupabaseDataStore();
         this.riskManager = new RiskManager(this.exchange);
     }
-    async run(strategyName: string, symbol: string, interval: string) {
+    async run(strategyName: string, symbol: string, interval: string, verbose: boolean = process.env.NODE_ENV !== 'test') {
         // 0. Capture Initial Balance
-        const initialBalance = await this.exchange.getBalance('USDT');
+        const asset = config.PAPER_BALANCE_ASSET;
+        const initialBalance = await this.exchange.getBalance(asset);
 
         console.log(`[Backtest] Running ${strategyName} on ${symbol} ${interval}...`);
 
@@ -38,6 +39,7 @@ export class BacktestRunner {
         // 2. Iterate
         for (let i = 50; i < candles.length; i++) {
             const currentCandle = candles[i];
+            if (verbose) await this.logPortfolioState(symbol, currentCandle.close);
 
             // --- Risk Check (SL/TP) ---
             if (this.activeTrade) {
@@ -70,7 +72,7 @@ export class BacktestRunner {
                             totalGrossLoss += Math.abs(tradePnL);
                         }
 
-                        console.log(`[Backtest] ${exitReason} triggered at ${currentCandle.close} (High: ${currentCandle.high}, Low: ${currentCandle.low})`);
+                        if (verbose) console.log(`[Backtest] ${exitReason} triggered at ${currentCandle.close} (High: ${currentCandle.high}, Low: ${currentCandle.low}) | ID: ${this.activeTrade.id}`);
                         this.activeTrade = null;
                     } catch (e) { console.error(e); }
                 }
@@ -105,7 +107,7 @@ export class BacktestRunner {
                             stopLossPrice: exitPrices.stopLoss,
                             takeProfitPrice: exitPrices.takeProfit
                         };
-                        console.log(`[Backtest] BUY Entry. SL: ${this.activeTrade.stopLossPrice}, TP: ${this.activeTrade.takeProfitPrice}`);
+                        if (verbose) console.log(`[Backtest] BUY Entry. SL: ${this.activeTrade.stopLossPrice}, TP: ${this.activeTrade.takeProfitPrice}`);
 
                     } catch (e) {
                         // Ignore funds error in simple loop
@@ -130,15 +132,15 @@ export class BacktestRunner {
                             totalGrossLoss += Math.abs(tradePnL);
                         }
 
+                        if (verbose) console.log(`[Backtest] Strategy SELL Exit. | ID: ${this.activeTrade.id}`);
                         this.activeTrade = null;
-                        console.log(`[Backtest] Strategy SELL Exit.`);
                     } catch (e) { }
                 }
             }
         }
 
         // 3. Report
-        const finalBalance = await this.exchange.getBalance('USDT');
+        const finalBalance = await this.exchange.getBalance(asset);
         const pnlUSDT = finalBalance - initialBalance;
         const pnlPercent = (pnlUSDT / initialBalance) * 100;
 
@@ -176,6 +178,30 @@ export class BacktestRunner {
         console.log(`Buy & Hold PnL: ${buyHoldPercent.toFixed(2)}%`);
 
         return result;
+    }
+
+    private async logPortfolioState(symbol: string, currentPrice: number) {
+        const asset = config.PAPER_BALANCE_ASSET;
+        const balance = await this.exchange.getBalance(asset);
+        let equity = balance;
+        let pnl = 0;
+        let pnlPercent = 0;
+
+        if (this.activeTrade) {
+            const entryValue = this.activeTrade.price * this.activeTrade.quantity;
+            const currentValue = currentPrice * this.activeTrade.quantity;
+
+            if (this.activeTrade.side === 'BUY') {
+                pnl = currentValue - entryValue;
+            } else {
+                pnl = entryValue - currentValue;
+            }
+
+            pnlPercent = (pnl / entryValue) * 100;
+            equity = balance + pnl;
+        }
+
+        console.log(`[Portfolio] ${symbol} | Balance: ${balance.toFixed(2)} ${asset} | Equity: ${equity.toFixed(2)} ${asset} | PnL: ${pnl.toFixed(2)} ${asset} (${pnlPercent.toFixed(2)}%)`);
     }
 }
 

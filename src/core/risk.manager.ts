@@ -1,6 +1,7 @@
 import { OrderRequest } from './types';
 import { logger } from './logger';
 import { IExchange } from '../interfaces/exchange.interface';
+import { config } from '../config/env';
 
 // Hardcoded limits for MVP - should be config driven
 const MAX_ORDER_AMOUNT_USDT = 10000;
@@ -16,9 +17,9 @@ export class RiskManager {
     }
 
     async init() {
-        this.initialBalance = await this.exchange.getBalance('USDT');
+        this.initialBalance = await this.exchange.getBalance(config.PAPER_BALANCE_ASSET);
         this.isInitialized = true;
-        logger.info(`[RiskManager] Initialized. Baseline Equity: ${this.initialBalance}`);
+        logger.info(`[RiskManager] Initialized. Baseline Equity: ${this.initialBalance} ${config.PAPER_BALANCE_ASSET}`);
     }
 
     async validateOrder(order: OrderRequest): Promise<boolean> {
@@ -35,7 +36,7 @@ export class RiskManager {
 
         // 2. Daily Drawdown Check
         if (order.side === 'BUY') { // Check before entering new risk
-            const currentBalance = await this.exchange.getBalance('USDT');
+            const currentBalance = await this.exchange.getBalance(config.PAPER_BALANCE_ASSET);
             // Simplified drawdown tracking: just checking Balance drop. 
             // In real app, we need equity (Balance + Open PnL).
 
