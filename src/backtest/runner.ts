@@ -93,12 +93,18 @@ export class BacktestRunner {
                         const exitPrices = this.riskManager.calculateExitPrices(order.price, order.side, signal.stopLoss, signal.takeProfit);
 
                         this.activeTrade = {
-                            ...order,
+                            id: order.id,
                             orderId: order.id,
+                            symbol: order.symbol,
+                            side: order.side,
+                            quantity: order.quantity,
+                            price: order.price,
+                            timestamp: order.timestamp,
+                            status: 'OPEN',
                             stopLossPrice: exitPrices.stopLoss,
                             takeProfitPrice: exitPrices.takeProfit
                         };
-                        console.log(`[Backtest] BUY Entry.SL: ${this.activeTrade.stopLossPrice}, TP: ${this.activeTrade.takeProfitPrice} `);
+                        console.log(`[Backtest] BUY Entry. SL: ${this.activeTrade.stopLossPrice}, TP: ${this.activeTrade.takeProfitPrice}`);
 
                     } catch (e) {
                         // Ignore funds error in simple loop
