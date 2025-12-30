@@ -26,7 +26,7 @@ const envSchema = z.object({
     DEFAULT_TAKE_PROFIT_PERCENT: z.coerce.number().default(0.10), // 10%
 
     // Strategy Configuration
-    STRATEGY_NAME: z.string().default('SMA_CROSSOVER'),
+    STRATEGY_NAME: z.string().default('MACD'),
     STRATEGY_SYMBOL: z.string().default('BTC/USDT'),
     STRATEGY_INTERVAL: z.string().default('1m'),
 

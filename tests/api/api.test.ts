@@ -28,12 +28,12 @@ describe('Zillion REST API', () => {
     it('POST /api/backtest/run should execute backtest', async () => {
         // This will actually run a small backtest in mock mode
         const res = await request(app).post('/api/backtest/run').send({
-            strategyName: 'SMA_CROSSOVER',
+            strategyName: 'MACD',
             symbol: 'BTC/USDT',
             interval: '1h'
         });
         expect(res.status).toBe(200);
         expect(res.body.result).toBeDefined();
-        expect(res.body.result.strategyName).toBe('SMA_CROSSOVER');
+        expect(res.body.result.strategyName).toBe('MACD');
     }, 30000); // 30s timeout for backtest
 });

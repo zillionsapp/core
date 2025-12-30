@@ -1,5 +1,5 @@
 import { BotEngine } from '../../src/core/engine';
-import { PaperExchange } from '../../src/adapters/exchange/paper';
+import { config } from '../../src/config/env';
 
 // Mocking dependencies to control flow if needed, 
 // strictly here we do a "Blackbox" integration test on the engine loop
@@ -9,7 +9,7 @@ describe('BotEngine Integration', () => {
     let engine: BotEngine;
 
     beforeEach(() => {
-        engine = new BotEngine('SMA_CROSSOVER');
+        engine = new BotEngine(config.STRATEGY_NAME);
     });
 
     afterEach(() => {

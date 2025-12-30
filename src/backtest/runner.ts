@@ -4,6 +4,7 @@ import { BinancePublicData } from '../adapters/data/binance_public';
 import { Candle, OrderRequest, Trade } from '../core/types';
 import { SupabaseDataStore } from '../adapters/database/supabase';
 import { RiskManager } from '../core/risk.manager';
+import { config } from '../config/env';
 
 export class BacktestRunner {
     private exchange: PaperExchange;
@@ -180,6 +181,11 @@ export class BacktestRunner {
 
 // Simple CLI runner if executed directly
 if (require.main === module) {
+    const args = process.argv.slice(2);
+    const strategyName = args[0] || config.STRATEGY_NAME;
+    const symbol = args[1] || config.STRATEGY_SYMBOL;
+    const interval = args[2] || config.STRATEGY_INTERVAL;
+
     const runner = new BacktestRunner();
-    runner.run('SMA_CROSSOVER', 'BTC/USDT', '1h');
+    runner.run(strategyName, symbol, interval).catch(console.error);
 }
