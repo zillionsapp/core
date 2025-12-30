@@ -241,7 +241,7 @@ The `RiskManager` module (`src/core/risk.manager.ts`) intercepts every order bef
 - [x] **Strategies**: Implement standard strategy library (RSI, MACD, etc.).
 - [x] **Connectivity**: REST APIs for custom dashboards.
 - [ ] **Connectivity**: WebSocket for custom dashboards.
-- [ ] **UI**: Build a simple in-built dashboard.
+- [x] **UI**: Build a simple in-built dashboard.
 - [ ] **Intelligence**: AI/ML implementation for signal optimization.
 
 ## 🚀 REST API
