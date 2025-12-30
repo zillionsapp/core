@@ -150,7 +150,20 @@ Vercel Hobby limited crons to **once per day**. To run your bot every minute for
 > When running on Vercel, the bot does **not** use `npm start`. It is triggered automatically by the Vercel Cron scheduler (Pro) or an External Pinger (Hobby). Ensure you do not have the same account running locally simultaneously to avoid duplicate orders.
 
 ---
-
+ 
+ ## 🛠 Available Strategies
+ 
+ Zillion includes 24 professional-grade strategies from the `indicatorts` library, organized by category:
+ 
+ | Category | Strategies |
+ | :--- | :--- |
+ | **Trend** | `MACD`, `APO`, `AROON`, `BOP`, `CFO`, `KDJ`, `PSAR`, `TYPPRICE`, `VWMA`, `VORTEX` |
+ | **Momentum** | `AO`, `ICHIMOKU`, `RSI2`, `STOCH`, `WILLR` |
+ | **Volatility** | `BB`, `AB`, `PO` |
+ | **Volume** | `CMF`, `EMV`, `FI`, `MFI`, `NVI`, `VWAP` |
+ 
+ ---
+ 
 ## 🏛 Architecture
 
 ```
@@ -225,7 +238,7 @@ The `RiskManager` module (`src/core/risk.manager.ts`) intercepts every order bef
 
 - [ ] **Exchange Support**: Implement Drift.trade adapter.
 - [ ] **Exchange Support**: Implement Hyperliquid adapter.
-- [ ] **Strategies**: Implement standard strategy library (RSI, MACD, etc.).
+- [x] **Strategies**: Implement standard strategy library (RSI, MACD, etc.).
 - [x] **Connectivity**: REST APIs for custom dashboards.
 - [ ] **Connectivity**: WebSocket for custom dashboards.
 - [ ] **UI**: Build a simple in-built dashboard.
@@ -257,7 +270,7 @@ npm run api
 **Request Body:**
 ```json
 {
-  "strategyName": "SMA_CROSSOVER",
+  "strategyName": "MACD",
   "symbol": "BTC/USDT",
   "interval": "1h"
 }
