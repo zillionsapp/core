@@ -4,7 +4,7 @@
   "main": "index.js",
   "scripts": {
     "start": "ts-node src/index.ts",
-    "start:dev": "nodemon --watch src src/index.ts",
+    "dev": "nodemon --watch src src/index.ts",
     "backtest": "ts-node src/backtest/runner.ts",
     "api": "ts-node src/api/server.ts",
     "build": "tsc",

@@ -9,9 +9,15 @@ export default async function handler(req: any, res: any) {
         const db = new SupabaseDataStore();
         const symbol = req.query.symbol as string;
         const limit = parseInt(req.query.limit as string) || 50;
-        const trades = await db.getTrades(symbol, limit);
+        const offset = parseInt(req.query.offset as string) || 0;
 
-        res.status(200).json(trades);
+        // Get total count for pagination
+        const allTrades = await db.getTrades(symbol, 10000); // Get a large number to count
+        const total = allTrades.length;
+
+        const trades = await db.getTrades(symbol, limit, offset);
+
+        res.status(200).json({ trades, total });
     } catch (error: any) {
         console.error('Trades API error:', error);
         res.status(500).json({ error: error.message });

@@ -44,7 +44,7 @@ export interface IDataStore {
     /**
      * Get execution history
      */
-    getTrades(symbol?: string, limit?: number): Promise<Trade[]>;
+    getTrades(symbol?: string, limit?: number, offset?: number): Promise<Trade[]>;
 
     /**
      * Save a snapshot of the portfolio (for equity curve performance tracking)

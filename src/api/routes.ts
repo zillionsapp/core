@@ -23,8 +23,14 @@ router.get('/trades', async (req, res) => {
     try {
         const symbol = req.query.symbol as string;
         const limit = parseInt(req.query.limit as string) || 50;
-        const trades = await db.getTrades(symbol, limit);
-        res.json(trades);
+        const offset = parseInt(req.query.offset as string) || 0;
+
+        // Get total count for pagination
+        const allTrades = await db.getTrades(symbol, 10000); // Get a large number to count
+        const total = allTrades.length;
+
+        const trades = await db.getTrades(symbol, limit, offset);
+        res.json({ trades, total });
     } catch (error: any) {
         res.status(500).json({ error: error.message });
     }

@@ -175,6 +175,12 @@
                 <div class="text-4xl mb-2">📜</div>
                 <p>No recent trades fetched yet.</p>
             </div>
+            <!-- Pagination Controls -->
+            <div id="paginationControls" class="flex justify-center items-center p-4 bg-base-200 hidden">
+                <button id="prevPage" class="btn btn-sm btn-outline mr-2" disabled>Previous</button>
+                <span id="pageInfo" class="text-sm mx-4">Page 1 of 1</span>
+                <button id="nextPage" class="btn btn-sm btn-outline ml-2" disabled>Next</button>
+            </div>
         </div>
 
         <!-- Testing Hub - Commented Out for Now -->
@@ -387,30 +393,8 @@
                     chart.update('none'); // Update without animation for performance
                 }
 
-                // Fetch Recent Trades for the table
-                const tradesRes = await fetch(`${API_BASE}/trades`);
-                const trades = await tradesRes.json();
-
-                const tradeBody = document.getElementById('tradeBody');
-                if (trades.length > 0) {
-                    document.getElementById('noTrades').classList.add('hidden');
-                    tradeBody.innerHTML = trades.slice(0, 10).map(t => `
-                        <tr class="hover">
-                            <td><span class="badge ${t.status === 'OPEN' ? 'badge-warning' : 'badge-success'} badge-sm">${t.status}</span></td>
-                            <td class="font-bold">${t.symbol}</td>
-                            <td>
-                                <span class="badge badge-outline ${t.side === 'BUY' ? 'badge-success' : 'badge-error'} text-xs font-bold px-3">
-                                    ${t.side}
-                                </span>
-                            </td>
-                            <td class="font-mono">$${t.price.toLocaleString()}</td>
-                            <td class="text-right font-mono">${t.quantity}</td>
-                        </tr>
-                    `).join('');
-                } else {
-                    document.getElementById('noTrades').classList.remove('hidden');
-                    tradeBody.innerHTML = '';
-                }
+                                // Fetch Recent Trades for the table with pagination
+                await loadTradesPage(1);
 
             } catch (err) {
                 console.error('Failed to fetch data:', err);
@@ -423,6 +407,71 @@
                 document.getElementById('openPositions').innerText = '-';
                 document.getElementById('closedTrades').innerText = '-';
             }
+        }
+
+        // Pagination variables
+        let currentPage = 1;
+        let totalTrades = 0;
+        const pageSize = 20;
+
+        async function loadTradesPage(page) {
+            try {
+                const offset = (page - 1) * pageSize;
+                const tradesRes = await fetch(`${API_BASE}/trades?limit=${pageSize}&offset=${offset}`);
+                const data = await tradesRes.json();
+
+                const trades = data.trades || [];
+                totalTrades = data.total || 0;
+
+                const tradeBody = document.getElementById('tradeBody');
+                const noTrades = document.getElementById('noTrades');
+                const paginationControls = document.getElementById('paginationControls');
+
+                if (trades.length > 0) {
+                    noTrades.classList.add('hidden');
+                    tradeBody.innerHTML = trades.map(t => `
+                        <tr class="hover">
+                            <td><span class="badge ${t.status === 'OPEN' ? 'badge-warning' : 'badge-success'} badge-sm">${t.status}</span></td>
+                            <td class="font-bold">${t.symbol}</td>
+                            <td>
+                                <span class="badge badge-outline ${t.side === 'BUY' ? 'badge-success' : 'badge-error'} text-xs font-bold px-3">
+                                    ${t.side}
+                                </span>
+                            </td>
+                            <td class="font-mono">$${t.price.toLocaleString()}</td>
+                            <td class="text-right font-mono">${t.quantity}</td>
+                        </tr>
+                    `).join('');
+
+                    // Show pagination if there are more trades than page size
+                    if (totalTrades > pageSize) {
+                        paginationControls.classList.remove('hidden');
+                        updatePaginationControls(page);
+                    } else {
+                        paginationControls.classList.add('hidden');
+                    }
+                } else {
+                    noTrades.classList.remove('hidden');
+                    tradeBody.innerHTML = '';
+                    paginationControls.classList.add('hidden');
+                }
+
+                currentPage = page;
+            } catch (err) {
+                console.error('Failed to load trades page:', err);
+            }
+        }
+
+        function updatePaginationControls(page) {
+            const totalPages = Math.ceil(totalTrades / pageSize);
+            const pageInfo = document.getElementById('pageInfo');
+            const prevBtn = document.getElementById('prevPage');
+            const nextBtn = document.getElementById('nextPage');
+
+            pageInfo.innerText = `Page ${page} of ${totalPages}`;
+
+            prevBtn.disabled = page <= 1;
+            nextBtn.disabled = page >= totalPages;
         }
 
 
@@ -470,6 +519,20 @@
                 const newTheme = e.matches ? 'dark' : 'light';
                 document.documentElement.setAttribute('data-theme', newTheme);
                 updateThemeIcon();
+            }
+        });
+
+        // Pagination event listeners
+        document.getElementById('prevPage').addEventListener('click', () => {
+            if (currentPage > 1) {
+                loadTradesPage(currentPage - 1);
+            }
+        });
+
+        document.getElementById('nextPage').addEventListener('click', () => {
+            const totalPages = Math.ceil(totalTrades / pageSize);
+            if (currentPage < totalPages) {
+                loadTradesPage(currentPage + 1);
             }
         });
 

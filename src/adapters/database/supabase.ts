@@ -26,16 +26,16 @@ export class SupabaseDataStore implements IDataStore {
         if (error) console.error('Error saving trade:', error);
     }
 
-    async getTrades(symbol?: string, limit: number = 100): Promise<Trade[]> {
+    async getTrades(symbol?: string, limit: number = 100, offset: number = 0): Promise<Trade[]> {
         if (!this.supabase) {
             let trades = [...this.inMemoryTrades];
             if (symbol) {
                 trades = trades.filter(t => t.symbol === symbol);
             }
-            return trades.sort((a, b) => b.timestamp - a.timestamp).slice(0, limit);
+            return trades.sort((a, b) => b.timestamp - a.timestamp).slice(offset, offset + limit);
         }
 
-        let query = this.supabase.from('trades').select('*').order('timestamp', { ascending: false }).limit(limit);
+        let query = this.supabase.from('trades').select('*').order('timestamp', { ascending: false }).limit(limit).range(offset, offset + limit - 1);
         if (symbol) query = query.eq('symbol', symbol);
 
         const { data, error } = await query;
