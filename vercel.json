@@ -6,6 +6,12 @@
         },
         "api/index.ts": {
             "maxDuration": 10
+        },
+        "api/portfolio.ts": {
+            "maxDuration": 10
+        },
+        "api/trades.ts": {
+            "maxDuration": 10
         }
     }
 }
