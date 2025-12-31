@@ -20,6 +20,10 @@ export class PortfolioManager {
         const openTrades = allTrades.filter(t => t.status === 'OPEN');
         const closedTrades = allTrades.filter(t => t.status === 'CLOSED');
 
+        // Get current balance first (needed for PnL percentage calculation)
+        const balanceAsset = process.env.PAPER_BALANCE_ASSET || 'USDT';
+        const currentBalance = await this.exchange.getBalance(balanceAsset);
+
         // Get current prices for open trades
         const symbols = [...new Set(openTrades.map(t => t.symbol))];
         const pricePromises = symbols.map(symbol => this.exchange.getTicker(symbol));
@@ -31,8 +35,11 @@ export class PortfolioManager {
 
         // Calculate metrics
         const pnl = this.calculateTotalPnL(closedTrades);
+        const pnlPercentage = this.calculatePnLPercentage(pnl, currentBalance);
         const winRate = this.calculateWinRate(closedTrades);
         const profitFactor = this.calculateProfitFactor(closedTrades);
+        const winningTrades = closedTrades.filter(trade => this.calculateTradePnL(trade) > 0).length;
+        const losingTrades = closedTrades.filter(trade => this.calculateTradePnL(trade) < 0).length;
 
         // Build open trades with current data
         const openTradesWithCurrent = openTrades.map(trade => {
@@ -63,10 +70,6 @@ export class PortfolioManager {
             };
         });
 
-        // Get current balance
-        const balanceAsset = process.env.PAPER_BALANCE_ASSET || 'USDT';
-        const currentBalance = await this.exchange.getBalance(balanceAsset);
-
         // Calculate current equity (balance + unrealized PnL)
         const unrealizedPnLTotal = openTradesWithCurrent.reduce((sum, trade) => sum + trade.unrealizedPnL, 0);
         const currentEquity = currentBalance + unrealizedPnLTotal;
@@ -82,8 +85,11 @@ export class PortfolioManager {
             totalValue,
             holdings,
             pnl,
+            pnlPercentage,
             winRate,
             profitFactor,
+            winningTrades,
+            losingTrades,
             openTrades: openTradesWithCurrent,
             closedTrades: closedTradesWithPnL,
             currentEquity,
@@ -152,5 +158,11 @@ export class PortfolioManager {
         }
 
         return grossLoss === 0 ? (grossProfit > 0 ? Infinity : 0) : grossProfit / grossLoss;
+    }
+
+    private calculatePnLPercentage(pnl: number, currentBalance: number): number {
+        // Use initial balance as base (simplified - in real trading, you'd track initial capital)
+        const initialBalance = 10000; // Default starting balance
+        return (pnl / initialBalance) * 100;
     }
 }

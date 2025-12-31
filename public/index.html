@@ -80,7 +80,7 @@
             <div class="stat glass-card rounded-2xl shadow-lg border-l-4 border-warning">
                 <div class="stat-title text-warning uppercase text-xs font-bold tracking-widest">Total PnL</div>
                 <div id="totalPnL" class="stat-value text-3xl">-</div>
-                <div class="stat-desc mt-1">Realized profit/loss</div>
+                <div id="totalPnLPercentage" class="stat-desc mt-1">Realized profit/loss</div>
             </div>
             <div class="stat glass-card rounded-2xl shadow-lg border-l-4 border-success">
                 <div class="stat-title text-success uppercase text-xs font-bold tracking-widest">Open Positions</div>
@@ -261,6 +261,13 @@
                     totalPnLEl.classList.toggle('text-success', pnlValue >= 0);
                     totalPnLEl.classList.toggle('text-error', pnlValue < 0);
 
+                    // PnL percentage
+                    const pnlPercentageEl = document.getElementById('totalPnLPercentage');
+                    const pnlPercentage = portData.pnlPercentage || 0;
+                    pnlPercentageEl.innerText = `${pnlPercentage >= 0 ? '+' : ''}${pnlPercentage.toFixed(2)}% of initial capital`;
+                    pnlPercentageEl.classList.toggle('text-success', pnlPercentage >= 0);
+                    pnlPercentageEl.classList.toggle('text-error', pnlPercentage < 0);
+
                     // Open positions
                     const openTrades = portData.openTrades || [];
                     document.getElementById('openPositions').innerText = openTrades.length.toString();
@@ -271,9 +278,11 @@
                     openPositionsValueEl.classList.toggle('text-success', totalUnrealizedPnL >= 0);
                     openPositionsValueEl.classList.toggle('text-error', totalUnrealizedPnL < 0);
 
-                    // Closed trades
-                    const closedTrades = portData.closedTrades || [];
-                    document.getElementById('closedTrades').innerText = closedTrades.length.toString();
+                    // Closed trades with win/loss breakdown
+                    const winningTrades = portData.winningTrades || 0;
+                    const losingTrades = portData.losingTrades || 0;
+                    const totalClosedTrades = winningTrades + losingTrades;
+                    document.getElementById('closedTrades').innerText = totalClosedTrades.toString();
 
                     // Update equity change indicator
                     const equityChangeEl = document.getElementById('equityChange');

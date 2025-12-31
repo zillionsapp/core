@@ -5,8 +5,11 @@ export interface PortfolioSnapshot {
     totalValue: number; // In quote currency (e.g. USDT)
     holdings: Record<string, number>; // asset -> quantity
     pnl: number; // Total realized PnL
+    pnlPercentage: number; // PnL as percentage of initial balance
     winRate: number; // Percentage of winning trades (0-1)
     profitFactor: number; // Gross profit / gross loss
+    winningTrades: number; // Number of winning closed trades
+    losingTrades: number; // Number of losing closed trades
     openTrades: Array<{
         id: string;
         symbol: string;

@@ -53,12 +53,15 @@ export class SupabaseDataStore implements IDataStore {
             totalValue: snapshot.totalValue,
             holdings: snapshot.holdings,
             pnl: snapshot.pnl,
-            winRate: snapshot.winRate,
-            profitFactor: snapshot.profitFactor,
-            openTrades: snapshot.openTrades,
-            closedTrades: snapshot.closedTrades,
-            currentEquity: snapshot.currentEquity,
-            currentBalance: snapshot.currentBalance
+            "pnlPercentage": snapshot.pnlPercentage,
+            "winRate": snapshot.winRate,
+            "profitFactor": snapshot.profitFactor,
+            "winningTrades": snapshot.winningTrades,
+            "losingTrades": snapshot.losingTrades,
+            "openTrades": snapshot.openTrades,
+            "closedTrades": snapshot.closedTrades,
+            "currentEquity": snapshot.currentEquity,
+            "currentBalance": snapshot.currentBalance
         });
         if (error) console.error('Error saving snapshot:', error);
     }
@@ -85,8 +88,11 @@ export class SupabaseDataStore implements IDataStore {
             totalValue: snapshot.totalValue,
             holdings: snapshot.holdings || {},
             pnl: snapshot.pnl || 0,
+            pnlPercentage: snapshot.pnlPercentage || 0,
             winRate: snapshot.winRate || 0,
             profitFactor: snapshot.profitFactor || 0,
+            winningTrades: snapshot.winningTrades || 0,
+            losingTrades: snapshot.losingTrades || 0,
             openTrades: snapshot.openTrades || [],
             closedTrades: snapshot.closedTrades || [],
             currentEquity: snapshot.currentEquity || snapshot.totalValue,
