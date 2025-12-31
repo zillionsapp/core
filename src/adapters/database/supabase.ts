@@ -100,6 +100,38 @@ export class SupabaseDataStore implements IDataStore {
         } as PortfolioSnapshot;
     }
 
+    async getPortfolioSnapshots(limit: number = 50): Promise<PortfolioSnapshot[]> {
+        if (!this.supabase) return [];
+
+        const { data, error } = await this.supabase
+            .from('portfolio_snapshots')
+            .select('*')
+            .order('timestamp', { ascending: true })
+            .limit(limit);
+
+        if (error) {
+            console.error('Error fetching portfolio snapshots:', error);
+            return [];
+        }
+
+        // Transform the data to match our interface
+        return (data || []).map((snapshot: any) => ({
+            timestamp: snapshot.timestamp,
+            totalValue: snapshot.totalValue,
+            holdings: snapshot.holdings || {},
+            pnl: snapshot.pnl || 0,
+            pnlPercentage: snapshot.pnlPercentage || 0,
+            winRate: snapshot.winRate || 0,
+            profitFactor: snapshot.profitFactor || 0,
+            winningTrades: snapshot.winningTrades || 0,
+            losingTrades: snapshot.losingTrades || 0,
+            openTrades: snapshot.openTrades || [],
+            closedTrades: snapshot.closedTrades || [],
+            currentEquity: snapshot.currentEquity || snapshot.totalValue,
+            currentBalance: snapshot.currentBalance || snapshot.totalValue
+        })) as PortfolioSnapshot[];
+    }
+
     async saveBacktestResult(result: any): Promise<void> {
         if (!this.supabase) {
             console.log('[InMemoryDB] Saved Backtest result');

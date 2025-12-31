@@ -19,6 +19,17 @@ router.get('/portfolio', async (req, res) => {
     }
 });
 
+// GET /api/portfolio-history - Historical portfolio snapshots
+router.get('/portfolio-history', async (req, res) => {
+    try {
+        const limit = parseInt(req.query.limit as string) || 50;
+        const snapshots = await db.getPortfolioSnapshots(limit);
+        res.json(snapshots);
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
 // GET /api/trades - Recent execution history
 router.get('/trades', async (req, res) => {
     try {
