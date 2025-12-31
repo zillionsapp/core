@@ -7,23 +7,5 @@
         "api/index.ts": {
             "maxDuration": 10
         }
-    },
-    "rewrites": [
-        {
-            "source": "/api/trades",
-            "destination": "/api/index.ts"
-        },
-        {
-            "source": "/api/portfolio",
-            "destination": "/api/index.ts"
-        },
-        {
-            "source": "/api/backtest/:path*",
-            "destination": "/api/index.ts"
-        },
-        {
-            "source": "/api/backtests",
-            "destination": "/api/index.ts"
-        }
-    ]
+    }
 }
