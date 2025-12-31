@@ -162,8 +162,11 @@
                             <th class="text-xs font-bold uppercase py-4">Status</th>
                             <th class="text-xs font-bold uppercase py-4">Symbol</th>
                             <th class="text-xs font-bold uppercase py-4">Side</th>
-                            <th class="text-xs font-bold uppercase py-4">Price</th>
+                            <th class="text-xs font-bold uppercase py-4">Entry Price</th>
+                            <th class="text-xs font-bold uppercase py-4">Exit Price</th>
                             <th class="text-xs font-bold uppercase py-4 text-right">Qty</th>
+                            <th class="text-xs font-bold uppercase py-4 text-right">PnL ($)</th>
+                            <th class="text-xs font-bold uppercase py-4 text-right">PnL (%)</th>
                         </tr>
                     </thead>
                     <tbody id="tradeBody">
@@ -414,6 +417,28 @@
         let totalTrades = 0;
         const pageSize = 20;
 
+        function calculatePnL(trade) {
+            if (trade.status !== 'CLOSED' || !trade.exitPrice) {
+                return { dollar: 0, percentage: 0 };
+            }
+
+            const entryPrice = trade.price;
+            const exitPrice = trade.exitPrice;
+            const quantity = trade.quantity;
+
+            // For BUY trades: (exit - entry) * quantity
+            // For SELL trades: (entry - exit) * quantity
+            const dollarPnL = trade.side === 'BUY'
+                ? (exitPrice - entryPrice) * quantity
+                : (entryPrice - exitPrice) * quantity;
+
+            // Percentage: (PnL / entry value) * 100
+            const entryValue = entryPrice * quantity;
+            const percentagePnL = entryValue !== 0 ? (dollarPnL / entryValue) * 100 : 0;
+
+            return { dollar: dollarPnL, percentage: percentagePnL };
+        }
+
         async function loadTradesPage(page) {
             try {
                 const offset = (page - 1) * pageSize;
@@ -429,7 +454,12 @@
 
                 if (trades.length > 0) {
                     noTrades.classList.add('hidden');
-                    tradeBody.innerHTML = trades.map(t => `
+                    tradeBody.innerHTML = trades.map(t => {
+                        const pnl = calculatePnL(t);
+                        const isProfit = pnl.dollar >= 0;
+                        const pnlClass = isProfit ? 'text-success' : 'text-error';
+
+                        return `
                         <tr class="hover">
                             <td><span class="badge ${t.status === 'OPEN' ? 'badge-warning' : 'badge-success'} badge-sm">${t.status}</span></td>
                             <td class="font-bold">${t.symbol}</td>
@@ -439,9 +469,12 @@
                                 </span>
                             </td>
                             <td class="font-mono">$${t.price.toLocaleString()}</td>
+                            <td class="font-mono">${t.exitPrice ? `$${t.exitPrice.toLocaleString()}` : '-'}</td>
                             <td class="text-right font-mono">${t.quantity}</td>
+                            <td class="text-right font-mono ${pnlClass}">${t.status === 'CLOSED' ? `${isProfit ? '+' : ''}$${pnl.dollar.toFixed(2)}` : '-'}</td>
+                            <td class="text-right font-mono ${pnlClass}">${t.status === 'CLOSED' ? `${isProfit ? '+' : ''}${pnl.percentage.toFixed(2)}%` : '-'}</td>
                         </tr>
-                    `).join('');
+                    `;}).join('');
 
                     // Show pagination if there are more trades than page size
                     if (totalTrades > pageSize) {
