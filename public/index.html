@@ -247,6 +247,9 @@
 
         // Initialize Chart with theme-aware colors
         const ctx = document.getElementById('performanceChart').getContext('2d');
+        const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+        gradient.addColorStop(0, 'rgba(0, 255, 157, 0.4)');
+        gradient.addColorStop(1, 'rgba(0, 255, 157, 0.05)');
         const chart = new Chart(ctx, {
             type: 'line',
             data: {
@@ -254,14 +257,18 @@
                 datasets: [{
                     label: 'Equity (USDT)',
                     data: [],
-                    borderColor: 'hsl(var(--p))',
-                    backgroundColor: 'hsla(var(--p), 0.1)',
+                    borderColor: '#00ff9d',
+                    backgroundColor: gradient,
+                    borderWidth: 2,
                     fill: true,
                     tension: 0.4,
-                    pointRadius: 2,
-                    pointHoverRadius: 4,
-                    pointBackgroundColor: 'hsl(var(--p))',
-                    pointBorderColor: 'hsl(var(--b1))'
+                    pointRadius: 0,
+                    pointHoverRadius: 5,
+                    pointBackgroundColor: '#00ff9d',
+                    pointBorderColor: '#1a1b1e',
+                    pointBorderWidth: 2,
+                    pointHoverBorderColor: '#1a1b1e',
+                    pointHoverBorderWidth: 2
                 }]
             },
             options: {
@@ -290,7 +297,8 @@
                             color: 'hsl(var(--bc))',
                             font: { size: 10 },
                             maxTicksLimit: 7
-                        }
+                        },
+                        border: { display: false }
                     },
                     y: {
                         grid: { color: 'hsla(var(--bc), 0.1)' },
@@ -300,7 +308,8 @@
                             callback: function(value) {
                                 return '$' + value.toLocaleString();
                             }
-                        }
+                        },
+                        border: { display: false }
                     }
                 }
             }
