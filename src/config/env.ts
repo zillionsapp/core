@@ -25,6 +25,11 @@ const envSchema = z.object({
     DEFAULT_TAKE_PROFIT_PERCENT: z.coerce.number().default(10), // 10%
     POSITION_SIZE_PERCENT: z.coerce.number().default(10), // 10%
 
+    // Trailing Stop Loss
+    TRAILING_STOP_ENABLED: z.string().default('false').transform(v => v === 'true'),
+    TRAILING_STOP_ACTIVATION_PERCENT: z.coerce.number().default(2), // 2% profit to activate trailing
+    TRAILING_STOP_TRAIL_PERCENT: z.coerce.number().default(1), // 1% trail distance
+
     // Strategy Configuration
     STRATEGY_NAME: z.string().default('MACD'),
     STRATEGY_SYMBOL: z.string().default('BTC/USDT'),

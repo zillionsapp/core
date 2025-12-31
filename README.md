@@ -241,6 +241,7 @@ The `RiskManager` module (`src/core/risk.manager.ts`) intercepts every order bef
 The `TradeManager` (`src/core/trade.manager.ts`) provides **global position management** across all trading activities:
 - **Centralized Monitoring**: Tracks all open positions from any strategy or symbol in real-time.
 - **Automated SL/TP Execution**: Continuously monitors price movements and automatically executes stop-loss and take-profit orders.
+- **Trailing Stop Loss**: Dynamic stop loss that trails behind profitable price movements.
 - **Multi-Position Support**: Unlike the previous single-position-per-engine limitation, TradeManager handles unlimited concurrent positions.
 - **Cross-Strategy Protection**: Ensures risk management works regardless of which strategy opened the position.
 - **Real-time Price Tracking**: Uses live market data to check exit conditions on every tick.
@@ -249,6 +250,39 @@ The `TradeManager` (`src/core/trade.manager.ts`) provides **global position mana
 - **No Position Left Behind**: Even if a strategy instance stops, positions remain protected.
 - **Improved Risk Control**: Centralized system prevents conflicting risk management logic.
 - **Scalability**: Supports multiple strategies running simultaneously with proper position isolation.
+
+#### Trailing Stop Loss
+The Trailing Stop Loss feature provides **dynamic risk management** that locks in profits as price moves favorably:
+
+- **Activation Threshold**: Trailing begins when profit reaches a configurable percentage (default: 2%).
+- **Trail Distance**: Stop loss follows price at a specified distance (default: 1%).
+- **Automatic Adjustment**: Stop loss moves up (BUY positions) or down (SELL positions) as price continues in your favor.
+- **Break-even Protection**: Ensures you never lose money on profitable trades.
+
+**Configuration:**
+```env
+TRAILING_STOP_ENABLED=true
+TRAILING_STOP_ACTIVATION_PERCENT=2
+TRAILING_STOP_TRAIL_PERCENT=1
+```
+
+**How It Works:**
+1. Trade opens with initial static stop loss
+2. When profit reaches activation threshold, trailing begins
+3. Stop loss trails behind price at specified distance
+4. Position closes if price reverses to trailing stop level
+
+**Example:**
+- Enter BUY at $50,000 with 5% stop loss ($47,500)
+- Price rises to $51,000 (2% profit) → trailing activates
+- Stop loss moves to $50,490 (1% below current price)
+- Price continues to $52,000 → stop loss moves to $51,480
+- If price drops to $51,480 → position closes with ~2.96% profit
+
+**Benefits:**
+- **Maximize Profits**: Capture more upside while protecting gains
+- **Reduce Drawdown**: Smaller losses on reversals
+- **Set-and-Forget**: Automatic adjustment requires no manual intervention
 
 ### PortfolioManager
 The `PortfolioManager` (`src/core/portfolio.manager.ts`) provides **comprehensive portfolio analytics and snapshot generation**:

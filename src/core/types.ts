@@ -55,6 +55,14 @@ export interface Trade {
     takeProfitPrice?: number;
     exitPrice?: number;
     exitTimestamp?: number;
+
+    // Trailing Stop Loss fields
+    trailingStopEnabled?: boolean;
+    trailingStopActivated?: boolean;
+    trailingStopActivationPercent?: number;
+    trailingStopTrailPercent?: number;
+    trailingStopHighPrice?: number; // For BUY positions: highest price seen
+    trailingStopLowPrice?: number;  // For SELL positions: lowest price seen
 }
 
 export interface Signal {

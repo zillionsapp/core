@@ -58,9 +58,22 @@ export class TradeManager {
     private async checkPosition(trade: Trade, currentPrice: number): Promise<void> {
         try {
             let exitReason: string | null = null;
+            let updatedTrade: Partial<Trade> = {};
 
-            // Check stop loss
-            if (trade.stopLossPrice) {
+            // Handle trailing stop loss
+            if (trade.trailingStopEnabled) {
+                const { shouldExit, newStopLoss, updatedFields } = this.calculateTrailingStop(trade, currentPrice);
+                if (shouldExit) {
+                    exitReason = 'TRAILING_STOP_LOSS';
+                }
+                if (newStopLoss !== trade.stopLossPrice) {
+                    updatedTrade.stopLossPrice = newStopLoss;
+                    Object.assign(updatedTrade, updatedFields);
+                }
+            }
+
+            // Check static stop loss (if trailing not enabled or not activated)
+            if (!exitReason && trade.stopLossPrice && (!trade.trailingStopEnabled || !trade.trailingStopActivated)) {
                 if ((trade.side === 'BUY' && currentPrice <= trade.stopLossPrice) ||
                     (trade.side === 'SELL' && currentPrice >= trade.stopLossPrice)) {
                     exitReason = 'STOP_LOSS';
@@ -73,6 +86,12 @@ export class TradeManager {
                     (trade.side === 'SELL' && currentPrice <= trade.takeProfitPrice)) {
                     exitReason = 'TAKE_PROFIT';
                 }
+            }
+
+            // Update trade in database if trailing stop changed
+            if (Object.keys(updatedTrade).length > 0) {
+                await this.db.updateTrade(trade.id, updatedTrade);
+                logger.info(`[TradeManager] Trailing stop updated for ${trade.symbol}: SL=${updatedTrade.stopLossPrice}`);
             }
 
             if (exitReason) {
@@ -100,5 +119,69 @@ export class TradeManager {
         } catch (error) {
             logger.error(`[TradeManager] Error checking position ${trade.id}:`, error);
         }
+    }
+
+    private calculateTrailingStop(trade: Trade, currentPrice: number): {
+        shouldExit: boolean;
+        newStopLoss: number;
+        updatedFields: Partial<Trade>;
+    } {
+        const updatedFields: Partial<Trade> = {};
+        let newStopLoss = trade.stopLossPrice || 0;
+        let shouldExit = false;
+
+        if (!trade.trailingStopEnabled) {
+            return { shouldExit, newStopLoss, updatedFields };
+        }
+
+        const activationPercent = trade.trailingStopActivationPercent || 0;
+        const trailPercent = trade.trailingStopTrailPercent || 0;
+
+        // Calculate current profit percentage
+        const profitPercent = trade.side === 'BUY'
+            ? ((currentPrice - trade.price) / trade.price) * 100
+            : ((trade.price - currentPrice) / trade.price) * 100;
+
+        // Check if trailing should be activated
+        if (!trade.trailingStopActivated && profitPercent >= activationPercent) {
+            updatedFields.trailingStopActivated = true;
+            logger.info(`[TradeManager] Trailing stop activated for ${trade.symbol} at ${profitPercent.toFixed(2)}% profit`);
+        }
+
+        if (trade.trailingStopActivated || (!trade.trailingStopActivated && profitPercent >= activationPercent)) {
+            if (trade.side === 'BUY') {
+                // For long positions: track highest price
+                const currentHigh = trade.trailingStopHighPrice || trade.price;
+                const newHigh = Math.max(currentHigh, currentPrice);
+
+                if (newHigh > currentHigh || !trade.trailingStopActivated) {
+                    updatedFields.trailingStopHighPrice = newHigh;
+                    // Move stop loss up: trail distance below the new high
+                    newStopLoss = newHigh * (1 - trailPercent / 100);
+                }
+
+                // Check if price dropped to trailing stop
+                if (currentPrice <= newStopLoss) {
+                    shouldExit = true;
+                }
+            } else {
+                // For short positions: track lowest price
+                const currentLow = trade.trailingStopLowPrice || trade.price;
+                const newLow = Math.min(currentLow, currentPrice);
+
+                if (newLow < currentLow || !trade.trailingStopActivated) {
+                    updatedFields.trailingStopLowPrice = newLow;
+                    // Move stop loss down: trail distance above the new low
+                    newStopLoss = newLow * (1 + trailPercent / 100);
+                }
+
+                // Check if price rose to trailing stop
+                if (currentPrice >= newStopLoss) {
+                    shouldExit = true;
+                }
+            }
+        }
+
+        return { shouldExit, newStopLoss, updatedFields };
     }
 }

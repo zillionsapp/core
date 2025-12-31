@@ -121,7 +121,13 @@ export class BotEngine {
                         timestamp: order.timestamp,
                         status: 'OPEN',
                         stopLossPrice: exitPrices.stopLoss,
-                        takeProfitPrice: exitPrices.takeProfit
+                        takeProfitPrice: exitPrices.takeProfit,
+                        trailingStopEnabled: config.TRAILING_STOP_ENABLED,
+                        trailingStopActivated: false,
+                        trailingStopActivationPercent: config.TRAILING_STOP_ACTIVATION_PERCENT,
+                        trailingStopTrailPercent: config.TRAILING_STOP_TRAIL_PERCENT,
+                        trailingStopHighPrice: order.side === 'BUY' ? order.price : undefined,
+                        trailingStopLowPrice: order.side === 'SELL' ? order.price : undefined
                     };
 
                     this.activeTrade = trade;

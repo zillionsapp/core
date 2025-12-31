@@ -17,7 +17,8 @@ describe('Zillion REST API', () => {
     it('GET /api/trades should return an array', async () => {
         const res = await request(app).get('/api/trades');
         expect(res.status).toBe(200);
-        expect(Array.isArray(res.body)).toBeTruthy();
+        expect(res.body).toHaveProperty('trades');
+        expect(Array.isArray(res.body.trades)).toBeTruthy();
     });
 
     it('POST /api/backtest/run should fail with missing params', async () => {
