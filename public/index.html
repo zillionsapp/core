@@ -253,11 +253,34 @@
     <script>
         const API_BASE = '/api';
 
+        // Create gradient for chart background
+        function createGradient(ctx, isProfit) {
+            const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+            if (isProfit) {
+                // Green gradient for profit
+                gradient.addColorStop(0, 'rgba(0, 255, 157, 0.4)');
+                gradient.addColorStop(1, 'rgba(0, 255, 157, 0.05)');
+            } else {
+                // Red gradient for loss
+                gradient.addColorStop(0, 'rgba(255, 0, 110, 0.4)');
+                gradient.addColorStop(1, 'rgba(255, 0, 110, 0.05)');
+            }
+            return gradient;
+        }
+
+        // Update chart colors based on portfolio performance
+        function updateChartColors(isProfit) {
+            const borderColor = isProfit ? '#00ff9d' : '#ff006e';
+            const pointColor = isProfit ? '#00ff9d' : '#ff006e';
+
+            chart.data.datasets[0].borderColor = borderColor;
+            chart.data.datasets[0].backgroundColor = createGradient(chart.ctx, isProfit);
+            chart.data.datasets[0].pointBackgroundColor = pointColor;
+            chart.update('none');
+        }
+
         // Initialize Chart with theme-aware colors
         const ctx = document.getElementById('performanceChart').getContext('2d');
-        const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-        gradient.addColorStop(0, 'rgba(0, 255, 157, 0.4)');
-        gradient.addColorStop(1, 'rgba(0, 255, 157, 0.05)');
         const chart = new Chart(ctx, {
             type: 'line',
             data: {
@@ -266,7 +289,7 @@
                     label: 'Equity (USDT)',
                     data: [],
                     borderColor: '#00ff9d',
-                    backgroundColor: gradient,
+                    backgroundColor: createGradient(ctx, true), // true for profit (green)
                     borderWidth: 2,
                     fill: true,
                     tension: 0.4,
@@ -376,6 +399,9 @@
                     equityChangeEl.innerText = `${equityChange >= 0 ? '+' : '-'}$${Math.abs(equityChange).toFixed(2)} unrealized`;
                     equityChangeEl.classList.toggle('text-success', equityChange >= 0);
                     equityChangeEl.classList.toggle('text-error', equityChange < 0);
+
+                    // Update chart colors based on portfolio performance
+                    updateChartColors(pnlValue >= 0);
                 }
 
                 // Fetch Portfolio History for Chart
