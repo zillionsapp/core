@@ -500,15 +500,15 @@
                         if (t.status === 'CLOSED' && t.exitPrice) {
                             exitPriceDisplay = `$${t.exitPrice.toLocaleString()}`;
                         } else if (t.status === 'OPEN' && currentPrices[t.symbol]) {
-                            exitPriceDisplay = `$${currentPrices[t.symbol].toLocaleString()} <small class="text-xs opacity-60">(current)</small>`;
+                            exitPriceDisplay = `$${currentPrices[t.symbol].toLocaleString()} (current)`;
                         }
 
                         const pnlDollarDisplay = pnl.dollar !== 0
-                            ? `${isProfit ? '+' : ''}$${pnl.dollar.toFixed(2)}${pnl.isRealized ? '' : ' <small class="text-xs opacity-60">(unrealized)</small>'}`
+                            ? `${isProfit ? '+' : ''}$${pnl.dollar.toFixed(2)}${pnl.isRealized ? '' : ' (unrealized)'}`
                             : '-';
 
                         const pnlPercentDisplay = pnl.percentage !== 0
-                            ? `${isProfit ? '+' : ''}${pnl.percentage.toFixed(2)}%${pnl.isRealized ? '' : ' <small class="text-xs opacity-60">(unrealized)</small>'}`
+                            ? `${isProfit ? '+' : ''}${pnl.percentage.toFixed(2)}%${pnl.isRealized ? '' : ' (unrealized)'}`
                             : '-';
 
                         return `
