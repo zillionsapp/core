@@ -51,27 +51,46 @@
     <main class="p-8 max-w-7xl mx-auto space-y-8">
 
         <!-- Stats Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div class="stat glass-card rounded-2xl shadow-lg border-l-4 border-secondary">
-                <div class="stat-title text-secondary uppercase text-xs font-bold tracking-widest">Portfolio Balance
+                <div class="stat-title text-secondary uppercase text-xs font-bold tracking-widest">Current Balance
                 </div>
-                <div id="balance" class="stat-value text-3xl">-</div>
-                <div class="stat-desc mt-1">Total Equity (USDT)</div>
+                <div id="currentBalance" class="stat-value text-3xl">-</div>
+                <div class="stat-desc mt-1">Available Cash (USDT)</div>
             </div>
             <div class="stat glass-card rounded-2xl shadow-lg border-l-4 border-accent">
-                <div class="stat-title text-accent uppercase text-xs font-bold tracking-widest">Total Trades</div>
-                <div id="tradesCount" class="stat-value text-3xl">-</div>
-                <div id="tradesTrend" class="stat-desc mt-1 text-success">↗︎ 0 this session</div>
+                <div class="stat-title text-accent uppercase text-xs font-bold tracking-widest">Current Equity</div>
+                <div id="currentEquity" class="stat-value text-3xl">-</div>
+                <div id="equityChange" class="stat-desc mt-1 text-success">Including unrealized P&L</div>
             </div>
             <div class="stat glass-card rounded-2xl shadow-lg border-l-4 border-primary">
                 <div class="stat-title text-primary uppercase text-xs font-bold tracking-widest">Win Rate</div>
-                <div id="winrate" class="stat-value text-3xl">-</div>
+                <div id="winRate" class="stat-value text-3xl">-</div>
                 <div class="stat-desc mt-1">Based on closed trades</div>
             </div>
             <div class="stat glass-card rounded-2xl shadow-lg border-l-4 border-info">
                 <div class="stat-title text-info uppercase text-xs font-bold tracking-widest">Profit Factor</div>
                 <div id="profitFactor" class="stat-value text-3xl">-</div>
                 <div class="stat-desc mt-1">Gross Profit / Gross Loss</div>
+            </div>
+        </div>
+
+        <!-- Additional Portfolio Metrics -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="stat glass-card rounded-2xl shadow-lg border-l-4 border-warning">
+                <div class="stat-title text-warning uppercase text-xs font-bold tracking-widest">Total PnL</div>
+                <div id="totalPnL" class="stat-value text-3xl">-</div>
+                <div class="stat-desc mt-1">Realized profit/loss</div>
+            </div>
+            <div class="stat glass-card rounded-2xl shadow-lg border-l-4 border-success">
+                <div class="stat-title text-success uppercase text-xs font-bold tracking-widest">Open Positions</div>
+                <div id="openPositions" class="stat-value text-3xl">-</div>
+                <div id="openPositionsValue" class="stat-desc mt-1">Total unrealized P&L</div>
+            </div>
+            <div class="stat glass-card rounded-2xl shadow-lg border-l-4 border-error">
+                <div class="stat-title text-error uppercase text-xs font-bold tracking-widest">Closed Trades</div>
+                <div id="closedTrades" class="stat-value text-3xl">-</div>
+                <div class="stat-desc mt-1">Completed transactions</div>
             </div>
         </div>
 
@@ -224,14 +243,47 @@
 
         async function refreshData() {
             try {
-                // Fetch Portfolio
+                // Fetch Portfolio Snapshot
                 const portRes = await fetch(`${API_BASE}/portfolio`);
                 const portData = await portRes.json();
-                if (portData) {
-                    document.getElementById('balance').innerText = `$${portData.balance.toLocaleString()}`;
+
+                if (portData && !portData.error) {
+                    // Update main portfolio metrics
+                    document.getElementById('currentBalance').innerText = `$${portData.currentBalance?.toLocaleString() || '0'}`;
+                    document.getElementById('currentEquity').innerText = `$${portData.currentEquity?.toLocaleString() || '0'}`;
+                    document.getElementById('winRate').innerText = `${((portData.winRate || 0) * 100).toFixed(1)}%`;
+                    document.getElementById('profitFactor').innerText = (portData.profitFactor || 0).toFixed(2);
+
+                    // Update additional metrics
+                    const totalPnLEl = document.getElementById('totalPnL');
+                    const pnlValue = portData.pnl || 0;
+                    totalPnLEl.innerText = `${pnlValue >= 0 ? '+' : ''}$${pnlValue.toFixed(2)}`;
+                    totalPnLEl.classList.toggle('text-success', pnlValue >= 0);
+                    totalPnLEl.classList.toggle('text-error', pnlValue < 0);
+
+                    // Open positions
+                    const openTrades = portData.openTrades || [];
+                    document.getElementById('openPositions').innerText = openTrades.length.toString();
+
+                    const totalUnrealizedPnL = openTrades.reduce((sum, trade) => sum + (trade.unrealizedPnL || 0), 0);
+                    const openPositionsValueEl = document.getElementById('openPositionsValue');
+                    openPositionsValueEl.innerText = `${totalUnrealizedPnL >= 0 ? '+' : ''}$${totalUnrealizedPnL.toFixed(2)} unrealized`;
+                    openPositionsValueEl.classList.toggle('text-success', totalUnrealizedPnL >= 0);
+                    openPositionsValueEl.classList.toggle('text-error', totalUnrealizedPnL < 0);
+
+                    // Closed trades
+                    const closedTrades = portData.closedTrades || [];
+                    document.getElementById('closedTrades').innerText = closedTrades.length.toString();
+
+                    // Update equity change indicator
+                    const equityChangeEl = document.getElementById('equityChange');
+                    const equityChange = (portData.currentEquity || 0) - (portData.currentBalance || 0);
+                    equityChangeEl.innerText = `${equityChange >= 0 ? '+' : ''}$${equityChange.toFixed(2)} unrealized`;
+                    equityChangeEl.classList.toggle('text-success', equityChange >= 0);
+                    equityChangeEl.classList.toggle('text-error', equityChange < 0);
                 }
 
-                // Fetch Trades
+                // Fetch Recent Trades for the table
                 const tradesRes = await fetch(`${API_BASE}/trades`);
                 const trades = await tradesRes.json();
 
@@ -240,7 +292,7 @@
                     document.getElementById('noTrades').classList.add('hidden');
                     tradeBody.innerHTML = trades.slice(0, 10).map(t => `
                         <tr class="hover">
-                            <td><span class="badge badge-success badge-sm">FILLED</span></td>
+                            <td><span class="badge ${t.status === 'OPEN' ? 'badge-warning' : 'badge-success'} badge-sm">${t.status}</span></td>
                             <td class="font-bold">${t.symbol}</td>
                             <td>
                                 <span class="badge badge-outline ${t.side === 'BUY' ? 'badge-success' : 'badge-error'} text-xs font-bold px-3">
@@ -251,20 +303,21 @@
                             <td class="text-right font-mono">${t.quantity}</td>
                         </tr>
                     `).join('');
-                }
-
-                // Fetch Backtests for Overall Performance
-                const btRes = await fetch(`${API_BASE}/backtests`);
-                const results = await btRes.json();
-                if (results.length > 0) {
-                    const latest = results[0];
-                    document.getElementById('winrate').innerText = `${latest.winrate.toFixed(1)}%`;
-                    document.getElementById('profitFactor').innerText = latest.profitFactor.toFixed(2);
-                    document.getElementById('tradesCount').innerText = latest.tradesCount;
+                } else {
+                    document.getElementById('noTrades').classList.remove('hidden');
+                    tradeBody.innerHTML = '';
                 }
 
             } catch (err) {
                 console.error('Failed to fetch data:', err);
+                // Set default values on error
+                document.getElementById('currentBalance').innerText = '-';
+                document.getElementById('currentEquity').innerText = '-';
+                document.getElementById('winRate').innerText = '-';
+                document.getElementById('profitFactor').innerText = '-';
+                document.getElementById('totalPnL').innerText = '-';
+                document.getElementById('openPositions').innerText = '-';
+                document.getElementById('closedTrades').innerText = '-';
             }
         }
 
