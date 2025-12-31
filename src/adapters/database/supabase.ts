@@ -5,6 +5,7 @@ import { config } from '../../config/env';
 
 export class SupabaseDataStore implements IDataStore {
     private supabase: SupabaseClient | null = null;
+    private inMemoryTrades: Trade[] = [];
 
     constructor() {
         if (config.SUPABASE_URL && config.SUPABASE_KEY) {
@@ -18,6 +19,7 @@ export class SupabaseDataStore implements IDataStore {
     async saveTrade(trade: Trade): Promise<void> {
         if (!this.supabase) {
             console.log('[InMemoryDB] Saved trade:', trade.id);
+            this.inMemoryTrades.push(trade);
             return;
         }
         const { error } = await this.supabase.from('trades').insert(trade);
@@ -25,7 +27,13 @@ export class SupabaseDataStore implements IDataStore {
     }
 
     async getTrades(symbol?: string, limit: number = 100): Promise<Trade[]> {
-        if (!this.supabase) return [];
+        if (!this.supabase) {
+            let trades = [...this.inMemoryTrades];
+            if (symbol) {
+                trades = trades.filter(t => t.symbol === symbol);
+            }
+            return trades.sort((a, b) => b.timestamp - a.timestamp).slice(0, limit);
+        }
 
         let query = this.supabase.from('trades').select('*').order('timestamp', { ascending: false }).limit(limit);
         if (symbol) query = query.eq('symbol', symbol);
@@ -87,7 +95,10 @@ export class SupabaseDataStore implements IDataStore {
     }
 
     async getActiveTrade(symbol: string): Promise<Trade | null> {
-        if (!this.supabase) return null;
+        if (!this.supabase) {
+            const openTrades = this.inMemoryTrades.filter(t => t.symbol === symbol && t.status === 'OPEN');
+            return openTrades.sort((a, b) => b.timestamp - a.timestamp)[0] || null;
+        }
 
         const { data, error } = await this.supabase
             .from('trades')
@@ -105,8 +116,32 @@ export class SupabaseDataStore implements IDataStore {
         return data as Trade;
     }
 
+    async getOpenTrades(): Promise<Trade[]> {
+        if (!this.supabase) {
+            return this.inMemoryTrades.filter(t => t.status === 'OPEN').sort((a, b) => b.timestamp - a.timestamp);
+        }
+
+        const { data, error } = await this.supabase
+            .from('trades')
+            .select('*')
+            .eq('status', 'OPEN')
+            .order('timestamp', { ascending: false });
+
+        if (error) {
+            console.error('Error fetching open trades:', error);
+            return [];
+        }
+        return (data as Trade[]) || [];
+    }
+
     async updateTrade(id: string, updates: Partial<Trade>): Promise<void> {
-        if (!this.supabase) return;
+        if (!this.supabase) {
+            const index = this.inMemoryTrades.findIndex(t => t.id === id);
+            if (index !== -1) {
+                this.inMemoryTrades[index] = { ...this.inMemoryTrades[index], ...updates };
+            }
+            return;
+        }
 
         const { error } = await this.supabase
             .from('trades')

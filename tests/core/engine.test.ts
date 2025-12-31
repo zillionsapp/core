@@ -45,11 +45,16 @@ describe('BotEngine Integration', () => {
     }, 30000);
 
     it('should trigger Stop Loss when price drops', async () => {
-        // 1. Setup: Mock Strategy to return BUY
-        const strategySpy = jest.spyOn(engine['strategy'], 'update').mockResolvedValue({
-            action: 'BUY',
-            symbol: 'BTC/USDT'
-        });
+        // 1. Setup: Mock Strategy to return BUY only on first tick
+        const strategySpy = jest.spyOn(engine['strategy'], 'update')
+            .mockResolvedValueOnce({
+                action: 'BUY',
+                symbol: 'BTC/USDT'
+            }) // Tick 1: Signal Generation
+            .mockResolvedValueOnce({
+                action: 'HOLD',
+                symbol: 'BTC/USDT'
+            }); // Tick 2: No new signal
 
         // 2. Setup: Spy on Exchange Data Provider methods (bypassing fetch)
         const getCandlesSpy = jest.spyOn(engine['exchange'], 'getCandles')
@@ -61,21 +66,22 @@ describe('BotEngine Integration', () => {
             }]); // Tick 2: Stop Loss Check (Price 90 < 95)
 
         const getTickerSpy = jest.spyOn(engine['exchange'], 'getTicker')
-            .mockResolvedValueOnce({ symbol: 'BTC/USDT', price: 100, timestamp: Date.now() }) // Tick 1: Risk Check
-            .mockResolvedValueOnce({ symbol: 'BTC/USDT', price: 100, timestamp: Date.now() }) // Tick 1: Execution
-            .mockResolvedValueOnce({ symbol: 'BTC/USDT', price: 90, timestamp: Date.now() }); // Tick 2: Execution (Sell at 90)
+            .mockResolvedValueOnce({ symbol: 'BTC/USDT', price: 70, timestamp: Date.now() }) // Tick 1: Entry price
+            .mockResolvedValue({ symbol: 'BTC/USDT', price: 65, timestamp: Date.now() }); // Tick 2: Check price
 
         // Tick 1: BUY
         await engine.tick('BTC/USDT', '1m');
         expect(engine['activeTrade']).toBeDefined();
-        expect(engine['activeTrade']?.stopLossPrice).toBe(95); // 100 * 0.95
+        expect(engine['activeTrade']?.stopLossPrice).toBe(66.5); // 70 - (35 / 10) where 35 = 700 * 0.05
 
-        // Tick 2: STOP LOSS CHECK
+        // Tick 2: STOP LOSS CHECK - TradeManager should close the position
         const placeOrderSpy = jest.spyOn(engine['exchange'], 'placeOrder');
         await engine.tick('BTC/USDT', '1m');
 
+        // Should have called placeOrder for the stop loss close (SELL)
         expect(placeOrderSpy).toHaveBeenCalledWith(expect.objectContaining({
-            side: 'SELL'
+            side: 'SELL',
+            symbol: 'BTC/USDT'
         }));
         expect(engine['activeTrade']).toBeNull();
     });

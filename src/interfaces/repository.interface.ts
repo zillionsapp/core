@@ -43,6 +43,11 @@ export interface IDataStore {
     getActiveTrade(symbol: string): Promise<Trade | null>;
 
     /**
+     * Get all open trades
+     */
+    getOpenTrades(): Promise<Trade[]>;
+
+    /**
      * Update a trade record
      */
     updateTrade(id: string, updates: Partial<Trade>): Promise<void>;

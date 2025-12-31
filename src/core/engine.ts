@@ -7,6 +7,7 @@ import { SupabaseDataStore } from '../adapters/database/supabase';
 import { OrderRequest, Trade } from './types';
 import { logger } from './logger';
 import { RiskManager } from './risk.manager';
+import { TradeManager } from './trade.manager';
 import { TimeUtils } from './time.utils';
 import { config } from '../config/env';
 
@@ -15,6 +16,7 @@ export class BotEngine {
     private strategy: IStrategy;
     private db: IDataStore;
     private riskManager: RiskManager;
+    private tradeManager: TradeManager;
     private isRunning: boolean = false;
     private activeTrade: Trade | null = null;
 
@@ -23,6 +25,7 @@ export class BotEngine {
         this.strategy = StrategyManager.getStrategy(strategyName);
         this.db = new SupabaseDataStore();
         this.riskManager = new RiskManager(this.exchange);
+        this.tradeManager = new TradeManager(this.exchange, this.db);
     }
 
     async start(symbol: string, interval: string) {
@@ -56,39 +59,14 @@ export class BotEngine {
             const lastCandle = candles[candles.length - 1];
             await this.logPortfolioState(symbol, lastCandle.close);
 
-            // 2. Risk Checks (Stop Loss / Take Profit) independent of Strategy
+            // 2. Check and manage all open positions (SL/TP)
+            await this.tradeManager.checkAndManagePositions();
+
+            // Refresh active trade status after position management
             if (this.activeTrade) {
-                const price = lastCandle.close;
-                let exitReason = '';
-
-                if (this.activeTrade.stopLossPrice && price <= this.activeTrade.stopLossPrice) {
-                    exitReason = 'STOP_LOSS';
-                } else if (this.activeTrade.takeProfitPrice && price >= this.activeTrade.takeProfitPrice) {
-                    exitReason = 'TAKE_PROFIT';
-                }
-
-                if (exitReason) {
-                    logger.info(`[RiskManager] Triggered ${exitReason} at ${price}`);
-                    // Force Exit
-                    const orderRequest: OrderRequest = {
-                        symbol,
-                        side: 'SELL',
-                        type: 'MARKET',
-                        quantity: this.activeTrade.quantity
-                    };
-
-                    const order = await this.exchange.placeOrder(orderRequest);
-
-                    // Close Trade in DB
-                    await this.db.updateTrade(this.activeTrade.id, {
-                        status: 'CLOSED',
-                        exitPrice: order.price,
-                        exitTimestamp: order.timestamp
-                    });
-
-                    logger.info(`[BotEngine] Position Closed: ${exitReason} | ID: ${this.activeTrade.id}`);
+                const updatedTrade = await this.db.getActiveTrade(symbol);
+                if (!updatedTrade || updatedTrade.id !== this.activeTrade.id) {
                     this.activeTrade = null;
-                    return; // Exit tick after closing
                 }
             }
 
