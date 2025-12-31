@@ -26,11 +26,25 @@ router.get('/trades', async (req, res) => {
         const limit = parseInt(req.query.limit as string) || 50;
         const offset = parseInt(req.query.offset as string) || 0;
 
-        // Get total count for pagination
-        const allTrades = await db.getTrades(symbol, 10000); // Get a large number to count
+        // Get both closed and open trades
+        const closedTrades = await db.getTrades(symbol, 10000); // Get all closed trades
+        const openTrades = await db.getOpenTrades(); // Get all open trades
+
+        // Filter open trades by symbol if specified
+        const filteredOpenTrades = symbol ? openTrades.filter(t => t.symbol === symbol) : openTrades;
+
+        // Combine and sort by timestamp (most recent first)
+        const allTrades = [...closedTrades, ...filteredOpenTrades.map(t => ({
+            ...t,
+            status: 'OPEN' as const,
+            exitPrice: undefined // Open trades don't have exit price
+        }))].sort((a, b) => b.timestamp - a.timestamp);
+
         const total = allTrades.length;
 
-        const trades = await db.getTrades(symbol, limit, offset);
+        // Apply pagination
+        const trades = allTrades.slice(offset, offset + limit);
+
         res.json({ trades, total });
     } catch (error: any) {
         res.status(500).json({ error: error.message });
