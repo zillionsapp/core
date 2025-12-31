@@ -1,0 +1,32 @@
+{
+  "name": "Zillions Core Dashboard",
+  "short_name": "Zillions Core",
+  "description": "Professional Trading Dashboard",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1b1e",
+  "theme_color": "#00ff9d",
+  "orientation": "portrait-primary",
+  "categories": ["finance", "productivity"],
+  "lang": "en",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "16x16 32x32 48x48",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
