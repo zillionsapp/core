@@ -22,20 +22,41 @@ export class TradeManager {
 
             logger.info(`[TradeManager] Checking ${openTrades.length} open positions`);
 
+            // Group trades by symbol to minimize API calls
+            const tradesBySymbol = new Map<string, Trade[]>();
             for (const trade of openTrades) {
-                await this.checkPosition(trade);
+                if (!tradesBySymbol.has(trade.symbol)) {
+                    tradesBySymbol.set(trade.symbol, []);
+                }
+                tradesBySymbol.get(trade.symbol)!.push(trade);
             }
+
+            // Get unique symbols
+            const symbols = Array.from(tradesBySymbol.keys());
+
+            // Fetch tickers in parallel for all symbols
+            const tickerPromises = symbols.map(symbol => this.exchange.getTicker(symbol));
+            const tickers = await Promise.all(tickerPromises);
+
+            // Create price map
+            const priceMap = new Map<string, number>();
+            symbols.forEach((symbol, index) => {
+                priceMap.set(symbol, tickers[index].price);
+            });
+
+            // Check all positions using cached prices
+            const checkPromises = openTrades.map(trade =>
+                this.checkPosition(trade, priceMap.get(trade.symbol)!)
+            );
+            await Promise.all(checkPromises);
+
         } catch (error) {
             logger.error('[TradeManager] Error managing positions:', error);
         }
     }
 
-    private async checkPosition(trade: Trade): Promise<void> {
+    private async checkPosition(trade: Trade, currentPrice: number): Promise<void> {
         try {
-            // Get current price
-            const ticker = await this.exchange.getTicker(trade.symbol);
-            const currentPrice = ticker.price;
-
             let exitReason: string | null = null;
 
             // Check stop loss
