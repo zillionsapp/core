@@ -12,7 +12,8 @@
     *   **Paper Trading**: Simulated matching engine using real-world price data for realistic testing.
     *   **Prepared for**: Binance, Hyperliquid, Drift, CCXT, OKX (Stubs ready).
 *   **Robust Risk Management**:
-    *   **Automated Protection**: Stop Loss and Take Profit execution engine.
+    *   **TradeManager**: Global position management system that monitors all open positions across all symbols and strategies.
+    *   **Automated Protection**: Stop Loss and Take Profit execution with real-time price monitoring.
     *   **Middleware Checks**: Max Order Size and Daily Drawdown limits.
 *   **Backtesting Engine**: Dedicated runner to validate strategies against historical market data (no random walks).
 *   **Strategy System**: Pluggable strategy interface. Simply add a new class to `src/strategies`.
@@ -231,10 +232,23 @@ Zillion's strategy system is pluggable. To add your own logic:
 
 ## 🛡 Risk Management
 
+### RiskManager
 The `RiskManager` module (`src/core/risk.manager.ts`) intercepts every order before execution.
 - **Position Sizing**: Dynamically calculates order quantity based on a percentage of your total balance (Default: 10%).
 - **Daily Drawdown**: Halts trading if equity drops by a specific percentage in a single day (Default: 5%).
-- **Stop Loss / Take Profit**: Automatically tracks positions and triggers exit orders if price limits are crossed (Default: 5% SL / 10% TP).
+
+### TradeManager
+The `TradeManager` (`src/core/trade.manager.ts`) provides **global position management** across all trading activities:
+- **Centralized Monitoring**: Tracks all open positions from any strategy or symbol in real-time.
+- **Automated SL/TP Execution**: Continuously monitors price movements and automatically executes stop-loss and take-profit orders.
+- **Multi-Position Support**: Unlike the previous single-position-per-engine limitation, TradeManager handles unlimited concurrent positions.
+- **Cross-Strategy Protection**: Ensures risk management works regardless of which strategy opened the position.
+- **Real-time Price Tracking**: Uses live market data to check exit conditions on every tick.
+
+**Key Benefits:**
+- **No Position Left Behind**: Even if a strategy instance stops, positions remain protected.
+- **Improved Risk Control**: Centralized system prevents conflicting risk management logic.
+- **Scalability**: Supports multiple strategies running simultaneously with proper position isolation.
 
 > [!NOTE]
 > All risk management percentages are configured as full numbers in the `.env` file (e.g., `5` means `5%`).
