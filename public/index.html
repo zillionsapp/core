@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Zillion Dashboard | Professional Trading</title>
+    <title>Zillions Core Dashboard | Professional Trading</title>
     <!-- DaisyUI + Tailwind CDN -->
     <link href="https://cdn.jsdelivr.net/npm/daisyui@4.12.10/dist/full.min.css" rel="stylesheet" type="text/css" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -13,14 +13,48 @@
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body {
-            font-family: 'Outfit', sans-serif;
+        @import "tailwindcss";
+        @plugin "daisyui";
+
+        @plugin "daisyui/theme" {
+          name: "dark";
+          color-scheme: dark;
+          --color-base-100: #1a1b1e;
+          --color-base-200: #141517;
+          --color-base-300: #0c0c0d;
+          --color-base-content: #ecf0ed;
+          --color-primary: #00ff9d;
+          --color-primary-content: #ecf0ed;
+          --color-secondary: #7c3aed;
+          --color-secondary-content: #ecf0ed;
+          --color-accent: #ff006e;
+          --color-accent-content: #ecf0ed;
+          --color-neutral: #1a1b1e;
+          --color-neutral-content: #ecf0ed;
         }
 
-        .glass-card {
-            background: rgba(255, 255, 255, 0.03);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
+        @plugin "daisyui/theme" {
+          name: "light";
+          color-scheme: light;
+          --color-base-100: #ecf0ed;
+          --color-base-200: #fff;
+          --color-base-300: #ecf0ed;
+          --color-base-content: #141517;
+          --color-primary: #00ff9d;
+          --color-primary-content: #141517;
+          --color-secondary: #7c3aed;
+          --color-secondary-content: #141517;
+          --color-accent: #ff006e;
+          --color-accent-content: #141517;
+          --color-neutral: #1a1b1e;
+          --color-neutral-content: #141517;
+        }
+
+        .animate-gradient{ background-size:300% 300%; animation:gradientShift 8s ease infinite; }
+        @keyframes gradientShift{ 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
+
+        body {
+            font-family: 'Outfit', sans-serif;
         }
     </style>
 </head>
@@ -28,10 +62,11 @@
 <body class="bg-base-300 min-h-screen">
 
     <!-- Header -->
-    <div class="navbar bg-base-100 shadow-xl px-12 top-0 sticky z-50">
+    <div class="navbar bg-base-200 shadow-xl px-12 top-0 sticky z-50">
         <div class="flex-1">
             <a class="text-2xl font-bold tracking-tighter text-secondary flex items-center gap-2">
-                <span class="text-3xl">💹</span> ZILLION <span
+                <img src="https://raw.githubusercontent.com/zillionsapp/app/refs/heads/main/public/logo.jpg" alt="Zillions Logo" class="w-8 h-8 rounded-full">
+                ZILLIONS <span
                     class="bg-secondary text-secondary-content px-2 py-0.5 rounded text-xs">CORE</span>
             </a>
         </div>
@@ -40,6 +75,11 @@
                 <div class="w-2 h-2 rounded-full bg-white"></div>
                 SYSTEM LIVE
             </div>
+            <button id="themeToggle" class="btn btn-ghost btn-circle">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                </svg>
+            </button>
             <button class="btn btn-ghost btn-circle avatar">
                 <div class="w-10 rounded-full">
                     <img src="https://api.dicebear.com/7.x/shapes/svg?seed=Zillion" />
@@ -52,23 +92,23 @@
 
         <!-- Stats Grid -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <div class="stat glass-card rounded-2xl shadow-lg border-l-4 border-secondary">
+            <div class="stat bg-base-200 rounded-2xl shadow-lg border-l-4 border-secondary">
                 <div class="stat-title text-secondary uppercase text-xs font-bold tracking-widest">Current Balance
                 </div>
                 <div id="currentBalance" class="stat-value text-3xl">-</div>
                 <div class="stat-desc mt-1">Available Cash (USDT)</div>
             </div>
-            <div class="stat glass-card rounded-2xl shadow-lg border-l-4 border-accent">
+            <div class="stat bg-base-200 rounded-2xl shadow-lg border-l-4 border-accent">
                 <div class="stat-title text-accent uppercase text-xs font-bold tracking-widest">Current Equity</div>
                 <div id="currentEquity" class="stat-value text-3xl">-</div>
                 <div id="equityChange" class="stat-desc mt-1 text-success">Including unrealized P&L</div>
             </div>
-            <div class="stat glass-card rounded-2xl shadow-lg border-l-4 border-primary">
+            <div class="stat bg-base-200 rounded-2xl shadow-lg border-l-4 border-primary">
                 <div class="stat-title text-primary uppercase text-xs font-bold tracking-widest">Win Rate</div>
                 <div id="winRate" class="stat-value text-3xl">-</div>
                 <div class="stat-desc mt-1">Based on closed trades</div>
             </div>
-            <div class="stat glass-card rounded-2xl shadow-lg border-l-4 border-info">
+            <div class="stat bg-base-200 rounded-2xl shadow-lg border-l-4 border-info">
                 <div class="stat-title text-info uppercase text-xs font-bold tracking-widest">Profit Factor</div>
                 <div id="profitFactor" class="stat-value text-3xl">-</div>
                 <div class="stat-desc mt-1">Gross Profit / Gross Loss</div>
@@ -77,26 +117,70 @@
 
         <!-- Additional Portfolio Metrics -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div class="stat glass-card rounded-2xl shadow-lg border-l-4 border-warning">
+            <div class="stat bg-base-200 rounded-2xl shadow-lg border-l-4 border-warning">
                 <div class="stat-title text-warning uppercase text-xs font-bold tracking-widest">Total PnL</div>
                 <div id="totalPnL" class="stat-value text-3xl">-</div>
                 <div id="totalPnLPercentage" class="stat-desc mt-1">Realized profit/loss</div>
             </div>
-            <div class="stat glass-card rounded-2xl shadow-lg border-l-4 border-success">
+            <div class="stat bg-base-200 rounded-2xl shadow-lg border-l-4 border-success">
                 <div class="stat-title text-success uppercase text-xs font-bold tracking-widest">Open Positions</div>
                 <div id="openPositions" class="stat-value text-3xl">-</div>
                 <div id="openPositionsValue" class="stat-desc mt-1">Total unrealized P&L</div>
             </div>
-            <div class="stat glass-card rounded-2xl shadow-lg border-l-4 border-error">
+            <div class="stat bg-base-200 rounded-2xl shadow-lg border-l-4 border-error">
                 <div class="stat-title text-error uppercase text-xs font-bold tracking-widest">Closed Trades</div>
                 <div id="closedTrades" class="stat-value text-3xl">-</div>
                 <div class="stat-desc mt-1">Completed transactions</div>
             </div>
         </div>
 
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Full Width Chart -->
+        <div class="card bg-base-200 shadow-xl h-96">
+            <div class="card-body p-6 flex flex-col">
+                <div class="flex justify-between items-center mb-4 flex-none">
+                    <h3 class="font-bold flex items-center gap-2">
+                        <span class="bg-primary/20 p-2 rounded-lg text-primary text-xs tracking-tighter">LIVE</span>
+                        PERFORMANCE CURVE
+                    </h3>
+                    <div class="flex gap-2">
+                        <button class="btn btn-xs btn-outline">1D</button>
+                        <button class="btn btn-xs btn-active btn-primary">1W</button>
+                        <button class="btn btn-xs btn-outline">1M</button>
+                    </div>
+                </div>
+                <div class="flex-grow relative min-h-0">
+                    <canvas id="performanceChart"></canvas>
+                </div>
+            </div>
+        </div>
 
-            <!-- Left: Backtest Control -->
+        <!-- Trade Table - Full Width -->
+        <div class="card bg-base-100 shadow-xl overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="table table-zebra w-full">
+                    <thead>
+                        <tr class="bg-base-200">
+                            <th class="text-xs font-bold uppercase py-4">Status</th>
+                            <th class="text-xs font-bold uppercase py-4">Symbol</th>
+                            <th class="text-xs font-bold uppercase py-4">Side</th>
+                            <th class="text-xs font-bold uppercase py-4">Price</th>
+                            <th class="text-xs font-bold uppercase py-4 text-right">Qty</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tradeBody">
+                        <!-- Dynamic Content -->
+                    </tbody>
+                </table>
+            </div>
+            <div id="noTrades" class="text-center p-12 opacity-40">
+                <div class="text-4xl mb-2">📜</div>
+                <p>No recent trades fetched yet.</p>
+            </div>
+        </div>
+
+        <!-- Testing Hub - Commented Out for Now -->
+        <!--
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div class="lg:col-span-1 space-y-6">
                 <div class="card bg-base-100 shadow-xl overflow-hidden">
                     <div class="bg-secondary p-4 flex items-center justify-between">
@@ -134,7 +218,6 @@
                     </div>
                 </div>
 
-                <!-- Latest Results -->
                 <div id="resultModal"
                     class="hidden card bg-success text-success-content shadow-lg animate-in fade-in slide-in-from-bottom-5">
                     <div class="card-body p-6">
@@ -146,72 +229,24 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Right: Performance & History -->
-            <div class="lg:col-span-2 space-y-8">
-
-                <!-- Chart -->
-                <div class="card bg-base-100 shadow-xl h-80">
-                    <div class="card-body p-6 flex flex-col">
-                        <div class="flex justify-between items-center mb-4 flex-none">
-                            <h3 class="font-bold flex items-center gap-2">
-                                <span
-                                    class="bg-primary/20 p-2 rounded-lg text-primary text-xs tracking-tighter">LIVE</span>
-                                PERFORMANCE CURVE
-                            </h3>
-                            <div class="flex gap-2">
-                                <button class="btn btn-xs btn-outline">1D</button>
-                                <button class="btn btn-xs btn-active btn-primary">1W</button>
-                                <button class="btn btn-xs btn-outline">1M</button>
-                            </div>
-                        </div>
-                        <div class="flex-grow relative min-h-0">
-                            <canvas id="performanceChart"></canvas>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Trade Table -->
-                <div class="card bg-base-100 shadow-xl overflow-hidden">
-                    <div class="overflow-x-auto">
-                        <table class="table table-zebra w-full">
-                            <thead>
-                                <tr class="bg-base-200">
-                                    <th class="text-xs font-bold uppercase py-4">Status</th>
-                                    <th class="text-xs font-bold uppercase py-4">Symbol</th>
-                                    <th class="text-xs font-bold uppercase py-4">Side</th>
-                                    <th class="text-xs font-bold uppercase py-4">Price</th>
-                                    <th class="text-xs font-bold uppercase py-4 text-right">Qty</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tradeBody">
-                                <!-- Dynamic Content -->
-                            </tbody>
-                        </table>
-                    </div>
-                    <div id="noTrades" class="text-center p-12 opacity-40">
-                        <div class="text-4xl mb-2">📜</div>
-                        <p>No recent trades fetched yet.</p>
-                    </div>
-                </div>
-            </div>
         </div>
+        -->
     </main>
 
     <!-- Footer -->
-    <footer class="footer footer-center p-10 bg-base-100 text-base-content mt-12 rounded">
+    <footer class="footer footer-center p-10 bg-base-300 text-base-content mt-12 rounded">
         <aside>
             <p class="font-bold flex items-center gap-2">
-                <span class="text-xl">Z</span> Zillions Core <span class="badge badge-secondary">v1.0.0</span>
+                <img src="https://raw.githubusercontent.com/zillionsapp/app/refs/heads/main/public/logo.jpg" alt="Zillions Logo" class="w-8 h-8 rounded-full"> Zillions Core <span class="badge badge-secondary">v0.1.0</span>
             </p>
-            <p>Copyright © 2025 - All rights reserved by Zillions.app</p>
+            <p>Copyright © 2026 - All rights reserved by <a href="https://zillions.app/" target="_blank">Zillions.app</a></p>
         </aside>
     </footer>
 
     <script>
         const API_BASE = '/api';
 
-        // Initialize Chart
+        // Initialize Chart with theme-aware colors
         const ctx = document.getElementById('performanceChart').getContext('2d');
         const chart = new Chart(ctx, {
             type: 'line',
@@ -220,12 +255,14 @@
                 datasets: [{
                     label: 'Equity (USDT)',
                     data: [],
-                    borderColor: '#00D7C4',
-                    backgroundColor: 'rgba(0, 215, 196, 0.1)',
+                    borderColor: 'hsl(var(--p))',
+                    backgroundColor: 'hsla(var(--p), 0.1)',
                     fill: true,
                     tension: 0.4,
                     pointRadius: 2,
-                    pointHoverRadius: 4
+                    pointHoverRadius: 4,
+                    pointBackgroundColor: 'hsl(var(--p))',
+                    pointBorderColor: 'hsl(var(--b1))'
                 }]
             },
             options: {
@@ -234,6 +271,11 @@
                 plugins: {
                     legend: { display: false },
                     tooltip: {
+                        backgroundColor: 'hsl(var(--b2))',
+                        titleColor: 'hsl(var(--bc))',
+                        bodyColor: 'hsl(var(--bc))',
+                        borderColor: 'hsl(var(--p))',
+                        borderWidth: 1,
                         callbacks: {
                             label: function(context) {
                                 return `$${context.parsed.y.toLocaleString()}`;
@@ -244,17 +286,17 @@
                 scales: {
                     x: {
                         display: true,
-                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        grid: { color: 'hsla(var(--bc), 0.1)' },
                         ticks: {
-                            color: 'rgba(255,255,255,0.5)',
+                            color: 'hsl(var(--bc))',
                             font: { size: 10 },
                             maxTicksLimit: 7
                         }
                     },
                     y: {
-                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        grid: { color: 'hsla(var(--bc), 0.1)' },
                         ticks: {
-                            color: 'rgba(255,255,255,0.5)',
+                            color: 'hsl(var(--bc))',
                             font: { size: 10 },
                             callback: function(value) {
                                 return '$' + value.toLocaleString();
@@ -422,7 +464,54 @@
             }
         };
 
+        // Theme Management
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme');
+            const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+            if (savedTheme) {
+                document.documentElement.setAttribute('data-theme', savedTheme);
+            } else if (systemPrefersDark) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+
+            updateThemeIcon();
+        }
+
+        function updateThemeIcon() {
+            const theme = document.documentElement.getAttribute('data-theme');
+            const icon = document.querySelector('#themeToggle svg');
+
+            if (theme === 'dark') {
+                icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path>';
+            } else {
+                icon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>';
+            }
+        }
+
+        // Theme Toggle
+        document.getElementById('themeToggle').addEventListener('click', () => {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeIcon();
+        });
+
+        // Listen for system theme changes
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+            if (!localStorage.getItem('theme')) {
+                const newTheme = e.matches ? 'dark' : 'light';
+                document.documentElement.setAttribute('data-theme', newTheme);
+                updateThemeIcon();
+            }
+        });
+
         // Initial Load and Polling
+        initTheme();
         refreshData();
         setInterval(refreshData, 10000);
 
