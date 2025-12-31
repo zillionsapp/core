@@ -76,6 +76,7 @@ describe('Trading Math Validation Against Real Data', () => {
             (trade) => {
                 const { stopLoss, takeProfit } = riskManager.calculateExitPrices(
                     trade.price,
+                    trade.quantity,
                     'BUY'
                 );
 
@@ -89,6 +90,7 @@ describe('Trading Math Validation Against Real Data', () => {
             (trade) => {
                 const { stopLoss, takeProfit } = riskManager.calculateExitPrices(
                     trade.price,
+                    trade.quantity,
                     'SELL'
                 );
 

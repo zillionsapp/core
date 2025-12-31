@@ -78,11 +78,11 @@ export class BacktestRunner {
                 }
             }
 
-            // --- Strategy Update ---
-            const signal = await strategy.update(currentCandle);
+            // --- Strategy Update (only for opening positions) ---
+            if (!this.activeTrade) {
+                const signal = await strategy.update(currentCandle);
 
-            if (signal && signal.action !== 'HOLD') {
-                if (signal.action === 'BUY' && !this.activeTrade) {
+                if (signal && signal.action !== 'HOLD') {
                     try {
                         const order = await this.exchange.placeOrder({
                             symbol,
@@ -93,7 +93,7 @@ export class BacktestRunner {
                         tradesCount++;
 
                         // Calculate SL/TP
-                        const exitPrices = this.riskManager.calculateExitPrices(order.price, order.side, signal.stopLoss, signal.takeProfit);
+                        const exitPrices = this.riskManager.calculateExitPrices(order.price, order.quantity, order.side, signal.stopLoss, signal.takeProfit);
 
                         this.activeTrade = {
                             id: order.id,
@@ -107,34 +107,11 @@ export class BacktestRunner {
                             stopLossPrice: exitPrices.stopLoss,
                             takeProfitPrice: exitPrices.takeProfit
                         };
-                        if (verbose) console.log(`[Backtest] BUY Entry. SL: ${this.activeTrade.stopLossPrice}, TP: ${this.activeTrade.takeProfitPrice}`);
+                        if (verbose) console.log(`[Backtest] ${signal.action} Entry. SL: ${this.activeTrade.stopLossPrice}, TP: ${this.activeTrade.takeProfitPrice}`);
 
                     } catch (e) {
                         // Ignore funds error in simple loop
                     }
-                } else if (signal.action === 'SELL' && this.activeTrade) {
-                    // Strategy explicit close
-                    try {
-                        const entryValue = this.activeTrade.price * this.activeTrade.quantity;
-                        const order = await this.exchange.placeOrder({
-                            symbol,
-                            side: 'SELL',
-                            type: 'MARKET',
-                            quantity: this.activeTrade.quantity
-                        });
-                        const exitValue = order.price * order.quantity;
-                        const tradePnL = exitValue - entryValue;
-
-                        if (tradePnL > 0) {
-                            winningTrades++;
-                            totalGrossProfit += tradePnL;
-                        } else {
-                            totalGrossLoss += Math.abs(tradePnL);
-                        }
-
-                        if (verbose) console.log(`[Backtest] Strategy SELL Exit. | ID: ${this.activeTrade.id}`);
-                        this.activeTrade = null;
-                    } catch (e) { }
                 }
             }
         }

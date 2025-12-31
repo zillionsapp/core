@@ -92,13 +92,13 @@ export class BotEngine {
                 }
             }
 
-            // 3. Strategy Update
-            const signal = await this.strategy.update(lastCandle);
+            // 3. Strategy Update (only for opening new positions)
+            if (!this.activeTrade) {
+                const signal = await this.strategy.update(lastCandle);
 
-            if (signal) {
-                logger.info(`[Signal] ${signal.action} ${signal.symbol}`);
+                if (signal && signal.action !== 'HOLD') {
+                    logger.info(`[Signal] ${signal.action} ${signal.symbol}`);
 
-                if (signal.action !== 'HOLD') {
                     // 3. Risk Check
                     const quantity = await this.riskManager.calculateQuantity(signal.symbol, lastCandle.close);
 
@@ -116,7 +116,7 @@ export class BotEngine {
                     const order = await this.exchange.placeOrder(orderRequest);
 
                     // 5. Persistence
-                    const exitPrices = this.riskManager.calculateExitPrices(order.price, order.side, signal.stopLoss, signal.takeProfit);
+                    const exitPrices = this.riskManager.calculateExitPrices(order.price, order.quantity, order.side, signal.stopLoss, signal.takeProfit);
 
                     const trade: Trade = {
                         id: order.id,

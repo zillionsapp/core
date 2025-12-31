@@ -47,24 +47,32 @@ export class RiskManager {
         return quantity;
     }
 
-    calculateExitPrices(entryPrice: number, side: 'BUY' | 'SELL',
+    calculateExitPrices(entryPrice: number, quantity: number, side: 'BUY' | 'SELL',
         signalSL?: number, signalTP?: number): { stopLoss: number, takeProfit: number } {
 
+        // Calculate position value
+        const positionValue = entryPrice * quantity;
+
         // Use signal percentages if provided, otherwise use defaults from config
-        // All values are percentages (e.g., 5 means 5%)
+        // These are now interpreted as percentages of position value (risk/reward ratios)
         const slPercent = (signalSL ?? config.DEFAULT_STOP_LOSS_PERCENT) / 100;
         const tpPercent = (signalTP ?? config.DEFAULT_TAKE_PROFIT_PERCENT) / 100;
+
+        // Calculate dollar amounts for risk/reward
+        const riskAmount = positionValue * slPercent;
+        const rewardAmount = positionValue * tpPercent;
 
         let stopLoss = 0;
         let takeProfit = 0;
 
         if (side === 'BUY') {
-            stopLoss = entryPrice * (1 - slPercent);
-            takeProfit = entryPrice * (1 + tpPercent);
+            // For long positions: SL below entry, TP above entry
+            stopLoss = entryPrice - (riskAmount / quantity);
+            takeProfit = entryPrice + (rewardAmount / quantity);
         } else {
-            // SHORT logic (future proofing)
-            stopLoss = entryPrice * (1 + slPercent);
-            takeProfit = entryPrice * (1 - tpPercent);
+            // For short positions: SL above entry, TP below entry
+            stopLoss = entryPrice + (riskAmount / quantity);
+            takeProfit = entryPrice - (rewardAmount / quantity);
         }
 
         return { stopLoss, takeProfit };
