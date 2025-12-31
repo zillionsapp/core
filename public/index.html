@@ -13,7 +13,6 @@
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        @import "tailwindcss";
         @plugin "daisyui";
 
         @plugin "daisyui/theme" {
@@ -413,56 +412,7 @@
             }
         }
 
-        // Run Backtest
-        document.getElementById('runBacktestBtn').onclick = async () => {
-            const btn = document.getElementById('runBacktestBtn');
-            const originalText = btn.innerText;
-            btn.innerHTML = '<span class="loading loading-spinner text-secondary"></span> RUNNING...';
-            btn.classList.add('btn-disabled');
 
-            try {
-                const res = await fetch(`${API_BASE}/backtest/run`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        strategyName: document.getElementById('strategySelect').value || 'SMA_CROSSOVER',
-                        symbol: document.getElementById('symbolInput').value,
-                        interval: document.getElementById('intervalSelect').value
-                    })
-                });
-
-                if (!res.ok) throw new Error('API request failed');
-                const data = await res.json();
-                const result = data.result;
-                console.log('[Dashboard] Backtest Result:', result);
-
-                // Show floating result
-                const modal = document.getElementById('resultModal');
-                const pnlEl = document.getElementById('finalPnl');
-
-                // Color coding based on PnL
-                if (result.pnlUSDT >= 0) {
-                    modal.classList.replace('bg-error', 'bg-success');
-                    modal.classList.add('bg-success'); // In case it had neither
-                    pnlEl.innerText = `+$${result.pnlUSDT.toFixed(2)}`;
-                } else {
-                    modal.classList.replace('bg-success', 'bg-error');
-                    modal.classList.add('bg-error');
-                    pnlEl.innerText = `-$${Math.abs(result.pnlUSDT).toFixed(2)}`;
-                }
-
-                modal.classList.remove('hidden');
-                setTimeout(() => modal.classList.add('hidden'), 8000);
-
-                await refreshData();
-            } catch (err) {
-                console.error('[Dashboard] Backtest Error:', err);
-                alert('Backtest failed. Check logs.');
-            } finally {
-                btn.innerText = originalText;
-                btn.classList.remove('btn-disabled');
-            }
-        };
 
         // Theme Management
         function initTheme() {
