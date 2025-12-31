@@ -22,6 +22,13 @@ create table public.portfolio_snapshots (
   timestamp bigint,
   "totalValue" numeric,
   holdings jsonb,
+  pnl numeric,
+  "winRate" numeric,
+  "profitFactor" numeric,
+  "openTrades" jsonb,
+  "closedTrades" jsonb,
+  "currentEquity" numeric,
+  "currentBalance" numeric,
   created_at timestamp with time zone default timezone('utc'::text, now())
 );
 

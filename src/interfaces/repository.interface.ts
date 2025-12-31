@@ -4,6 +4,29 @@ export interface PortfolioSnapshot {
     timestamp: number;
     totalValue: number; // In quote currency (e.g. USDT)
     holdings: Record<string, number>; // asset -> quantity
+    pnl: number; // Total realized PnL
+    winRate: number; // Percentage of winning trades (0-1)
+    profitFactor: number; // Gross profit / gross loss
+    openTrades: Array<{
+        id: string;
+        symbol: string;
+        side: string;
+        quantity: number;
+        entryPrice: number;
+        currentPrice: number;
+        unrealizedPnL: number;
+    }>;
+    closedTrades: Array<{
+        id: string;
+        symbol: string;
+        side: string;
+        quantity: number;
+        entryPrice: number;
+        exitPrice: number;
+        pnl: number;
+    }>;
+    currentEquity: number;
+    currentBalance: number;
 }
 
 export interface IDataStore {

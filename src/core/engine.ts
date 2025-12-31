@@ -8,6 +8,7 @@ import { OrderRequest, Trade } from './types';
 import { logger } from './logger';
 import { RiskManager } from './risk.manager';
 import { TradeManager } from './trade.manager';
+import { PortfolioManager } from './portfolio.manager';
 import { TimeUtils } from './time.utils';
 import { config } from '../config/env';
 
@@ -17,8 +18,10 @@ export class BotEngine {
     private db: IDataStore;
     private riskManager: RiskManager;
     private tradeManager: TradeManager;
+    private portfolioManager: PortfolioManager;
     private isRunning: boolean = false;
     private activeTrade: Trade | null = null;
+    private lastSnapshotTime: number = 0;
 
     constructor(strategyName: string) {
         this.exchange = ExchangeFactory.getExchange();
@@ -26,6 +29,7 @@ export class BotEngine {
         this.db = new SupabaseDataStore();
         this.riskManager = new RiskManager(this.exchange);
         this.tradeManager = new TradeManager(this.exchange, this.db);
+        this.portfolioManager = new PortfolioManager(this.exchange, this.db);
     }
 
     async start(symbol: string, interval: string) {
@@ -58,6 +62,17 @@ export class BotEngine {
 
             const lastCandle = candles[candles.length - 1];
             await this.logPortfolioState(symbol, lastCandle.close);
+
+            // Save portfolio snapshot periodically (every 5 minutes)
+            const now = Date.now();
+            if (now - this.lastSnapshotTime > 5 * 60 * 1000) {
+                try {
+                    await this.portfolioManager.saveSnapshot();
+                    this.lastSnapshotTime = now;
+                } catch (error) {
+                    logger.error('[BotEngine] Error saving portfolio snapshot:', error);
+                }
+            }
 
             // 2. Check and manage all open positions (SL/TP)
             await this.tradeManager.checkAndManagePositions();

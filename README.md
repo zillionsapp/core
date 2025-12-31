@@ -250,6 +250,29 @@ The `TradeManager` (`src/core/trade.manager.ts`) provides **global position mana
 - **Improved Risk Control**: Centralized system prevents conflicting risk management logic.
 - **Scalability**: Supports multiple strategies running simultaneously with proper position isolation.
 
+### PortfolioManager
+The `PortfolioManager` (`src/core/portfolio.manager.ts`) provides **comprehensive portfolio analytics and snapshot generation**:
+- **Real-time Metrics**: Calculates PnL, Win Rate, Profit Factor, and other key performance indicators.
+- **Position Tracking**: Maintains detailed information about open and closed trades with current valuations.
+- **Equity Monitoring**: Tracks current balance and equity including unrealized gains/losses.
+- **Automated Snapshots**: Generates portfolio snapshots periodically (every 5 minutes) for performance tracking.
+- **Historical Analysis**: Stores complete trade history with entry/exit prices and realized PnL.
+
+**Key Metrics Calculated:**
+- **PnL**: Total realized profit/loss from closed trades.
+- **Win Rate**: Percentage of profitable trades (0-100%).
+- **Profit Factor**: Ratio of gross profits to gross losses.
+- **Open Trades**: Current positions with unrealized PnL and market values.
+- **Closed Trades**: Historical trades with realized PnL.
+- **Current Equity**: Total account value including unrealized gains.
+- **Current Balance**: Available cash balance.
+
+**Key Benefits:**
+- **Performance Tracking**: Monitor trading performance with industry-standard metrics.
+- **Risk Assessment**: Evaluate strategy effectiveness through comprehensive analytics.
+- **Portfolio Visibility**: Real-time view of all positions and their current status.
+- **Historical Records**: Complete audit trail of all trading activity.
+
 > [!NOTE]
 > All risk management percentages are configured as full numbers in the `.env` file (e.g., `5` means `5%`).
 
