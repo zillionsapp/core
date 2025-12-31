@@ -10,11 +10,11 @@ const port = process.env.PORT || 3000;
 app.use(express.json());
 app.use(cors());
 
-// Serve static files from the root 'public' directory
-app.use(express.static(path.join(__dirname, '../../public')));
-
 // Main API routes
 app.use('/api', routes);
+
+// Serve static files from the root 'public' directory (after API routes)
+app.use(express.static(path.join(__dirname, '../../public')));
 
 // Health check
 app.get('/health', (req, res) => {
