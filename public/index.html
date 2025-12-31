@@ -322,15 +322,21 @@
                 const portData = await portRes.json();
 
                 if (portData && !portData.error) {
+                    // Calculate metrics
+                    const pnlValue = portData.pnl || 0;
+                    const openTrades = portData.openTrades || [];
+                    const totalUnrealizedPnL = openTrades.reduce((sum, trade) => sum + (trade.unrealizedPnL || 0), 0);
+                    const currentBalance = (portData.currentBalance || 0) + pnlValue;
+                    const currentEquity = currentBalance + totalUnrealizedPnL;
+
                     // Update main portfolio metrics
-                    document.getElementById('currentBalance').innerText = `$${portData.currentBalance?.toLocaleString() || '0'}`;
-                    document.getElementById('currentEquity').innerText = `$${portData.currentEquity?.toLocaleString() || '0'}`;
+                    document.getElementById('currentBalance').innerText = `$${currentBalance.toLocaleString()}`;
+                    document.getElementById('currentEquity').innerText = `$${currentEquity.toLocaleString()}`;
                     document.getElementById('winRate').innerText = `${((portData.winRate || 0) * 100).toFixed(1)}%`;
                     document.getElementById('profitFactor').innerText = (portData.profitFactor || 0).toFixed(2);
 
                     // Update additional metrics
                     const totalPnLEl = document.getElementById('totalPnL');
-                    const pnlValue = portData.pnl || 0;
                     totalPnLEl.innerText = `${pnlValue >= 0 ? '+' : ''}$${pnlValue.toFixed(2)}`;
                     totalPnLEl.classList.toggle('text-success', pnlValue >= 0);
                     totalPnLEl.classList.toggle('text-error', pnlValue < 0);
@@ -343,10 +349,8 @@
                     pnlPercentageEl.classList.toggle('text-error', pnlPercentage < 0);
 
                     // Open positions
-                    const openTrades = portData.openTrades || [];
                     document.getElementById('openPositions').innerText = openTrades.length.toString();
 
-                    const totalUnrealizedPnL = openTrades.reduce((sum, trade) => sum + (trade.unrealizedPnL || 0), 0);
                     const openPositionsValueEl = document.getElementById('openPositionsValue');
                     openPositionsValueEl.innerText = `${totalUnrealizedPnL >= 0 ? '+' : ''}$${totalUnrealizedPnL.toFixed(2)} unrealized`;
                     openPositionsValueEl.classList.toggle('text-success', totalUnrealizedPnL >= 0);
@@ -360,7 +364,7 @@
 
                     // Update equity change indicator
                     const equityChangeEl = document.getElementById('equityChange');
-                    const equityChange = (portData.currentEquity || 0) - (portData.currentBalance || 0);
+                    const equityChange = currentEquity - currentBalance;
                     equityChangeEl.innerText = `${equityChange >= 0 ? '+' : ''}$${equityChange.toFixed(2)} unrealized`;
                     equityChangeEl.classList.toggle('text-success', equityChange >= 0);
                     equityChangeEl.classList.toggle('text-error', equityChange < 0);
