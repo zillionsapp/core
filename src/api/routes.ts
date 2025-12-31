@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { SupabaseDataStore } from '../adapters/database/supabase';
 import { BacktestRunner } from '../backtest/runner';
+import { BinancePublicData } from '../adapters/data/binance_public';
 
 const router = Router();
 const db = new SupabaseDataStore();
@@ -31,6 +32,29 @@ router.get('/trades', async (req, res) => {
 
         const trades = await db.getTrades(symbol, limit, offset);
         res.json({ trades, total });
+    } catch (error: any) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// GET /api/prices - Current market prices for symbols
+router.get('/prices', async (req, res) => {
+    try {
+        const symbols = (req.query.symbols as string)?.split(',') || [];
+        const marketData = new BinancePublicData();
+
+        const prices: { [symbol: string]: number } = {};
+        for (const symbol of symbols) {
+            try {
+                const ticker = await marketData.getTicker(symbol);
+                prices[symbol] = ticker.price;
+            } catch (error) {
+                console.warn(`Failed to get price for ${symbol}:`, error);
+                prices[symbol] = 0; // Fallback
+            }
+        }
+
+        res.json(prices);
     } catch (error: any) {
         res.status(500).json({ error: error.message });
     }

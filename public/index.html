@@ -417,26 +417,58 @@
         let totalTrades = 0;
         const pageSize = 20;
 
-        function calculatePnL(trade) {
-            if (trade.status !== 'CLOSED' || !trade.exitPrice) {
-                return { dollar: 0, percentage: 0 };
+        async function getCurrentPrices(symbols) {
+            if (symbols.length === 0) return {};
+
+            try {
+                const symbolsParam = symbols.join(',');
+                const response = await fetch(`${API_BASE}/prices?symbols=${symbolsParam}`);
+                const prices = await response.json();
+                return prices;
+            } catch (error) {
+                console.error('Failed to fetch current prices:', error);
+                return {};
+            }
+        }
+
+        function calculatePnL(trade, currentPrices = {}) {
+            if (trade.status === 'CLOSED' && trade.exitPrice) {
+                // Realized PnL for closed trades
+                const entryPrice = trade.price;
+                const exitPrice = trade.exitPrice;
+                const quantity = trade.quantity;
+
+                // For BUY trades: (exit - entry) * quantity
+                // For SELL trades: (entry - exit) * quantity
+                const dollarPnL = trade.side === 'BUY'
+                    ? (exitPrice - entryPrice) * quantity
+                    : (entryPrice - exitPrice) * quantity;
+
+                // Percentage: (PnL / entry value) * 100
+                const entryValue = entryPrice * quantity;
+                const percentagePnL = entryValue !== 0 ? (dollarPnL / entryValue) * 100 : 0;
+
+                return { dollar: dollarPnL, percentage: percentagePnL, isRealized: true };
+            } else if (trade.status === 'OPEN' && currentPrices[trade.symbol]) {
+                // Unrealized PnL for open trades
+                const entryPrice = trade.price;
+                const currentPrice = currentPrices[trade.symbol];
+                const quantity = trade.quantity;
+
+                // For BUY trades: (current - entry) * quantity
+                // For SELL trades: (entry - current) * quantity
+                const dollarPnL = trade.side === 'BUY'
+                    ? (currentPrice - entryPrice) * quantity
+                    : (entryPrice - currentPrice) * quantity;
+
+                // Percentage: (PnL / entry value) * 100
+                const entryValue = entryPrice * quantity;
+                const percentagePnL = entryValue !== 0 ? (dollarPnL / entryValue) * 100 : 0;
+
+                return { dollar: dollarPnL, percentage: percentagePnL, isRealized: false };
             }
 
-            const entryPrice = trade.price;
-            const exitPrice = trade.exitPrice;
-            const quantity = trade.quantity;
-
-            // For BUY trades: (exit - entry) * quantity
-            // For SELL trades: (entry - exit) * quantity
-            const dollarPnL = trade.side === 'BUY'
-                ? (exitPrice - entryPrice) * quantity
-                : (entryPrice - exitPrice) * quantity;
-
-            // Percentage: (PnL / entry value) * 100
-            const entryValue = entryPrice * quantity;
-            const percentagePnL = entryValue !== 0 ? (dollarPnL / entryValue) * 100 : 0;
-
-            return { dollar: dollarPnL, percentage: percentagePnL };
+            return { dollar: 0, percentage: 0, isRealized: false };
         }
 
         async function loadTradesPage(page) {
@@ -448,6 +480,10 @@
                 const trades = data.trades || [];
                 totalTrades = data.total || 0;
 
+                // Get unique symbols for current prices
+                const symbols = [...new Set(trades.map(t => t.symbol))];
+                const currentPrices = await getCurrentPrices(symbols);
+
                 const tradeBody = document.getElementById('tradeBody');
                 const noTrades = document.getElementById('noTrades');
                 const paginationControls = document.getElementById('paginationControls');
@@ -455,9 +491,25 @@
                 if (trades.length > 0) {
                     noTrades.classList.add('hidden');
                     tradeBody.innerHTML = trades.map(t => {
-                        const pnl = calculatePnL(t);
+                        const pnl = calculatePnL(t, currentPrices);
                         const isProfit = pnl.dollar >= 0;
                         const pnlClass = isProfit ? 'text-success' : 'text-error';
+
+                        // For open trades, show current price in exit price column
+                        let exitPriceDisplay = '-';
+                        if (t.status === 'CLOSED' && t.exitPrice) {
+                            exitPriceDisplay = `$${t.exitPrice.toLocaleString()}`;
+                        } else if (t.status === 'OPEN' && currentPrices[t.symbol]) {
+                            exitPriceDisplay = `$${currentPrices[t.symbol].toLocaleString()} <small class="text-xs opacity-60">(current)</small>`;
+                        }
+
+                        const pnlDollarDisplay = pnl.dollar !== 0
+                            ? `${isProfit ? '+' : ''}$${pnl.dollar.toFixed(2)}${pnl.isRealized ? '' : ' <small class="text-xs opacity-60">(unrealized)</small>'}`
+                            : '-';
+
+                        const pnlPercentDisplay = pnl.percentage !== 0
+                            ? `${isProfit ? '+' : ''}${pnl.percentage.toFixed(2)}%${pnl.isRealized ? '' : ' <small class="text-xs opacity-60">(unrealized)</small>'}`
+                            : '-';
 
                         return `
                         <tr class="hover">
@@ -469,10 +521,10 @@
                                 </span>
                             </td>
                             <td class="font-mono">$${t.price.toLocaleString()}</td>
-                            <td class="font-mono">${t.exitPrice ? `$${t.exitPrice.toLocaleString()}` : '-'}</td>
+                            <td class="font-mono">${exitPriceDisplay}</td>
                             <td class="text-right font-mono">${t.quantity}</td>
-                            <td class="text-right font-mono ${pnlClass}">${t.status === 'CLOSED' ? `${isProfit ? '+' : ''}$${pnl.dollar.toFixed(2)}` : '-'}</td>
-                            <td class="text-right font-mono ${pnlClass}">${t.status === 'CLOSED' ? `${isProfit ? '+' : ''}${pnl.percentage.toFixed(2)}%` : '-'}</td>
+                            <td class="text-right font-mono ${pnlClass}">${pnlDollarDisplay}</td>
+                            <td class="text-right font-mono ${pnlClass}">${pnlPercentDisplay}</td>
                         </tr>
                     `;}).join('');
 
