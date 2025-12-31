@@ -27,6 +27,9 @@ export interface PortfolioSnapshot {
         entryPrice: number;
         exitPrice: number;
         pnl: number;
+        duration: number; // Duration in milliseconds
+        entryTime: number; // Entry timestamp
+        exitTime: number; // Exit timestamp
     }>;
     currentEquity: number;
     currentBalance: number;

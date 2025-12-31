@@ -216,26 +216,50 @@
         const chart = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                labels: [],
                 datasets: [{
                     label: 'Equity (USDT)',
-                    data: [10000, 10200, 10100, 10500, 10450, 11000, 11200],
+                    data: [],
                     borderColor: '#00D7C4',
                     backgroundColor: 'rgba(0, 215, 196, 0.1)',
                     fill: true,
                     tension: 0.4,
-                    pointRadius: 0
+                    pointRadius: 2,
+                    pointHoverRadius: 4
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `$${context.parsed.y.toLocaleString()}`;
+                            }
+                        }
+                    }
+                },
                 scales: {
-                    x: { display: false },
+                    x: {
+                        display: true,
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        ticks: {
+                            color: 'rgba(255,255,255,0.5)',
+                            font: { size: 10 },
+                            maxTicksLimit: 7
+                        }
+                    },
                     y: {
                         grid: { color: 'rgba(255,255,255,0.05)' },
-                        ticks: { color: 'rgba(255,255,255,0.5)', font: { size: 10 } }
+                        ticks: {
+                            color: 'rgba(255,255,255,0.5)',
+                            font: { size: 10 },
+                            callback: function(value) {
+                                return '$' + value.toLocaleString();
+                            }
+                        }
                     }
                 }
             }
@@ -290,6 +314,23 @@
                     equityChangeEl.innerText = `${equityChange >= 0 ? '+' : ''}$${equityChange.toFixed(2)} unrealized`;
                     equityChangeEl.classList.toggle('text-success', equityChange >= 0);
                     equityChangeEl.classList.toggle('text-error', equityChange < 0);
+                }
+
+                // Fetch Portfolio History for Chart
+                const historyRes = await fetch(`${API_BASE}/portfolio-history?limit=50`);
+                const history = await historyRes.json();
+
+                if (history && history.length > 0) {
+                    // Update chart with real data
+                    const labels = history.map(snapshot => {
+                        const date = new Date(snapshot.timestamp);
+                        return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                    });
+                    const data = history.map(snapshot => snapshot.currentEquity || snapshot.totalValue);
+
+                    chart.data.labels = labels;
+                    chart.data.datasets[0].data = data;
+                    chart.update('none'); // Update without animation for performance
                 }
 
                 // Fetch Recent Trades for the table

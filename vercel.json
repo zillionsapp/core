@@ -10,6 +10,9 @@
         "api/portfolio.ts": {
             "maxDuration": 10
         },
+        "api/portfolio-history.ts": {
+            "maxDuration": 10
+        },
         "api/trades.ts": {
             "maxDuration": 10
         }

@@ -59,6 +59,7 @@ export class PortfolioManager {
         // Build closed trades with PnL
         const closedTradesWithPnL = closedTrades.map(trade => {
             const pnl = this.calculateTradePnL(trade);
+            const duration = trade.exitTimestamp! - trade.timestamp;
             return {
                 id: trade.id,
                 symbol: trade.symbol,
@@ -66,7 +67,10 @@ export class PortfolioManager {
                 quantity: trade.quantity,
                 entryPrice: trade.price,
                 exitPrice: trade.exitPrice!,
-                pnl
+                pnl,
+                duration,
+                entryTime: trade.timestamp,
+                exitTime: trade.exitTimestamp!
             };
         });
 
