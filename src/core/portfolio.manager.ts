@@ -18,9 +18,13 @@ export class PortfolioManager {
         const timestamp = this.timeProvider.now();
 
         // Get all trades
-        const allTrades = await this.db.getTrades();
-        const openTrades = allTrades.filter(t => t.status === 'OPEN');
-        const closedTrades = allTrades.filter(t => t.status === 'CLOSED');
+        // Get trades: Explicitly fetch ALL open trades to ensure they are never missed
+        // and fetch more recent trades for PnL calculation (limit 2000)
+        const [openTrades, recentTrades] = await Promise.all([
+            this.db.getOpenTrades(),
+            this.db.getTrades(undefined, 2000)
+        ]);
+        const closedTrades = recentTrades.filter(t => t.status === 'CLOSED');
 
         // Config values
         const balanceAsset = process.env.PAPER_BALANCE_ASSET || 'USDT';

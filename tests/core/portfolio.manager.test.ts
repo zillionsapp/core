@@ -8,6 +8,11 @@ describe('PortfolioManager', () => {
     let mockDb: any;
 
     beforeEach(() => {
+        // Reset environment
+        delete process.env.LEVERAGE_VALUE;
+        delete process.env.PAPER_INITIAL_BALANCE;
+        delete process.env.PAPER_BALANCE_ASSET;
+
         // Mock exchange
         mockExchange = {
             getTicker: jest.fn(),
@@ -17,6 +22,7 @@ describe('PortfolioManager', () => {
         // Mock database
         mockDb = {
             getTrades: jest.fn(),
+            getOpenTrades: jest.fn().mockResolvedValue([]),
             savePortfolioSnapshot: jest.fn()
         };
 
@@ -142,6 +148,7 @@ describe('PortfolioManager', () => {
             ];
 
             mockDb.getTrades.mockResolvedValue(openTrades);
+            mockDb.getOpenTrades.mockResolvedValue(openTrades);
             mockExchange.getBalance.mockResolvedValue(10000);
             mockExchange.getTicker
                 .mockResolvedValueOnce({ symbol: 'BTC/USDT', price: 52000, timestamp: Date.now() })
@@ -232,6 +239,7 @@ describe('PortfolioManager', () => {
             ];
 
             mockDb.getTrades.mockResolvedValue(trades);
+            mockDb.getOpenTrades.mockResolvedValue(trades.filter(t => t.status === 'OPEN'));
             mockExchange.getBalance.mockResolvedValue(10000);
             mockExchange.getTicker.mockResolvedValue({ symbol: 'ETH/USDT', price: 3200, timestamp: Date.now() });
 
@@ -322,6 +330,7 @@ describe('PortfolioManager', () => {
             ];
 
             mockDb.getTrades.mockResolvedValue(openTrades);
+            mockDb.getOpenTrades.mockResolvedValue(openTrades);
             mockExchange.getTicker.mockResolvedValue({ symbol: 'BTC/USDT', price: 50000, timestamp: Date.now() });
 
             const snapshot = await portfolioManager.generateSnapshot();
@@ -370,6 +379,7 @@ describe('PortfolioManager', () => {
             ];
 
             mockDb.getTrades.mockResolvedValue(openTrades);
+            mockDb.getOpenTrades.mockResolvedValue(openTrades);
             mockExchange.getTicker
                 .mockResolvedValueOnce({ symbol: 'BTC/USDT', price: 50000, timestamp: Date.now() })
                 .mockResolvedValueOnce({ symbol: 'ETH/USDT', price: 3000, timestamp: Date.now() });
@@ -405,6 +415,7 @@ describe('PortfolioManager', () => {
             ];
 
             mockDb.getTrades.mockResolvedValue(openTrades);
+            mockDb.getOpenTrades.mockResolvedValue(openTrades);
             mockExchange.getTicker.mockResolvedValue({ symbol: 'BTC/USDT', price: 50000, timestamp: Date.now() });
 
             const snapshot = await portfolioManager.generateSnapshot();
@@ -421,6 +432,7 @@ describe('PortfolioManager', () => {
             process.env.PAPER_INITIAL_BALANCE = '15000';
 
             mockDb.getTrades.mockResolvedValue([]); // No trades
+            mockDb.getOpenTrades.mockResolvedValue([]);
 
             const snapshot = await portfolioManager.generateSnapshot();
 
