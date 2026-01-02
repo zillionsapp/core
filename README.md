@@ -365,7 +365,7 @@ function calculatePnL(trade: Trade): number {
 ### RiskManager
 The `RiskManager` module (`src/core/risk.manager.ts`) intercepts every order before execution.
 - **Position Sizing**: Dynamically calculates order quantity based on a percentage of your total balance (Default: 10%).
-- **Stop Loss/Take Profit**: Calculates exit prices based on percentages of the entry price (traditional approach).
+- **Stop Loss/Take Profit**: Calculates exit prices based on percentages of position value (professional risk management).
 - **Daily Drawdown**: Halts trading if equity drops by a specific percentage in a single day (Default: 5%).
 
 ### TradeManager
