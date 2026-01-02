@@ -99,9 +99,9 @@ describe('Leverage Math & Margin Calculations', () => {
 
             const quantity = await riskManager.calculateQuantity('BTC/USDT', 50000, 1);
             // With 10x leverage and 1% SL, normal calculation would be much larger
-            // But safety limits cap margin at 90% of balance ($9k)
-            // So position value = $9k × 10 = $90k, quantity = $90k ÷ $50k = 1.8 BTC
-            expect(quantity).toBeCloseTo(1.8, 1);
+            // But safety limits cap position value at 50% utilization ($50k max)
+            // So position value = $50k, quantity = $50k ÷ $50k = 1 BTC
+            expect(quantity).toBeCloseTo(1.0, 1);
         });
 
         it('should skip trades when position size is too small', async () => {
