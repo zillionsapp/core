@@ -10,9 +10,12 @@ export class BinancePublicData implements IMarketDataProvider {
         try {
             // Binance requires symbols without '/', e.g. BTCUSDT
             const parsedSymbol = symbol.replace('/', '');
-            const url = `${this.baseUrl}/klines?symbol=${parsedSymbol}&interval=${interval}&limit=${limit}`;
+            const url = new URL(`${this.baseUrl}/klines`);
+            url.searchParams.append('symbol', parsedSymbol);
+            url.searchParams.append('interval', interval);
+            url.searchParams.append('limit', limit.toString());
 
-            const response = await fetch(url);
+            const response = await fetch(url.toString());
             if (!response.ok) {
                 const errorBody = await response.text();
                 throw new Error(`Binance API Error: ${response.status} ${response.statusText} - ${errorBody}`);
@@ -41,9 +44,10 @@ export class BinancePublicData implements IMarketDataProvider {
     async getTicker(symbol: string): Promise<Ticker> {
         try {
             const parsedSymbol = symbol.replace('/', '');
-            const url = `${this.baseUrl}/ticker/price?symbol=${parsedSymbol}`;
+            const url = new URL(`${this.baseUrl}/ticker/price`);
+            url.searchParams.append('symbol', parsedSymbol);
 
-            const response = await fetch(url);
+            const response = await fetch(url.toString());
             if (!response.ok) {
                 const errorBody = await response.text();
                 throw new Error(`Binance API Error: ${response.status} ${response.statusText} - ${errorBody}`);
