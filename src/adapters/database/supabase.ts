@@ -111,13 +111,38 @@ export class SupabaseDataStore implements IDataStore {
         } as PortfolioSnapshot;
     }
 
-    async getPortfolioSnapshots(limit: number = 50): Promise<PortfolioSnapshot[]> {
+    async getPortfolioSnapshots(limit: number = 50, period?: string): Promise<PortfolioSnapshot[]> {
         if (!this.supabase) return [];
 
-        const { data, error } = await this.supabase
+        let query = this.supabase
             .from('portfolio_snapshots')
-            .select('*')
-            .order('timestamp', { ascending: true })
+            .select('*');
+
+        // Apply period filter if specified
+        if (period && period !== 'all') {
+            const now = Date.now();
+            let cutoffTime = now;
+
+            switch (period) {
+                case '1d':
+                    cutoffTime = now - (24 * 60 * 60 * 1000); // 24 hours
+                    break;
+                case '1w':
+                    cutoffTime = now - (7 * 24 * 60 * 60 * 1000); // 7 days
+                    break;
+                case '1m':
+                    cutoffTime = now - (30 * 24 * 60 * 60 * 1000); // 30 days
+                    break;
+                case '1y':
+                    cutoffTime = now - (365 * 24 * 60 * 60 * 1000); // 365 days
+                    break;
+            }
+
+            query = query.gte('timestamp', cutoffTime);
+        }
+
+        const { data, error } = await query
+            .order('timestamp', { ascending: false }) // Get most recent first
             .limit(limit);
 
         if (error) {
@@ -126,7 +151,7 @@ export class SupabaseDataStore implements IDataStore {
         }
 
         // Transform the data to match our interface
-        return (data || []).map((snapshot: any) => ({
+        const snapshots = (data || []).map((snapshot: any) => ({
             timestamp: snapshot.timestamp,
             totalValue: snapshot.totalValue,
             holdings: snapshot.holdings || {},
@@ -141,6 +166,9 @@ export class SupabaseDataStore implements IDataStore {
             currentEquity: snapshot.currentEquity || snapshot.totalValue,
             currentBalance: snapshot.currentBalance || snapshot.totalValue
         })) as PortfolioSnapshot[];
+
+        // Reverse to get chronological order (oldest to newest) for chart display
+        return snapshots.reverse();
     }
 
     async saveBacktestResult(result: any): Promise<void> {

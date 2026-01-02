@@ -20,41 +20,57 @@
         @plugin "daisyui";
 
         @plugin "daisyui/theme" {
-          name: "dark";
-          color-scheme: dark;
-          --color-base-100: #1a1b1e;
-          --color-base-200: #141517;
-          --color-base-300: #0c0c0d;
-          --color-base-content: #ecf0ed;
-          --color-primary: #00ff9d;
-          --color-primary-content: #ecf0ed;
-          --color-secondary: #7c3aed;
-          --color-secondary-content: #ecf0ed;
-          --color-accent: #ff006e;
-          --color-accent-content: #ecf0ed;
-          --color-neutral: #1a1b1e;
-          --color-neutral-content: #ecf0ed;
+            name: "dark";
+            color-scheme: dark;
+            --color-base-100: #1a1b1e;
+            --color-base-200: #141517;
+            --color-base-300: #0c0c0d;
+            --color-base-content: #ecf0ed;
+            --color-primary: #00ff9d;
+            --color-primary-content: #ecf0ed;
+            --color-secondary: #7c3aed;
+            --color-secondary-content: #ecf0ed;
+            --color-accent: #ff006e;
+            --color-accent-content: #ecf0ed;
+            --color-neutral: #1a1b1e;
+            --color-neutral-content: #ecf0ed;
         }
 
         @plugin "daisyui/theme" {
-          name: "light";
-          color-scheme: light;
-          --color-base-100: #ecf0ed;
-          --color-base-200: #fff;
-          --color-base-300: #ecf0ed;
-          --color-base-content: #141517;
-          --color-primary: #00ff9d;
-          --color-primary-content: #141517;
-          --color-secondary: #7c3aed;
-          --color-secondary-content: #141517;
-          --color-accent: #ff006e;
-          --color-accent-content: #141517;
-          --color-neutral: #1a1b1e;
-          --color-neutral-content: #141517;
+            name: "light";
+            color-scheme: light;
+            --color-base-100: #ecf0ed;
+            --color-base-200: #fff;
+            --color-base-300: #ecf0ed;
+            --color-base-content: #141517;
+            --color-primary: #00ff9d;
+            --color-primary-content: #141517;
+            --color-secondary: #7c3aed;
+            --color-secondary-content: #141517;
+            --color-accent: #ff006e;
+            --color-accent-content: #141517;
+            --color-neutral: #1a1b1e;
+            --color-neutral-content: #141517;
         }
 
-        .animate-gradient{ background-size:300% 300%; animation:gradientShift 8s ease infinite; }
-        @keyframes gradientShift{ 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
+        .animate-gradient {
+            background-size: 300% 300%;
+            animation: gradientShift 8s ease infinite;
+        }
+
+        @keyframes gradientShift {
+            0% {
+                background-position: 0% 50%
+            }
+
+            50% {
+                background-position: 100% 50%
+            }
+
+            100% {
+                background-position: 0% 50%
+            }
+        }
 
         body {
             font-family: 'Outfit', sans-serif;
@@ -68,9 +84,9 @@
     <div class="navbar bg-base-200 shadow-xl px-12 top-0 sticky z-50">
         <div class="flex-1">
             <a class="text-2xl font-bold tracking-tighter text-secondary flex items-center gap-2">
-                <img src="https://raw.githubusercontent.com/zillionsapp/app/refs/heads/main/public/logo.jpg" alt="Zillions Logo" class="w-8 h-8 rounded-full">
-                ZILLIONS <span
-                    class="bg-secondary text-secondary-content px-2 py-0.5 rounded text-xs">CORE</span>
+                <img src="https://raw.githubusercontent.com/zillionsapp/app/refs/heads/main/public/logo.jpg"
+                    alt="Zillions Logo" class="w-8 h-8 rounded-full">
+                ZILLIONS <span class="bg-secondary text-secondary-content px-2 py-0.5 rounded text-xs">CORE</span>
             </a>
         </div>
         <div class="flex-none gap-4">
@@ -80,7 +96,9 @@
             </div>
             <button id="themeToggle" class="btn btn-ghost btn-circle">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z">
+                    </path>
                 </svg>
             </button>
         </div>
@@ -141,9 +159,11 @@
                         PERFORMANCE CURVE
                     </h3>
                     <div class="flex gap-2">
-                        <button class="btn btn-xs btn-outline">1D</button>
-                        <button class="btn btn-xs btn-active btn-primary">1W</button>
-                        <button class="btn btn-xs btn-outline">1M</button>
+                        <button id="period-1d" class="btn btn-xs btn-outline">1D</button>
+                        <button id="period-1w" class="btn btn-xs btn-active btn-primary">1W</button>
+                        <button id="period-1m" class="btn btn-xs btn-outline">1M</button>
+                        <button id="period-1y" class="btn btn-xs btn-outline">1Y</button>
+                        <button id="period-all" class="btn btn-xs btn-outline">ALL</button>
                     </div>
                 </div>
                 <div class="flex-grow relative min-h-0">
@@ -248,14 +268,18 @@
     <footer class="footer footer-center p-10 bg-base-300 text-base-content mt-12 rounded">
         <aside>
             <p class="font-bold flex items-center gap-2">
-                <img src="https://raw.githubusercontent.com/zillionsapp/app/refs/heads/main/public/logo.jpg" alt="Zillions Logo" class="w-8 h-8 rounded-full"> Zillions Core <span class="badge badge-secondary">v0.1.0</span>
+                <img src="https://raw.githubusercontent.com/zillionsapp/app/refs/heads/main/public/logo.jpg"
+                    alt="Zillions Logo" class="w-8 h-8 rounded-full"> Zillions Core <span
+                    class="badge badge-secondary">v0.1.0</span>
             </p>
-            <p>Copyright © 2026 - All rights reserved by <a href="https://zillions.app/" target="_blank">Zillions.app</a></p>
+            <p>Copyright © 2026 - All rights reserved by <a href="https://zillions.app/"
+                    target="_blank">Zillions.app</a></p>
         </aside>
     </footer>
 
     <script>
         const API_BASE = '/api';
+        let currentPeriod = '1w'; // Default period
 
         // Create gradient for chart background
         function createGradient(ctx, isProfit) {
@@ -318,7 +342,7 @@
                         borderColor: 'hsl(var(--p))',
                         borderWidth: 1,
                         callbacks: {
-                            label: function(context) {
+                            label: function (context) {
                                 return `$${context.parsed.y.toLocaleString()}`;
                             }
                         }
@@ -340,7 +364,7 @@
                         ticks: {
                             color: 'hsl(var(--bc))',
                             font: { size: 10 },
-                            callback: function(value) {
+                            callback: function (value) {
                                 return '$' + value.toLocaleString();
                             }
                         },
@@ -350,7 +374,7 @@
             }
         });
 
-        async function refreshData() {
+        async function refreshData(period = currentPeriod) {
             try {
                 // Fetch Portfolio Snapshot
                 const portRes = await fetch(`${API_BASE}/portfolio`);
@@ -409,14 +433,14 @@
                 }
 
                 // Fetch Portfolio History for Chart
-                const historyRes = await fetch(`${API_BASE}/portfolio-history?limit=50`);
+                const historyRes = await fetch(`${API_BASE}/portfolio-history?limit=50&period=${period}`);
                 const history = await historyRes.json();
 
                 if (history && history.length > 0) {
                     // Update chart with real data
                     const labels = history.map(snapshot => {
                         const date = new Date(snapshot.timestamp);
-                        return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                        return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                     });
                     const data = history.map(snapshot => snapshot.currentEquity || snapshot.totalValue);
 
@@ -425,7 +449,7 @@
                     chart.update('none'); // Update without animation for performance
                 }
 
-                                // Fetch Recent Trades for the table with pagination
+                // Fetch Recent Trades for the table with pagination
                 await loadTradesPage(1);
 
             } catch (err) {
@@ -584,7 +608,8 @@
                                 <span class="text-[10px] font-normal opacity-70">${pnlDollarDisplay}</span>
                             </td>
                         </tr>
-                    `;}).join('');
+                    `;
+                    }).join('');
 
                     // Show pagination if there are more trades than page size
                     if (totalTrades > pageSize) {
@@ -677,6 +702,30 @@
             if (currentPage < totalPages) {
                 loadTradesPage(currentPage + 1);
             }
+        });
+
+        // Period filter event listeners
+        function setActivePeriod(period) {
+            currentPeriod = period;
+            // Update button states
+            ['1d', '1w', '1m', '1y', 'all'].forEach(p => {
+                const btn = document.getElementById(`period-${p}`);
+                if (p === period) {
+                    btn.classList.add('btn-active', 'btn-primary');
+                    btn.classList.remove('btn-outline');
+                } else {
+                    btn.classList.remove('btn-active', 'btn-primary');
+                    btn.classList.add('btn-outline');
+                }
+            });
+            // Refresh chart with new period
+            refreshData(period);
+        }
+
+        ['1d', '1w', '1m', '1y', 'all'].forEach(period => {
+            document.getElementById(`period-${period}`).addEventListener('click', () => {
+                setActivePeriod(period);
+            });
         });
 
         // Initial Load and Polling

@@ -23,7 +23,8 @@ router.get('/portfolio', async (req, res) => {
 router.get('/portfolio-history', async (req, res) => {
     try {
         const limit = parseInt(req.query.limit as string) || 50;
-        const snapshots = await db.getPortfolioSnapshots(limit);
+        const period = req.query.period as string || 'all';
+        const snapshots = await db.getPortfolioSnapshots(limit, period);
         res.json(snapshots);
     } catch (error: any) {
         res.status(500).json({ error: error.message });
