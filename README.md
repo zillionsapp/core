@@ -124,7 +124,7 @@
 ### Development Mode
 Runs the bot with hot-reloading.
 ```bash
-npm run start:dev
+npm run dev
 ```
 
 ### Production Mode
@@ -216,11 +216,13 @@ Vercel Hobby limited crons to **once per day**. To run your bot every minute for
 
 ```
 src/
+├── index.ts           # Main entry point
 ├── core/               # Domain Logic (Engine, Risk Manager, Logger)
 ├── interfaces/         # Port Definitions (IExchange, IStrategy, IDataStore)
 ├── adapters/
 │   ├── exchange/       # Adapters (Paper, Binance, Hyperliquid...)
 │   └── database/       # Adapters (Supabase)
+├── api/                # REST API routes and server
 ├── strategies/         # Trading Strategies
 ├── backtest/           # Backtesting module
 └── config/             # Zod-typed Env validation
