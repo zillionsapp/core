@@ -195,17 +195,37 @@ export class SupabaseDataStore implements IDataStore {
             return this.inMemoryTrades.filter(t => t.status === 'OPEN').sort((a, b) => b.timestamp - a.timestamp);
         }
 
-        const { data, error } = await this.supabase
-            .from('trades')
-            .select('*')
-            .eq('status', 'OPEN')
-            .order('timestamp', { ascending: false });
+        const allOpenTrades: Trade[] = [];
+        let from = 0;
+        const batchSize = 1000;
+        let hasMore = true;
 
-        if (error) {
-            console.error('Error fetching open trades:', error);
-            return [];
+        while (hasMore) {
+            const { data, error } = await this.supabase
+                .from('trades')
+                .select('*')
+                .eq('status', 'OPEN')
+                .order('timestamp', { ascending: false })
+                .range(from, from + batchSize - 1);
+
+            if (error) {
+                console.error('Error fetching open trades:', error);
+                return allOpenTrades; // Return what we have so far
+            }
+
+            if (data && data.length > 0) {
+                allOpenTrades.push(...(data as Trade[]));
+                from += batchSize;
+                // If we got fewer results than requested, we've reached the end
+                if (data.length < batchSize) {
+                    hasMore = false;
+                }
+            } else {
+                hasMore = false;
+            }
         }
-        return (data as Trade[]) || [];
+
+        return allOpenTrades;
     }
 
     async updateTrade(id: string, updates: Partial<Trade>): Promise<void> {
