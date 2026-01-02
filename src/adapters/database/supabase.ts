@@ -10,7 +10,6 @@ export class SupabaseDataStore implements IDataStore {
     constructor() {
         if (config.SUPABASE_URL && config.SUPABASE_KEY) {
             this.supabase = createClient(config.SUPABASE_URL, config.SUPABASE_KEY);
-            console.log('[SupabaseDataStore] Connected to Supabase');
         } else {
             console.warn('[SupabaseDataStore] Missing credentials. Running in InMemory mode (data will be lost).');
         }
