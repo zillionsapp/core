@@ -6,7 +6,7 @@ export class BinancePublicData implements IMarketDataProvider {
     name = 'BINANCE_PUBLIC';
     private baseUrl = 'https://api.binance.com/api/v3';
 
-    async getCandles(symbol: string, interval: string, limit: number = 100): Promise<Candle[]> {
+    async getCandles(symbol: string, interval: string, limit: number = 100, endTime?: number): Promise<Candle[]> {
         try {
             // Binance requires symbols without '/', e.g. BTCUSDT
             const parsedSymbol = symbol.replace('/', '');
@@ -14,6 +14,9 @@ export class BinancePublicData implements IMarketDataProvider {
             url.searchParams.append('symbol', parsedSymbol);
             url.searchParams.append('interval', interval);
             url.searchParams.append('limit', limit.toString());
+            if (endTime) {
+                url.searchParams.append('endTime', endTime.toString());
+            }
 
             const response = await fetch(url.toString());
             if (!response.ok) {

@@ -2,18 +2,20 @@ import { IExchange } from '../interfaces/exchange.interface';
 import { IDataStore, PortfolioSnapshot } from '../interfaces/repository.interface';
 import { Trade } from './types';
 import { logger } from './logger';
+import { ITimeProvider, RealTimeProvider } from './time.provider';
 
 export class PortfolioManager {
     constructor(
         private exchange: IExchange,
-        private db: IDataStore
-    ) {}
+        private db: IDataStore,
+        private timeProvider: ITimeProvider = new RealTimeProvider()
+    ) { }
 
     /**
      * Generate a comprehensive portfolio snapshot with all metrics
      */
     async generateSnapshot(): Promise<PortfolioSnapshot> {
-        const timestamp = Date.now();
+        const timestamp = this.timeProvider.now();
 
         // Get all trades (no limit for production trading bot)
         const allTrades = await this.db.getTrades(); // Get ALL trades

@@ -54,6 +54,7 @@
     *   **Automated Protection**: Stop Loss and Take Profit execution with real-time price monitoring.
     *   **Middleware Checks**: Max Order Size and Daily Drawdown limits.
 *   **Backtesting Engine**: Dedicated runner to validate strategies against historical market data (no random walks).
+*   **Live Historical Replay**: Simulate paper trading over historical periods using real engine logic and persist results to Supabase.
 *   **Strategy System**: Pluggable strategy interface. Simply add a new class to `src/strategies`.
 *   **Persistence**: Integration with **Supabase** (PostgreSQL) for trade history and portfolio snapshots.
 *   **Production Ready**:
@@ -138,6 +139,21 @@ npm start
 Runs the simulation runner against historical data. Includes Winrate, Profit Factor, and Buy & Hold benchmarks.
 ```bash
 npm run backtest
+```
+
+### Live Historical Replay
+Simulates paper trading over a historical period (e.g., last 90 days) using the live engine logic. Results are stored in the main database alongside live trades for analysis in your dashboard.
+```bash
+npm run replay
+```
+**Options:**
+- `--symbol`: Trading pair (default: from .env)
+- `--interval`: Timeframe (default: from .env)
+- `--days`: Number of days to replay (default: 90)
+
+**Example:**
+```bash
+npm run replay -- --symbol=ETH/USDT --interval=1h --days=30
 ```
 
 ### Testing

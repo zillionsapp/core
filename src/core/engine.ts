@@ -11,6 +11,7 @@ import { TradeManager } from './trade.manager';
 import { PortfolioManager } from './portfolio.manager';
 import { TimeUtils } from './time.utils';
 import { config } from '../config/env';
+import { ITimeProvider, RealTimeProvider } from './time.provider';
 
 export class BotEngine {
     private exchange: IExchange;
@@ -22,14 +23,21 @@ export class BotEngine {
     private isRunning: boolean = false;
     private activeTrade: Trade | null = null;
     private lastSnapshotTime: number = 0;
+    private timeProvider: ITimeProvider;
 
-    constructor(strategyName: string) {
-        this.exchange = ExchangeFactory.getExchange();
+    constructor(
+        strategyName: string,
+        timeProvider: ITimeProvider = new RealTimeProvider(),
+        exchange?: IExchange,
+        db?: IDataStore
+    ) {
+        this.timeProvider = timeProvider;
+        this.exchange = exchange || ExchangeFactory.getExchange();
         this.strategy = StrategyManager.getStrategy(strategyName);
-        this.db = new SupabaseDataStore();
-        this.riskManager = new RiskManager(this.exchange, this.db);
+        this.db = db || new SupabaseDataStore();
+        this.riskManager = new RiskManager(this.exchange, this.db, this.timeProvider);
         this.tradeManager = new TradeManager(this.exchange, this.db);
-        this.portfolioManager = new PortfolioManager(this.exchange, this.db);
+        this.portfolioManager = new PortfolioManager(this.exchange, this.db, this.timeProvider);
     }
 
     async start(symbol: string, interval: string, config?: StrategyConfig) {
@@ -46,7 +54,6 @@ export class BotEngine {
     async tick(symbol: string, interval: string, strategyConfig?: StrategyConfig) {
         try {
             await this.exchange.start(); // Ensure connection (stateless safe)
-            if (!this.riskManager['isInitialized']) await this.riskManager.init(); // Access private or make public
 
             // Re-initialize strategy with config if provided
             if (strategyConfig) {
@@ -69,7 +76,7 @@ export class BotEngine {
             await this.logPortfolioState(symbol, lastCandle.close);
 
             // Save portfolio snapshot periodically (every 5 minutes)
-            const now = Date.now();
+            const now = this.timeProvider.now();
             if (now - this.lastSnapshotTime > 5 * 60 * 1000) {
                 try {
                     await this.portfolioManager.saveSnapshot();

@@ -2,6 +2,7 @@ import { IExchange } from '../../interfaces/exchange.interface';
 import { IMarketDataProvider } from '../../interfaces/market_data.interface';
 import { Candle, Order, OrderRequest, Ticker } from '../../core/types';
 import { config } from '../../config/env';
+import { ITimeProvider, RealTimeProvider } from '../../core/time.provider';
 
 // Helper for ID generation
 const generateId = () => Math.random().toString(36).substring(2, 15);
@@ -21,9 +22,11 @@ export class PaperExchange implements IExchange {
     private orders: Map<string, Order> = new Map();
     private positions: Map<string, Position> = new Map();
     private dataProvider: IMarketDataProvider;
+    private timeProvider: ITimeProvider;
 
-    constructor(dataProvider: IMarketDataProvider) {
+    constructor(dataProvider: IMarketDataProvider, timeProvider: ITimeProvider = new RealTimeProvider()) {
         this.dataProvider = dataProvider;
+        this.timeProvider = timeProvider;
         this.balances.set(config.PAPER_BALANCE_ASSET, config.PAPER_INITIAL_BALANCE);
     }
 
@@ -32,7 +35,7 @@ export class PaperExchange implements IExchange {
     }
 
     async getCandles(symbol: string, interval: string, limit: number = 100): Promise<Candle[]> {
-        return this.dataProvider.getCandles(symbol, interval, limit);
+        return this.dataProvider.getCandles(symbol, interval, limit, this.timeProvider.now());
     }
 
     async getTicker(symbol: string): Promise<Ticker> {
@@ -160,7 +163,7 @@ export class PaperExchange implements IExchange {
             quantity: orderRequest.quantity,
             filledQuantity: orderRequest.quantity,
             price: price,
-            timestamp: Date.now(),
+            timestamp: this.timeProvider.now(),
         };
 
         this.orders.set(order.id, order);
