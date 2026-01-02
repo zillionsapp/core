@@ -146,6 +146,40 @@ Runs the Jest test suite (Unit & Integration).
 npm test
 ```
 
+### Strategy Configuration
+Zillion Core supports runtime strategy configuration for both long-running and serverless deployments:
+
+#### Long-Running Bots (`src/index.ts`)
+```typescript
+const bot = new BotEngine('MACD');
+await bot.start('BTC/USDT', '15m', {
+  // Strategy-specific configuration
+  rsiPeriod: 14,
+  rsiOverbought: 70,
+  rsiOversold: 30,
+  macdFast: 12,
+  macdSlow: 26,
+  macdSignal: 9
+});
+```
+
+#### Serverless Bots (`api/cron.ts`)
+```typescript
+const bot = new BotEngine('MACD');
+await bot.tick('BTC/USDT', '15m', {
+  // Same configuration options available
+  rsiPeriod: 14,
+  rsiOverbought: 70,
+  rsiOversold: 30
+});
+```
+
+**Benefits:**
+- **Dynamic Configuration**: Adjust strategy parameters without code changes
+- **Environment Flexibility**: Different configs for development/production
+- **Strategy Agnostic**: Works with any strategy that accepts configuration
+- **Serverless Compatible**: Full configuration support in stateless deployments
+
 ---
 
 ## 🐳 Deployment

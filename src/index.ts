@@ -17,7 +17,7 @@ async function main() {
         process.exit(0);
     });
 
-    await bot.start(config.STRATEGY_SYMBOL, config.STRATEGY_INTERVAL);
+    await bot.start(config.STRATEGY_SYMBOL, config.STRATEGY_INTERVAL, {/* Pass custom Strategy config here if needed */});
 }
 
 main().catch(err => console.error(err));

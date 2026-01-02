@@ -35,6 +35,20 @@ describe('BotEngine Integration', () => {
         await engine.stop();
     });
 
+    it('should accept strategy config on start', async () => {
+        // We mock the runLoop to avoid infinite loop hanging the test
+        const runLoopSpy = jest.spyOn(engine as any, 'runLoop').mockImplementation(async () => { });
+        const strategyInitSpy = jest.spyOn(engine['strategy'], 'init');
+
+        // Start with config
+        const testConfig = { testParam: 'testValue' };
+        await engine.start('BTC/USDT', '1m', testConfig);
+        expect(runLoopSpy).toHaveBeenCalledWith('BTC/USDT', '1m');
+        expect(strategyInitSpy).toHaveBeenCalledWith(testConfig);
+
+        await engine.stop();
+    });
+
     it('should execute a single tick successfully', async () => {
         // This test simulates the Serverless / Vercel invocation
         const tickSpy = jest.spyOn(engine, 'tick');
@@ -43,6 +57,17 @@ describe('BotEngine Integration', () => {
 
         expect(tickSpy).toHaveBeenCalledWith('BTC/USDT', '1m');
     }, 30000);
+
+    it('should accept strategy config on tick', async () => {
+        // Mock the strategy init to verify it's called with config
+        const strategyInitSpy = jest.spyOn(engine['strategy'], 'init');
+
+        // Call tick with config
+        const testConfig = { testParam: 'testValue' };
+        await engine.tick('BTC/USDT', '1m', testConfig);
+
+        expect(strategyInitSpy).toHaveBeenCalledWith(testConfig);
+    });
 
     it('should trigger Stop Loss when price drops', async () => {
         // Mock config to disable multiple positions for this test

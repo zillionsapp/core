@@ -17,7 +17,7 @@ export default async function handler(request: any, response: any) {
             }
         }
 
-        await bot.tick(config.STRATEGY_SYMBOL, config.STRATEGY_INTERVAL);
+        await bot.tick(config.STRATEGY_SYMBOL, config.STRATEGY_INTERVAL, {/* Pass custom Strategy config here if needed */});
 
         response.status(200).json({ status: 'ok', timestamp: Date.now() });
     } catch (error) {

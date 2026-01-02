@@ -1,5 +1,5 @@
 import { IExchange } from '../interfaces/exchange.interface';
-import { IStrategy } from '../interfaces/strategy.interface';
+import { IStrategy, StrategyConfig } from '../interfaces/strategy.interface';
 import { IDataStore } from '../interfaces/repository.interface';
 import { ExchangeFactory } from '../adapters/exchange/factory';
 import { StrategyManager } from './strategy.manager';
@@ -32,21 +32,26 @@ export class BotEngine {
         this.portfolioManager = new PortfolioManager(this.exchange, this.db);
     }
 
-    async start(symbol: string, interval: string) {
-        logger.info(`[BotEngine] Starting... Symbol: ${symbol}, Interval: ${interval}`);
+    async start(symbol: string, interval: string, config?: StrategyConfig) {
+        logger.info(`[BotEngine] Starting... Symbol: ${symbol}, Interval: ${interval}, Strategy: ${this.strategy.name}`);
         await this.exchange.start();
         await this.riskManager.init();
-        this.strategy.init({}); // Pass config here if needed
+        this.strategy.init(config || {}); // Pass config here if needed
 
         this.isRunning = true;
         this.runLoop(symbol, interval);
     }
 
     // Serverless entry point
-    async tick(symbol: string, interval: string) {
+    async tick(symbol: string, interval: string, strategyConfig?: StrategyConfig) {
         try {
             await this.exchange.start(); // Ensure connection (stateless safe)
             if (!this.riskManager['isInitialized']) await this.riskManager.init(); // Access private or make public
+
+            // Re-initialize strategy with config if provided
+            if (strategyConfig) {
+                this.strategy.init(strategyConfig);
+            }
 
             // 0. State Recovery (for Serverless / Cold Starts)
             if (!this.activeTrade) {
