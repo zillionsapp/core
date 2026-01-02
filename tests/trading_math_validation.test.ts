@@ -2,6 +2,7 @@ import { PaperExchange } from '../src/adapters/exchange/paper';
 import { RiskManager } from '../src/core/risk.manager';
 import { IMarketDataProvider } from '../src/interfaces/market_data.interface';
 import { config } from '../src/config/env';
+import { OrderRequest } from '../src/core/types';
 
 // Test data from actual bot run
 const actualTrades = [
@@ -278,6 +279,69 @@ describe('Trading Math Validation Against Real Data', () => {
 
             // Should be rejected due to drawdown
             expect(isValid).toBe(false);
+        });
+
+        test('Daily Drawdown should reset on new UTC day', async () => {
+            // 1. Initial State: 10,000 Balance
+            // Config: 5% Max Drawdown
+            process.env.MAX_DAILY_DRAWDOWN_PERCENT = '5';
+
+            // Mock getBalance (First call for init)
+            const getBalanceSpy = jest.spyOn(exchange, 'getBalance');
+            getBalanceSpy.mockResolvedValue(10000);
+            await riskManager.init();
+
+            // 2. Loose 6% (Balance 10,000 -> 9,400)
+            getBalanceSpy.mockResolvedValue(9400); // 6% loss
+
+            const order: OrderRequest = {
+                symbol: 'BTC/USDT',
+                side: 'BUY',
+                type: 'MARKET',
+                quantity: 0.1
+            };
+
+            // Should be REJECTED (6% > 5%)
+            let isSafe = await riskManager.validateOrder(order);
+            expect(isSafe).toBe(false);
+
+            // 3. Simulate Next Day (UTC)
+            // We manipulate the methods that RiskManager uses to check time?
+            // RiskManager uses `new Date().getUTCDate()`
+            // We can spy on global Date, but it's tricky.
+            // Let's use a simpler approach: Override the getter if possible or use jest.useFakeTimers
+            // But since RiskManager just calls `new Date()`, we mock the constructor.
+
+            const realDate = global.Date;
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+
+            const MockDate = class extends Date {
+                constructor(date: any) {
+                    if (date) {
+                        super(date);
+                    } else {
+                        super(tomorrow);
+                    }
+                }
+                // Mocking getUTCDate to return tomorrow's date
+                getUTCDate() {
+                    return tomorrow.getUTCDate();
+                }
+            } as any;
+
+            global.Date = MockDate;
+
+            // 4. Validate Order Again (Should Trigger Reset)
+            // Balance is still 9400, but it becomes the NEW Start-of-Day Balance
+            // So Drawdown is 0%
+            isSafe = await riskManager.validateOrder(order);
+
+            expect(isSafe).toBe(true);
+            expect(getBalanceSpy).toHaveBeenCalled();
+
+            // Cleanup: Restore Date
+            global.Date = realDate;
         });
     });
 });

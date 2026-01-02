@@ -7,7 +7,8 @@ import { PrecisionUtils } from '../utils/math';
 export class RiskManager {
     private exchange: IExchange;
     private initialBalance: number = 0;
-    private maxEquity: number = 0;
+    private startOfDayBalance: number = 0;
+    private lastResetDay: number = 0; // Day of the month
     private isInitialized: boolean = false;
 
     constructor(exchange: IExchange) {
@@ -15,33 +16,40 @@ export class RiskManager {
     }
 
     async init() {
-        this.initialBalance = await this.exchange.getBalance(config.PAPER_BALANCE_ASSET);
-        this.maxEquity = this.initialBalance; // Initialize HWM
+        const currentBalance = await this.exchange.getBalance(config.PAPER_BALANCE_ASSET);
+        this.initialBalance = currentBalance;
+
+        // Initialize Daily Drawdown tracking
+        this.startOfDayBalance = currentBalance;
+        this.lastResetDay = new Date().getUTCDate();
+
         this.isInitialized = true;
-        logger.info(`[RiskManager] Initialized. Baseline Equity: ${this.initialBalance} ${config.PAPER_BALANCE_ASSET}`);
+        logger.info(`[RiskManager] Initialized. Balance: ${this.initialBalance} ${config.PAPER_BALANCE_ASSET}`);
     }
 
     async validateOrder(order: OrderRequest): Promise<boolean> {
         if (!this.isInitialized) await this.init();
 
+        const currentBalance = await this.exchange.getBalance(config.PAPER_BALANCE_ASSET);
+        const today = new Date().getUTCDate();
+
+        // Check for Daily Reset (UTC)
+        if (today !== this.lastResetDay) {
+            this.startOfDayBalance = currentBalance;
+            this.lastResetDay = today;
+            logger.info(`[RiskManager] Daily Reset. New Start-of-Day Balance: ${this.startOfDayBalance}`);
+        }
+
+
         // 1. Daily Drawdown Check
-        if (order.side === 'BUY') { // Check before entering new risk
-            const currentBalance = await this.exchange.getBalance(config.PAPER_BALANCE_ASSET);
+        // Check before entering new risk (BUY or SELL)
+        // Calculate drop from Start of Day Balance
+        const drop = (this.startOfDayBalance - currentBalance) / this.startOfDayBalance;
+        const limit = config.MAX_DAILY_DRAWDOWN_PERCENT / 100;
 
-            // Update High Water Mark
-            if (currentBalance > this.maxEquity) {
-                this.maxEquity = currentBalance;
-            }
-
-            // Trailing Drawdown Check
-            // Calculate drop from Peak Equity (High Water Mark)
-            const drop = (this.maxEquity - currentBalance) / this.maxEquity;
-            const limit = config.MAX_DAILY_DRAWDOWN_PERCENT / 100;
-
-            if (drop > limit) {
-                logger.error(`[RiskManager] HALT. Max Trailing Drawdown hit: ${(drop * 100).toFixed(2)}% (Peak: ${this.maxEquity})`);
-                return false;
-            }
+        if (drop > limit) {
+            logger.error(`[RiskManager] HALT. Max Daily Drawdown hit: ${(drop * 100).toFixed(2)}% (Limit: ${config.MAX_DAILY_DRAWDOWN_PERCENT}%)`);
+            return false;
         }
 
         return true;
