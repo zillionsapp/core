@@ -60,18 +60,25 @@ export class PaperExchange implements IExchange {
                 // Closing a long position
                 const entryValue = existingPos.entryPrice * closeQty;
                 const exitValue = price * closeQty;
-                pnl = exitValue - entryValue;
+                pnl = exitValue - entryValue; // P&L is just the price difference
             } else {
                 // Closing a short position
                 const entryValue = existingPos.entryPrice * closeQty;
                 const exitValue = price * closeQty;
-                pnl = entryValue - exitValue;
+                pnl = entryValue - exitValue; // P&L is just the price difference
             }
 
-            // Return margin used for this portion + PnL
-            const marginToReturn = (existingPos.margin / existingPos.quantity) * closeQty;
+            // Liquidation check: Losses cannot exceed margin
+            const marginUsed = (existingPos.margin / existingPos.quantity) * closeQty;
+            if (pnl < -marginUsed) {
+                pnl = -marginUsed; // Liquidate at margin amount
+                console.log(`[PaperExchange] Liquidation: Loss capped at margin amount ${marginUsed.toFixed(2)} ${quoteAsset}`);
+            }
+
+            // Return margin used for this portion + P&L (capped at -margin)
+            const marginToReturn = marginUsed + pnl; // pnl is negative or zero after liquidation check
             const balance = this.balances.get(quoteAsset) || 0;
-            this.balances.set(quoteAsset, balance + marginToReturn + pnl);
+            this.balances.set(quoteAsset, balance + marginToReturn);
 
             if (closeQty >= existingPos.quantity) {
                 this.positions.delete(orderRequest.symbol);
@@ -88,8 +95,18 @@ export class PaperExchange implements IExchange {
             const requiredMargin = cost / leverage;
             const balance = this.balances.get(quoteAsset) || 0;
 
-            if (balance < requiredMargin) {
+            // BULLETPROOF MARGIN CHECKS
+            if (requiredMargin <= 0) {
+                throw new Error(`Invalid margin calculation: ${requiredMargin}`);
+            }
+
+            if (requiredMargin > balance) {
                 throw new Error(`Insufficient funds (Margin). Required: ${requiredMargin.toFixed(2)}, Available: ${balance.toFixed(2)} (Cost: ${cost.toFixed(2)}, Leverage: ${leverage}x)`);
+            }
+
+            // Prevent using more than 95% of balance for margin (emergency buffer)
+            if (requiredMargin > balance * 0.95) {
+                throw new Error(`Margin too high: ${requiredMargin.toFixed(2)} > 95% of balance (${(balance * 0.95).toFixed(2)}). Reduce position size.`);
             }
 
             this.balances.set(quoteAsset, balance - requiredMargin);

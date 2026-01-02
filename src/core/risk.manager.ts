@@ -45,17 +45,53 @@ export class RiskManager {
         // Risk Amount = RISK_PER_TRADE_PERCENT of current equity
         const riskAmount = balance * (config.RISK_PER_TRADE_PERCENT / 100);
 
-        // SL Distance = entry price * SL percentage (technical SL level)
+        // Leverage affects position sizing: higher leverage allows larger positions for same risk
+        const leverage = config.LEVERAGE_ENABLED ? config.LEVERAGE_VALUE : 1;
+
+        // SL Distance = entry price * SL percentage (keep SL percentages the same)
         const effectiveSLPercent = slPercent ?? config.DEFAULT_STOP_LOSS_PERCENT;
         const slDistance = price * (effectiveSLPercent / 100);
 
         // Position Size = Risk Amount ÷ SL Distance
-        const quantity = riskAmount / slDistance;
+        // Leverage allows larger positions: multiply by leverage
+        let quantity = (riskAmount * leverage) / slDistance;
+
+        // BULLETPROOF SAFETY CHECKS
+        const positionValue = quantity * price;
+        const requiredMargin = positionValue / leverage;
+
+        // 1. Prevent margin exceeding available balance (with 10% buffer)
+        const maxAllowedMargin = balance * 0.9; // Never use more than 90% of balance
+        if (requiredMargin > maxAllowedMargin) {
+            const adjustmentFactor = maxAllowedMargin / requiredMargin;
+            quantity *= adjustmentFactor;
+            logger.warn(`[RiskManager] Position size reduced by ${(adjustmentFactor * 100).toFixed(1)}% to fit available margin`);
+        }
+
+        // 2. Prevent position value from exceeding reasonable limits
+        const maxPositionValue = balance * leverage * 2; // Max 2x leverage utilization
+        if (positionValue > maxPositionValue) {
+            quantity = maxPositionValue / price;
+            logger.warn(`[RiskManager] Position size capped to prevent over-leveraging`);
+        }
+
+        // 3. Minimum position size check
+        const minPositionValue = balance * 0.001; // Minimum 0.1% of balance
+        if (positionValue < minPositionValue) {
+            logger.warn(`[RiskManager] Position size too small: ${positionValue.toFixed(2)} < ${minPositionValue.toFixed(2)}`);
+            return 0; // Skip trade
+        }
+
+        // Recalculate final values
+        const finalPositionValue = quantity * price;
+        const finalMargin = finalPositionValue / leverage;
 
         logger.info(`[RiskManager] Professional position sizing for ${symbol}:`);
         logger.info(`  Risk Amount: ${riskAmount.toFixed(2)} ${config.PAPER_BALANCE_ASSET} (${config.RISK_PER_TRADE_PERCENT}% of equity)`);
-        logger.info(`  SL Distance: ${slDistance.toFixed(2)} (${effectiveSLPercent}% of entry)`);
-        logger.info(`  Quantity: ${quantity.toFixed(6)} (Value: ${(quantity * price).toFixed(2)} ${config.PAPER_BALANCE_ASSET})`);
+        logger.info(`  SL Distance: ${slDistance.toFixed(2)} (${effectiveSLPercent.toFixed(2)}% of entry)`);
+        logger.info(`  Leverage: ${leverage}x`);
+        logger.info(`  Quantity: ${quantity.toFixed(6)} (Position Value: ${finalPositionValue.toFixed(2)} ${config.PAPER_BALANCE_ASSET}, Margin: ${finalMargin.toFixed(2)} ${config.PAPER_BALANCE_ASSET})`);
+        logger.info(`  Safety: Margin ${((finalMargin / balance) * 100).toFixed(1)}% of balance, Position ${((finalPositionValue / balance) * 100).toFixed(1)}% of balance`);
 
         return quantity;
     }

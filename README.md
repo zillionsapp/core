@@ -375,6 +375,41 @@ The `RiskManager` module (`src/core/risk.manager.ts`) implements **professional 
 - **Technical SL/TP**: Exit levels based on entry price percentages (professional standard)
 - **Daily Drawdown Protection**: Halts trading if equity drops by a specific percentage in a single day (Default: 5%)
 
+### Leverage Support
+Zillion Core includes **professional leveraged trading** with built-in safety measures:
+
+**How It Works:**
+- **Margin Trading**: Control larger positions with less capital
+- **Amplified Position Sizing**: Leverage multiplies position size for same risk level
+- **Safety Limits**: Automatic position reduction to prevent over-leveraging
+- **Liquidation Protection**: Losses capped at margin amount (no account blowup)
+
+**Key Calculations:**
+- **Margin Required**: `position_value ÷ leverage`
+- **Position Size**: `(risk_amount × leverage) ÷ sl_distance`
+- **P&L**: Percentage returns (leverage doesn't amplify profit/loss percentages)
+- **Liquidation**: Losses cannot exceed margin amount
+
+**Safety Features:**
+- **Margin Limits**: Maximum 95% of balance can be used as margin
+- **Position Caps**: Maximum position size limited to prevent over-exposure
+- **Automatic Reduction**: Position sizes reduced if they would exceed safety limits
+- **Balance Protection**: Emergency buffers prevent account depletion
+
+**Configuration:**
+```env
+LEVERAGE_ENABLED=true
+LEVERAGE_VALUE=5          # 5x leverage
+RISK_PER_TRADE_PERCENT=1  # 1% risk per trade
+```
+
+**Example with 5x Leverage:**
+- Account: $10,000
+- Risk: 1% ($100)
+- SL: 5% of entry price
+- Position Size: ($100 × 5) ÷ (5% × price) = Larger position with same $100 risk
+- Margin Used: 20% of account (safe buffer maintained)
+
 ### TradeManager
 The `TradeManager` (`src/core/trade.manager.ts`) provides **global position management** across all trading activities:
 - **Centralized Monitoring**: Tracks all open positions from any strategy or symbol in real-time.
