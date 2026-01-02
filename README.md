@@ -69,6 +69,11 @@
     DEFAULT_TAKE_PROFIT_PERCENT=10
     LEVERAGE_ENABLED=false
     LEVERAGE_VALUE=5
+    TRAILING_STOP_ENABLED=true
+    TRAILING_STOP_ACTIVATION_PERCENT=2
+    TRAILING_STOP_TRAIL_PERCENT=1
+    ALLOW_MULTIPLE_POSITIONS=false  # Allow hedging/multiple positions
+    CLOSE_ON_OPPOSITE_SIGNAL=false  # Close existing position on opposite signal
     ```
 
 4.  **Database Setup (Supabase)**:
@@ -266,23 +271,56 @@ TRAILING_STOP_ACTIVATION_PERCENT=2
 TRAILING_STOP_TRAIL_PERCENT=1
 ```
 
-**How It Works:**
-1. Trade opens with initial static stop loss
-2. When profit reaches activation threshold, trailing begins
-3. Stop loss trails behind price at specified distance
-4. Position closes if price reverses to trailing stop level
-
-**Example:**
-- Enter BUY at $50,000 with 5% stop loss ($47,500)
-- Price rises to $51,000 (2% profit) → trailing activates
-- Stop loss moves to $50,490 (1% below current price)
-- Price continues to $52,000 → stop loss moves to $51,480
-- If price drops to $51,480 → position closes with ~2.96% profit
-
 **Benefits:**
 - **Maximize Profits**: Capture more upside while protecting gains
 - **Reduce Drawdown**: Smaller losses on reversals
 - **Set-and-Forget**: Automatic adjustment requires no manual intervention
+
+### Position Management
+Zillion Core provides flexible position management to handle conflicting signals and maintain strategy control over risk management:
+
+#### Signal Conflict Resolution
+When a strategy generates a new signal while positions are already open, you can configure how the system responds:
+
+- **Close on Opposite Signal** (`CLOSE_ON_OPPOSITE_SIGNAL=true`): Automatically closes existing positions when a strategy signals the opposite direction. This prevents holding conflicting positions and ensures the strategy's latest intent is executed.
+- **Allow Multiple Positions** (`ALLOW_MULTIPLE_POSITIONS=true`): Enables hedging by allowing multiple positions to be open simultaneously. The strategy can build complex position structures.
+- **Force Close** (Signal-level): Strategies can include `forceClose: true` in their signal to override all risk management and immediately close conflicting positions before opening new ones.
+
+#### Configuration
+```env
+# Position Management
+ALLOW_MULTIPLE_POSITIONS=false  # Allow hedging/multiple positions
+CLOSE_ON_OPPOSITE_SIGNAL=false  # Close existing position on opposite signal
+```
+
+#### How It Works
+1. **Signal Generation**: Strategy always generates signals regardless of existing positions
+2. **Conflict Detection**: Engine checks for positions that conflict with the new signal
+3. **Resolution**: Applies configured behavior:
+   - Force close conflicting positions if `signal.forceClose=true`
+   - Close positions on opposite signals if `CLOSE_ON_OPPOSITE_SIGNAL=true`
+   - Skip new signals if multiple positions not allowed and positions exist
+   - Allow new positions alongside existing ones if `ALLOW_MULTIPLE_POSITIONS=true`
+
+#### Strategy Control
+Strategies maintain full control over position management:
+```typescript
+// Force close existing positions before opening new one
+return {
+    action: 'SELL',
+    symbol: 'BTC/USDT',
+    forceClose: true  // Closes all conflicting positions immediately
+};
+```
+
+#### Default Behavior
+By default, maintains backward compatibility - waits for positions to close naturally (via SL/TP) before opening new ones.
+
+**Benefits:**
+- **Strategy Autonomy**: Strategies can override risk management when needed
+- **Flexible Risk Management**: Choose between conservative single-position or aggressive multi-position approaches
+- **Conflict Prevention**: Avoid unintended hedging or conflicting positions
+- **Backward Compatible**: Existing configurations continue to work unchanged
 
 ### PortfolioManager
 The `PortfolioManager` (`src/core/portfolio.manager.ts`) provides **comprehensive portfolio analytics and snapshot generation**:

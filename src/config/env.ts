@@ -30,6 +30,10 @@ const envSchema = z.object({
     TRAILING_STOP_ACTIVATION_PERCENT: z.coerce.number().default(2), // 2% profit to activate trailing
     TRAILING_STOP_TRAIL_PERCENT: z.coerce.number().default(1), // 1% trail distance
 
+    // Position Management
+    ALLOW_MULTIPLE_POSITIONS: z.string().default('false').transform(v => v === 'true'), // Allow hedging/multiple positions
+    CLOSE_ON_OPPOSITE_SIGNAL: z.string().default('false').transform(v => v === 'true'), // Close existing position on opposite signal
+
     // Strategy Configuration
     STRATEGY_NAME: z.string().default('MACD'),
     STRATEGY_SYMBOL: z.string().default('BTC/USDT'),

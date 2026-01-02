@@ -85,4 +85,251 @@ describe('BotEngine Integration', () => {
         }));
         expect(engine['activeTrade']).toBeNull();
     });
+
+    it('should close existing position and open new one when CLOSE_ON_OPPOSITE_SIGNAL is enabled', async () => {
+        // Mock config to enable close on opposite signal
+        const originalConfig = { ...config };
+        config.CLOSE_ON_OPPOSITE_SIGNAL = true;
+        config.ALLOW_MULTIPLE_POSITIONS = false;
+
+        // Setup: Mock Strategy to return BUY then SELL
+        const strategySpy = jest.spyOn(engine['strategy'], 'update')
+            .mockResolvedValueOnce({
+                action: 'BUY',
+                symbol: 'BTC/USDT'
+            }) // Tick 1: BUY signal
+            .mockResolvedValueOnce({
+                action: 'SELL',
+                symbol: 'BTC/USDT'
+            }); // Tick 2: SELL signal (opposite)
+
+        // Setup: Mock exchange and DB
+        const getCandlesSpy = jest.spyOn(engine['exchange'], 'getCandles')
+            .mockResolvedValue([{
+                symbol: 'BTC/USDT', interval: '1m', open: 100, high: 100, low: 100, close: 100, volume: 100, startTime: Date.now()
+            }]);
+
+        const getOpenTradesSpy = jest.spyOn(engine['db'], 'getOpenTrades')
+            .mockResolvedValueOnce([]) // Tick 1: tradeManager check
+            .mockResolvedValueOnce([]) // Tick 1: signal logic check
+            .mockResolvedValueOnce([{
+                id: 'trade1',
+                orderId: 'order1',
+                symbol: 'BTC/USDT',
+                side: 'BUY',
+                quantity: 1,
+                price: 100,
+                timestamp: Date.now(),
+                status: 'OPEN'
+            }]) // Tick 2: tradeManager check
+            .mockResolvedValueOnce([{
+                id: 'trade1',
+                orderId: 'order1',
+                symbol: 'BTC/USDT',
+                side: 'BUY',
+                quantity: 1,
+                price: 100,
+                timestamp: Date.now(),
+                status: 'OPEN'
+            }]); // Tick 2: signal logic check
+
+        const placeOrderSpy = jest.spyOn(engine['exchange'], 'placeOrder')
+            .mockResolvedValueOnce({
+                id: 'buyOrder',
+                symbol: 'BTC/USDT',
+                side: 'BUY',
+                type: 'MARKET',
+                status: 'FILLED',
+                quantity: 1,
+                filledQuantity: 1,
+                price: 100,
+                timestamp: Date.now()
+            }) // Tick 1: BUY order
+            .mockResolvedValueOnce({
+                id: 'closeOrder',
+                symbol: 'BTC/USDT',
+                side: 'SELL',
+                type: 'MARKET',
+                status: 'FILLED',
+                quantity: 1,
+                filledQuantity: 1,
+                price: 95,
+                timestamp: Date.now()
+            }) // Tick 2: Close BUY position
+            .mockResolvedValueOnce({
+                id: 'sellOrder',
+                symbol: 'BTC/USDT',
+                side: 'SELL',
+                type: 'MARKET',
+                status: 'FILLED',
+                quantity: 1,
+                filledQuantity: 1,
+                price: 95,
+                timestamp: Date.now()
+            }); // Tick 2: Open SELL position
+
+        // Tick 1: BUY
+        await engine.tick('BTC/USDT', '1m');
+        expect(placeOrderSpy).toHaveBeenCalledWith(expect.objectContaining({
+            side: 'BUY',
+            symbol: 'BTC/USDT'
+        }));
+
+        // Tick 2: SELL - should close BUY and open SELL
+        await engine.tick('BTC/USDT', '1m');
+
+        // Should have closed the BUY position
+        expect(placeOrderSpy).toHaveBeenCalledWith(expect.objectContaining({
+            side: 'SELL',
+            symbol: 'BTC/USDT'
+        }));
+
+        // Should have opened SELL position
+        expect(placeOrderSpy).toHaveBeenCalledWith(expect.objectContaining({
+            side: 'SELL',
+            symbol: 'BTC/USDT'
+        }));
+
+        // Restore config
+        Object.assign(config, originalConfig);
+    });
+
+    it('should allow multiple positions when ALLOW_MULTIPLE_POSITIONS is enabled', async () => {
+        // Mock config to allow multiple positions
+        const originalConfig = { ...config };
+        config.ALLOW_MULTIPLE_POSITIONS = true;
+        config.CLOSE_ON_OPPOSITE_SIGNAL = false;
+
+        // Setup: Mock Strategy to return BUY twice
+        const strategySpy = jest.spyOn(engine['strategy'], 'update')
+            .mockResolvedValueOnce({
+                action: 'BUY',
+                symbol: 'BTC/USDT'
+            }) // Tick 1: BUY signal
+            .mockResolvedValueOnce({
+                action: 'BUY',
+                symbol: 'BTC/USDT'
+            }); // Tick 2: Another BUY signal
+
+        // Setup: Mock exchange and DB
+        const getCandlesSpy = jest.spyOn(engine['exchange'], 'getCandles')
+            .mockResolvedValue([{
+                symbol: 'BTC/USDT', interval: '1m', open: 100, high: 100, low: 100, close: 100, volume: 100, startTime: Date.now()
+            }]);
+
+        const getOpenTradesSpy = jest.spyOn(engine['db'], 'getOpenTrades')
+            .mockResolvedValueOnce([]) // Tick 1: tradeManager check
+            .mockResolvedValueOnce([]) // Tick 1: signal logic check
+            .mockResolvedValueOnce([{
+                id: 'trade1',
+                orderId: 'order1',
+                symbol: 'BTC/USDT',
+                side: 'BUY',
+                quantity: 1,
+                price: 100,
+                timestamp: Date.now(),
+                status: 'OPEN'
+            }]) // Tick 2: tradeManager check
+            .mockResolvedValueOnce([{
+                id: 'trade1',
+                orderId: 'order1',
+                symbol: 'BTC/USDT',
+                side: 'BUY',
+                quantity: 1,
+                price: 100,
+                timestamp: Date.now(),
+                status: 'OPEN'
+            }]); // Tick 2: signal logic check
+
+        const placeOrderSpy = jest.spyOn(engine['exchange'], 'placeOrder')
+            .mockResolvedValue({
+                id: 'buyOrder2',
+                symbol: 'BTC/USDT',
+                side: 'BUY',
+                type: 'MARKET',
+                status: 'FILLED',
+                quantity: 1,
+                filledQuantity: 1,
+                price: 100,
+                timestamp: Date.now()
+            });
+
+        // Tick 1: BUY
+        await engine.tick('BTC/USDT', '1m');
+        expect(placeOrderSpy).toHaveBeenCalledTimes(1);
+
+        // Tick 2: Another BUY - should allow it
+        await engine.tick('BTC/USDT', '1m');
+        expect(placeOrderSpy).toHaveBeenCalledTimes(2);
+
+        // Restore config
+        Object.assign(config, originalConfig);
+    });
+
+    it('should force close positions when signal has forceClose=true', async () => {
+        // Setup: Mock Strategy to return SELL with forceClose
+        const strategySpy = jest.spyOn(engine['strategy'], 'update')
+            .mockResolvedValueOnce({
+                action: 'SELL',
+                symbol: 'BTC/USDT',
+                forceClose: true
+            });
+
+        // Setup: Mock exchange and DB
+        const getCandlesSpy = jest.spyOn(engine['exchange'], 'getCandles')
+            .mockResolvedValue([{
+                symbol: 'BTC/USDT', interval: '1m', open: 100, high: 100, low: 100, close: 100, volume: 100, startTime: Date.now()
+            }]);
+
+        const getOpenTradesSpy = jest.spyOn(engine['db'], 'getOpenTrades')
+            .mockResolvedValue([{
+                id: 'trade1',
+                orderId: 'order1',
+                symbol: 'BTC/USDT',
+                side: 'BUY',
+                quantity: 1,
+                price: 100,
+                timestamp: Date.now(),
+                status: 'OPEN'
+            }]);
+
+        const placeOrderSpy = jest.spyOn(engine['exchange'], 'placeOrder')
+            .mockResolvedValueOnce({
+                id: 'closeOrder',
+                symbol: 'BTC/USDT',
+                side: 'SELL',
+                type: 'MARKET',
+                status: 'FILLED',
+                quantity: 1,
+                filledQuantity: 1,
+                price: 95,
+                timestamp: Date.now()
+            }) // Close existing position
+            .mockResolvedValueOnce({
+                id: 'sellOrder',
+                symbol: 'BTC/USDT',
+                side: 'SELL',
+                type: 'MARKET',
+                status: 'FILLED',
+                quantity: 1,
+                filledQuantity: 1,
+                price: 95,
+                timestamp: Date.now()
+            }); // Open new position
+
+        // Execute tick
+        await engine.tick('BTC/USDT', '1m');
+
+        // Should have closed the conflicting position first
+        expect(placeOrderSpy).toHaveBeenCalledWith(expect.objectContaining({
+            side: 'SELL',
+            symbol: 'BTC/USDT'
+        }));
+
+        // Should have opened the new position
+        expect(placeOrderSpy).toHaveBeenCalledWith(expect.objectContaining({
+            side: 'SELL',
+            symbol: 'BTC/USDT'
+        }));
+    });
 });

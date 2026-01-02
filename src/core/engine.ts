@@ -85,55 +85,83 @@ export class BotEngine {
                 }
             }
 
-            // 3. Strategy Update (only for opening new positions)
-            if (!this.activeTrade) {
-                const signal = await this.strategy.update(lastCandle);
+            // 3. Strategy Update - Always check for signals
+            const signal = await this.strategy.update(lastCandle);
 
-                if (signal && signal.action !== 'HOLD') {
-                    logger.info(`[Signal] ${signal.action} ${signal.symbol}`);
+            if (signal && signal.action !== 'HOLD') {
+                logger.info(`[Signal] ${signal.action} ${signal.symbol}`);
 
-                    // 3. Risk Check
-                    const quantity = await this.riskManager.calculateQuantity(signal.symbol, lastCandle.close);
+                // Check for conflicting positions
+                const openTrades = await this.db.getOpenTrades();
+                const symbolTrades = openTrades.filter(trade => trade.symbol === signal.symbol);
+                const conflictingTrades = symbolTrades.filter(trade => trade.side !== signal.action);
 
-                    const orderRequest: OrderRequest = {
-                        symbol: signal.symbol,
-                        side: signal.action as 'BUY' | 'SELL',
-                        type: 'MARKET',
-                        quantity: quantity,
-                    };
-
-                    const isSafe = await this.riskManager.validateOrder(orderRequest);
-                    if (!isSafe) return;
-
-                    // 4. Execution
-                    const order = await this.exchange.placeOrder(orderRequest);
-
-                    // 5. Persistence
-                    const exitPrices = this.riskManager.calculateExitPrices(order.price, order.quantity, order.side, signal.stopLoss, signal.takeProfit);
-
-                    const trade: Trade = {
-                        id: order.id,
-                        orderId: order.id,
-                        symbol: order.symbol,
-                        side: order.side,
-                        quantity: order.quantity,
-                        price: order.price,
-                        timestamp: order.timestamp,
-                        status: 'OPEN',
-                        stopLossPrice: exitPrices.stopLoss,
-                        takeProfitPrice: exitPrices.takeProfit,
-                        trailingStopEnabled: config.TRAILING_STOP_ENABLED,
-                        trailingStopActivated: false,
-                        trailingStopActivationPercent: config.TRAILING_STOP_ACTIVATION_PERCENT,
-                        trailingStopTrailPercent: config.TRAILING_STOP_TRAIL_PERCENT,
-                        trailingStopHighPrice: order.side === 'BUY' ? order.price : undefined,
-                        trailingStopLowPrice: order.side === 'SELL' ? order.price : undefined
-                    };
-
-                    this.activeTrade = trade;
-                    await this.db.saveTrade(trade);
-                    logger.info(`[BotEngine] Position Opened. TP: ${trade.takeProfitPrice}, SL: ${trade.stopLossPrice}`);
+                // Handle force close from signal
+                if (signal.forceClose && conflictingTrades.length > 0) {
+                    logger.info(`[BotEngine] Force closing ${conflictingTrades.length} conflicting positions`);
+                    for (const trade of conflictingTrades) {
+                        await this.forceClosePosition(trade, 'FORCE_CLOSE');
+                    }
                 }
+                // Handle close on opposite signal configuration
+                else if (config.CLOSE_ON_OPPOSITE_SIGNAL && conflictingTrades.length > 0) {
+                    logger.info(`[BotEngine] Closing ${conflictingTrades.length} positions due to opposite signal`);
+                    for (const trade of conflictingTrades) {
+                        await this.forceClosePosition(trade, 'OPPOSITE_SIGNAL');
+                    }
+                }
+                // Check if we should skip opening new position due to existing positions
+                else if (!config.ALLOW_MULTIPLE_POSITIONS && openTrades.length > 0) {
+                    logger.info(`[BotEngine] Skipping signal - multiple positions not allowed and existing positions exist`);
+                    return;
+                }
+
+                // 3. Risk Check
+                const quantity = await this.riskManager.calculateQuantity(signal.symbol, lastCandle.close);
+
+                const orderRequest: OrderRequest = {
+                    symbol: signal.symbol,
+                    side: signal.action as 'BUY' | 'SELL',
+                    type: 'MARKET',
+                    quantity: quantity,
+                };
+
+                const isSafe = await this.riskManager.validateOrder(orderRequest);
+                if (!isSafe) return;
+
+                // 4. Execution
+                const order = await this.exchange.placeOrder(orderRequest);
+
+                // 5. Persistence
+                const exitPrices = this.riskManager.calculateExitPrices(order.price, order.quantity, order.side, signal.stopLoss, signal.takeProfit);
+
+                const trade: Trade = {
+                    id: order.id,
+                    orderId: order.id,
+                    symbol: order.symbol,
+                    side: order.side,
+                    quantity: order.quantity,
+                    price: order.price,
+                    timestamp: order.timestamp,
+                    status: 'OPEN',
+                    stopLossPrice: exitPrices.stopLoss,
+                    takeProfitPrice: exitPrices.takeProfit,
+                    trailingStopEnabled: config.TRAILING_STOP_ENABLED,
+                    trailingStopActivated: false,
+                    trailingStopActivationPercent: config.TRAILING_STOP_ACTIVATION_PERCENT,
+                    trailingStopTrailPercent: config.TRAILING_STOP_TRAIL_PERCENT,
+                    trailingStopHighPrice: order.side === 'BUY' ? order.price : undefined,
+                    trailingStopLowPrice: order.side === 'SELL' ? order.price : undefined
+                };
+
+                await this.db.saveTrade(trade);
+
+                // Update activeTrade for backward compatibility (single position tracking)
+                if (!config.ALLOW_MULTIPLE_POSITIONS) {
+                    this.activeTrade = trade;
+                }
+
+                logger.info(`[BotEngine] Position Opened. TP: ${trade.takeProfitPrice}, SL: ${trade.stopLossPrice}`);
             }
         } catch (error) {
             logger.error('[BotEngine] Error in tick:', error);
@@ -181,6 +209,33 @@ export class BotEngine {
             const sleepTime = TimeUtils.getSleepDuration(interval);
             logger.info(`[BotEngine] Sleeping for ${(sleepTime / 1000).toFixed(1)}s until next candle boundary...`);
             await new Promise(resolve => setTimeout(resolve, sleepTime));
+        }
+    }
+
+    private async forceClosePosition(trade: Trade, reason: string): Promise<void> {
+        try {
+            logger.info(`[BotEngine] Force closing position ${trade.id} due to ${reason}`);
+
+            // Place closing order
+            const orderRequest: OrderRequest = {
+                symbol: trade.symbol,
+                side: trade.side === 'BUY' ? 'SELL' : 'BUY',
+                type: 'MARKET',
+                quantity: trade.quantity
+            };
+
+            const order = await this.exchange.placeOrder(orderRequest);
+
+            // Update trade in database
+            await this.db.updateTrade(trade.id, {
+                status: 'CLOSED',
+                exitPrice: order.price,
+                exitTimestamp: order.timestamp
+            });
+
+            logger.info(`[BotEngine] Position force closed: ${trade.id} | Exit Price: ${order.price} | Reason: ${reason}`);
+        } catch (error) {
+            logger.error(`[BotEngine] Error force closing position ${trade.id}:`, error);
         }
     }
 
