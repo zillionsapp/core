@@ -9,7 +9,7 @@ export class TradeManager {
     constructor(
         private exchange: IExchange,
         private db: IDataStore
-    ) {}
+    ) { }
 
     /**
      * Check all open positions and manage them (check SL/TP, close if triggered)
@@ -142,7 +142,8 @@ export class TradeManager {
                 await this.db.updateTrade(trade.id, {
                     status: 'CLOSED',
                     exitPrice: order.price,
-                    exitTimestamp: order.timestamp
+                    exitTimestamp: order.timestamp,
+                    duration: order.timestamp - trade.timestamp
                 });
 
                 // Notify strategy that position was closed
@@ -249,7 +250,8 @@ export class TradeManager {
             await this.db.updateTrade(trade.id, {
                 status: 'CLOSED',
                 exitPrice: order.price,
-                exitTimestamp: order.timestamp
+                exitTimestamp: order.timestamp,
+                duration: order.timestamp - trade.timestamp
             });
 
             // Notify strategy that position was closed

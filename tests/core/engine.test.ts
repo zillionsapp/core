@@ -11,16 +11,16 @@ describe('BotEngine Integration', () => {
     let mockExchange: PaperExchange;
     let originalConfig: any;
 
-    beforeAll(() => {
+    beforeEach(() => {
         // Mock StrategyManager to allow any strategy name in tests
         jest.spyOn(StrategyManager, 'getStrategy').mockReturnValue({
             name: 'MOCK',
             init: jest.fn(),
-            update: jest.fn().mockResolvedValue({ action: 'HOLD', symbol: 'BTC/USDT' })
+            update: jest.fn().mockResolvedValue({ action: 'HOLD', symbol: 'BTC/USDT' }),
+            onPositionOpened: jest.fn(),
+            onPositionClosed: jest.fn()
         } as any);
-    });
 
-    beforeEach(() => {
         originalConfig = { ...config };
         mockStore = new MockStore();
         mockTime = new MockTimeProvider();

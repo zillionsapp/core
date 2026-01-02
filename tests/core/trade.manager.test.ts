@@ -66,7 +66,8 @@ describe('TradeManager', () => {
             expect(mockDb.updateTrade).toHaveBeenCalledWith('trade1', {
                 status: 'CLOSED',
                 exitPrice: 47000,
-                exitTimestamp: expect.any(Number)
+                exitTimestamp: expect.any(Number),
+                duration: expect.any(Number)
             });
         });
 
@@ -103,7 +104,8 @@ describe('TradeManager', () => {
             expect(mockDb.updateTrade).toHaveBeenCalledWith('trade2', {
                 status: 'CLOSED',
                 exitPrice: 56000,
-                exitTimestamp: expect.any(Number)
+                exitTimestamp: expect.any(Number),
+                duration: expect.any(Number)
             });
         });
 
@@ -140,7 +142,8 @@ describe('TradeManager', () => {
             expect(mockDb.updateTrade).toHaveBeenCalledWith('trade3', {
                 status: 'CLOSED',
                 exitPrice: 53000,
-                exitTimestamp: expect.any(Number)
+                exitTimestamp: expect.any(Number),
+                duration: expect.any(Number)
             });
         });
 
@@ -334,7 +337,8 @@ describe('TradeManager', () => {
             expect(mockDb.updateTrade).toHaveBeenCalledWith('trade1', {
                 status: 'CLOSED',
                 exitPrice: 51400,
-                exitTimestamp: expect.any(Number)
+                exitTimestamp: expect.any(Number),
+                duration: expect.any(Number)
             });
         });
 
@@ -432,7 +436,8 @@ describe('TradeManager', () => {
             expect(mockDb.updateTrade).toHaveBeenCalledWith('trade1', {
                 status: 'CLOSED',
                 exitPrice: 47000,
-                exitTimestamp: expect.any(Number)
+                exitTimestamp: expect.any(Number),
+                duration: expect.any(Number)
             });
         });
     });

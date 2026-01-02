@@ -159,12 +159,16 @@
                     <thead>
                         <tr class="bg-base-200">
                             <th class="text-xs font-bold uppercase py-4">Status</th>
+                            <th class="text-xs font-bold uppercase py-4">Strategy</th>
                             <th class="text-xs font-bold uppercase py-4">Symbol</th>
+                            <th class="text-xs font-bold uppercase py-4">Time</th>
                             <th class="text-xs font-bold uppercase py-4">Side</th>
-                            <th class="text-xs font-bold uppercase py-4">Entry Price</th>
-                            <th class="text-xs font-bold uppercase py-4">Exit Price</th>
+                            <th class="text-xs font-bold uppercase py-4">Lv.</th>
+                            <th class="text-xs font-bold uppercase py-4">Entry</th>
+                            <th class="text-xs font-bold uppercase py-4">Exit / Price</th>
+                            <th class="text-xs font-bold uppercase py-4">SL / TP</th>
+                            <th class="text-xs font-bold uppercase py-4">Duration</th>
                             <th class="text-xs font-bold uppercase py-4 text-right">Qty</th>
-                            <th class="text-xs font-bold uppercase py-4 text-right">PnL ($)</th>
                             <th class="text-xs font-bold uppercase py-4 text-right">PnL (%)</th>
                         </tr>
                     </thead>
@@ -496,6 +500,19 @@
             return { dollar: 0, percentage: 0, isRealized: false };
         }
 
+        function formatDuration(ms) {
+            if (!ms || ms <= 0) return '-';
+            const seconds = Math.floor(ms / 1000);
+            const minutes = Math.floor(seconds / 60);
+            const hours = Math.floor(minutes / 60);
+            const days = Math.floor(hours / 24);
+
+            if (days > 0) return `${days}d ${hours % 24}h`;
+            if (hours > 0) return `${hours}h ${minutes % 60}m`;
+            if (minutes > 0) return `${minutes}m ${seconds % 60}s`;
+            return `${seconds}s`;
+        }
+
         async function loadTradesPage(page) {
             try {
                 const offset = (page - 1) * pageSize;
@@ -536,20 +553,36 @@
                             ? `${isProfit ? '+' : '-'}${Math.abs(pnl.percentage).toFixed(2)}%${pnl.isRealized ? '' : ' (unrealized)'}`
                             : '-';
 
+                        const entryTime = new Date(t.timestamp).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                        const duration = t.status === 'CLOSED' ? formatDuration(t.duration) : formatDuration(Date.now() - t.timestamp);
+
+                        const slDisplay = t.stopLossPrice ? `$${t.stopLossPrice.toLocaleString()}` : '-';
+                        const tpDisplay = t.takeProfitPrice ? `$${t.takeProfitPrice.toLocaleString()}` : '-';
+
                         return `
-                        <tr class="hover">
-                            <td><span class="badge ${t.status === 'OPEN' ? 'badge-warning' : 'badge-success'} badge-sm">${t.status}</span></td>
+                        <tr class="hover text-xs">
+                            <td><span class="badge ${t.status === 'OPEN' ? 'badge-warning' : 'badge-success'} badge-sm font-bold text-[10px]">${t.status}</span></td>
+                            <td class="font-semibold text-secondary">${t.strategyName || 'MANUAL'}</td>
                             <td class="font-bold">${t.symbol}</td>
+                            <td class="opacity-70">${entryTime}</td>
                             <td>
-                                <span class="badge badge-outline ${t.side === 'BUY' ? 'badge-success' : 'badge-error'} text-xs font-bold px-3">
+                                <span class="badge badge-outline ${t.side === 'BUY' ? 'badge-success' : 'badge-error'} text-[10px] font-bold px-2 py-0 h-4">
                                     ${t.side}
                                 </span>
                             </td>
+                            <td class="font-mono opacity-80">${t.leverage || 1}x</td>
                             <td class="font-mono">$${t.price.toLocaleString()}</td>
                             <td class="font-mono">${exitPriceDisplay}</td>
+                            <td class="font-mono text-[10px] leading-tight opacity-70">
+                                SL: ${slDisplay}<br>
+                                TP: ${tpDisplay}
+                            </td>
+                            <td class="font-mono opacity-70">${duration}</td>
                             <td class="text-right font-mono">${t.quantity}</td>
-                            <td class="text-right font-mono ${pnlClass}">${pnlDollarDisplay}</td>
-                            <td class="text-right font-mono ${pnlClass}">${pnlPercentDisplay}</td>
+                            <td class="text-right font-mono ${pnlClass} font-bold">
+                                ${pnlPercentDisplay}<br>
+                                <span class="text-[10px] font-normal opacity-70">${pnlDollarDisplay}</span>
+                            </td>
                         </tr>
                     `;}).join('');
 

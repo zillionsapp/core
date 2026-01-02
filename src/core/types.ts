@@ -60,6 +60,7 @@ export interface Trade {
     strategyName?: string; // Name of the strategy that opened this trade
     leverage?: number;
     margin?: number;
+    duration?: number;
 
     // Trailing Stop Loss fields
     trailingStopEnabled?: boolean;
