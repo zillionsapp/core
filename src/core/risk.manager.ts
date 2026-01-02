@@ -3,25 +3,45 @@ import { logger } from './logger';
 import { IExchange } from '../interfaces/exchange.interface';
 import { config } from '../config/env';
 import { PrecisionUtils } from '../utils/math';
+import { IDataStore } from '../interfaces/repository.interface';
+import { ITimeProvider, RealTimeProvider } from './time.provider';
 
 export class RiskManager {
     private exchange: IExchange;
+    private store: IDataStore;
+    private timeProvider: ITimeProvider;
     private initialBalance: number = 0;
     private startOfDayBalance: number = 0;
     private lastResetDay: number = 0; // Day of the month
     private isInitialized: boolean = false;
 
-    constructor(exchange: IExchange) {
+    constructor(exchange: IExchange, store: IDataStore, timeProvider: ITimeProvider = new RealTimeProvider()) {
         this.exchange = exchange;
+        this.store = store;
+        this.timeProvider = timeProvider;
     }
 
     async init() {
         const currentBalance = await this.exchange.getBalance(config.PAPER_BALANCE_ASSET);
         this.initialBalance = currentBalance;
 
-        // Initialize Daily Drawdown tracking
-        this.startOfDayBalance = currentBalance;
-        this.lastResetDay = new Date().getUTCDate();
+        // Try to recover state
+        const state = await this.store.getRiskState();
+        const today = this.timeProvider.getUTCDate();
+
+        if (state && state.lastResetDay === today) {
+            this.startOfDayBalance = state.startOfDayBalance;
+            this.lastResetDay = state.lastResetDay;
+            logger.info(`[RiskManager] State Recovered. Start-of-Day Balance: ${this.startOfDayBalance}`);
+        } else {
+            // New day or no state, initialize fresh
+            this.startOfDayBalance = currentBalance;
+            this.lastResetDay = today;
+            await this.store.saveRiskState({
+                startOfDayBalance: this.startOfDayBalance,
+                lastResetDay: this.lastResetDay
+            });
+        }
 
         this.isInitialized = true;
         logger.info(`[RiskManager] Initialized. Balance: ${this.initialBalance} ${config.PAPER_BALANCE_ASSET}`);
@@ -31,13 +51,18 @@ export class RiskManager {
         if (!this.isInitialized) await this.init();
 
         const currentBalance = await this.exchange.getBalance(config.PAPER_BALANCE_ASSET);
-        const today = new Date().getUTCDate();
+        const today = this.timeProvider.getUTCDate();
 
         // Check for Daily Reset (UTC)
         if (today !== this.lastResetDay) {
             this.startOfDayBalance = currentBalance;
             this.lastResetDay = today;
             logger.info(`[RiskManager] Daily Reset. New Start-of-Day Balance: ${this.startOfDayBalance}`);
+
+            await this.store.saveRiskState({
+                startOfDayBalance: this.startOfDayBalance,
+                lastResetDay: this.lastResetDay
+            });
         }
 
 

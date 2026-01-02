@@ -1,10 +1,13 @@
 import { RiskManager } from '../../src/core/risk.manager';
 import { PaperExchange } from '../../src/adapters/exchange/paper'; // Using concrete implementation as mock for simplicity
 import { OrderRequest } from '../../src/core/types';
+import { MockStore, MockTimeProvider } from '../test_mocks';
 
 describe('RiskManager', () => {
     let riskManager: RiskManager;
     let exchange: PaperExchange;
+    let mockStore: MockStore;
+    let mockTimeProvider: MockTimeProvider;
 
     beforeEach(async () => {
         // Reset config directly
@@ -21,9 +24,12 @@ describe('RiskManager', () => {
             getTicker: jest.fn().mockResolvedValue({ symbol: 'BTC/USDT', price: 1000, timestamp: Date.now() })
         };
 
+        mockStore = new MockStore();
+        mockTimeProvider = new MockTimeProvider();
+
         exchange = new PaperExchange(mockProvider);
         await exchange.start();
-        riskManager = new RiskManager(exchange);
+        riskManager = new RiskManager(exchange, mockStore, mockTimeProvider);
         await riskManager.init();
     });
 

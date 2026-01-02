@@ -5,11 +5,13 @@ import { Candle, OrderRequest, Trade } from '../core/types';
 import { SupabaseDataStore } from '../adapters/database/supabase';
 import { RiskManager } from '../core/risk.manager';
 import { config } from '../config/env';
+import { SimulationTimeProvider } from './simulation.time.provider';
 
 export class BacktestRunner {
     private exchange: PaperExchange;
     private db: SupabaseDataStore;
     private riskManager: RiskManager;
+    private timeProvider: SimulationTimeProvider;
     private activeTrade: Trade | null = null;
 
     constructor() {
@@ -17,7 +19,8 @@ export class BacktestRunner {
         const publicData = new BinancePublicData();
         this.exchange = new PaperExchange(publicData);
         this.db = new SupabaseDataStore();
-        this.riskManager = new RiskManager(this.exchange);
+        this.timeProvider = new SimulationTimeProvider();
+        this.riskManager = new RiskManager(this.exchange, this.db, this.timeProvider);
     }
     async run(strategyName: string, symbol: string, interval: string, verbose: boolean = process.env.NODE_ENV !== 'test') {
         // 0. Capture Initial Balance
@@ -39,31 +42,53 @@ export class BacktestRunner {
         // 2. Iterate
         for (let i = 50; i < candles.length; i++) {
             const currentCandle = candles[i];
+
+            // Update Simulation Time to Candle Close Time
+            this.timeProvider.setTime(currentCandle.closeTime || 0);
+
             if (verbose) await this.logPortfolioState(symbol, currentCandle.close);
 
             // --- Risk Check (SL/TP) ---
             if (this.activeTrade) {
                 let exitReason = '';
-                // Check Low for SL, High for TP (Assuming Long)
-                // TODO: Support Short logic when needed
-                if (this.activeTrade.stopLossPrice && currentCandle.low <= this.activeTrade.stopLossPrice) {
-                    exitReason = 'STOP_LOSS';
-                } else if (this.activeTrade.takeProfitPrice && currentCandle.high >= this.activeTrade.takeProfitPrice) {
-                    exitReason = 'TAKE_PROFIT';
+
+                if (this.activeTrade.side === 'BUY') {
+                    // LONG Position: Check Low for SL, High for TP
+                    if (this.activeTrade.stopLossPrice && currentCandle.low <= this.activeTrade.stopLossPrice) {
+                        exitReason = 'STOP_LOSS';
+                    } else if (this.activeTrade.takeProfitPrice && currentCandle.high >= this.activeTrade.takeProfitPrice) {
+                        exitReason = 'TAKE_PROFIT';
+                    }
+                } else {
+                    // SHORT Position: Check High for SL, Low for TP
+                    if (this.activeTrade.stopLossPrice && currentCandle.high >= this.activeTrade.stopLossPrice) {
+                        exitReason = 'STOP_LOSS';
+                    } else if (this.activeTrade.takeProfitPrice && currentCandle.low <= this.activeTrade.takeProfitPrice) {
+                        exitReason = 'TAKE_PROFIT';
+                    }
                 }
 
                 if (exitReason) {
-                    // Execute SELL
+                    // Execute Close Order
                     try {
                         const entryValue = this.activeTrade.price * this.activeTrade.quantity;
                         const order = await this.exchange.placeOrder({
                             symbol,
-                            side: 'SELL',
+                            side: this.activeTrade.side === 'BUY' ? 'SELL' : 'BUY',
                             type: 'MARKET',
                             quantity: this.activeTrade.quantity
                         });
                         const exitValue = order.price * order.quantity;
-                        const tradePnL = exitValue - entryValue;
+
+                        // Calculate PnL
+                        let tradePnL = 0;
+                        if (this.activeTrade.side === 'BUY') {
+                            tradePnL = exitValue - entryValue;
+                        } else {
+                            // Short PnL: (Entry Price - Exit Price) * Quantity
+                            // Equivalent to: Entry Value - Exit Value
+                            tradePnL = entryValue - exitValue;
+                        }
 
                         if (tradePnL > 0) {
                             winningTrades++;

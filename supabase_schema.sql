@@ -51,3 +51,11 @@ create table public.backtest_results (
   result jsonb,
   created_at timestamp with time zone default timezone('utc'::text, now())
 );
+
+-- Application State Persistence
+create table public.kv_store (
+  key text primary key,
+  value jsonb not null,
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+comment on table public.kv_store is 'Generic key-value store for persisting application state (e.g. risk limits)';

@@ -3,9 +3,21 @@ import { RiskManager } from '../src/core/risk.manager';
 import { IMarketDataProvider } from '../src/interfaces/market_data.interface';
 import { config } from '../src/config/env';
 import { OrderRequest } from '../src/core/types';
+import { MockStore } from './test_mocks';
 
 // Test data from actual bot run
-const actualTrades = [
+interface TestTrade {
+    id: string;
+    symbol: string;
+    side: string;
+    quantity: number;
+    price: number;
+    stopLossPrice: number;
+    takeProfitPrice: number;
+    exitPrice?: number;
+}
+
+const actualTrades: TestTrade[] = [
     {
         id: "99bww3yfn4",
         symbol: "BTC/USDT",
@@ -46,10 +58,14 @@ const actualTrades = [
     }
 ];
 
+// ... (trades array omitted for brevity in replace block if possible, but tool requires exact match)
+// Actually I will target the imports and setup block to keep it clean.
+
 describe('Trading Math Validation Against Real Data', () => {
     let exchange: PaperExchange;
     let riskManager: RiskManager;
     let mockDataProvider: jest.Mocked<IMarketDataProvider>;
+    let mockStore: MockStore;
 
     beforeEach(async () => {
         mockDataProvider = {
@@ -66,8 +82,9 @@ describe('Trading Math Validation Against Real Data', () => {
         (config as any).DEFAULT_STOP_LOSS_PERCENT = 5;
         (config as any).DEFAULT_TAKE_PROFIT_PERCENT = 10;
 
+        mockStore = new MockStore();
         exchange = new PaperExchange(mockDataProvider);
-        riskManager = new RiskManager(exchange);
+        riskManager = new RiskManager(exchange, mockStore);
         await riskManager.init();
     });
 

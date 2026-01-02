@@ -2,13 +2,16 @@ import { PaperExchange } from '../../src/adapters/exchange/paper';
 import { RiskManager } from '../../src/core/risk.manager';
 import { IMarketDataProvider } from '../../src/interfaces/market_data.interface';
 import { config } from '../../src/config/env';
+import { MockStore, MockTimeProvider } from '../test_mocks';
 
 describe('Leverage Math & Margin Calculations', () => {
     let exchange: PaperExchange;
     let riskManager: RiskManager;
     let mockDataProvider: jest.Mocked<IMarketDataProvider>;
+    let mockStore: MockStore;
+    let mockTimeProvider: MockTimeProvider;
 
-    beforeEach(() => {
+    beforeEach(async () => {
         mockDataProvider = {
             getCandles: jest.fn(),
             getTicker: jest.fn().mockResolvedValue({ symbol: 'BTC/USDT', price: 50000, timestamp: Date.now() }),
@@ -22,8 +25,12 @@ describe('Leverage Math & Margin Calculations', () => {
         (config as any).RISK_PER_TRADE_PERCENT = 1;
         (config as any).POSITION_SIZE_PERCENT = 10; // Reset to default
 
+        mockStore = new MockStore();
+        mockTimeProvider = new MockTimeProvider();
+
         exchange = new PaperExchange(mockDataProvider);
-        riskManager = new RiskManager(exchange);
+        riskManager = new RiskManager(exchange, mockStore, mockTimeProvider);
+        await riskManager.init();
     });
 
     describe('Margin Calculations', () => {

@@ -80,4 +80,14 @@ export interface IDataStore {
      * Update a trade record
      */
     updateTrade(id: string, updates: Partial<Trade>): Promise<void>;
+
+    /**
+     * Get persisted risk state
+     */
+    getRiskState(): Promise<{ startOfDayBalance: number, lastResetDay: number } | null>;
+
+    /**
+     * Save risk state
+     */
+    saveRiskState(state: { startOfDayBalance: number, lastResetDay: number }): Promise<void>;
 }

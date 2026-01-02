@@ -27,7 +27,7 @@ export class BotEngine {
         this.exchange = ExchangeFactory.getExchange();
         this.strategy = StrategyManager.getStrategy(strategyName);
         this.db = new SupabaseDataStore();
-        this.riskManager = new RiskManager(this.exchange);
+        this.riskManager = new RiskManager(this.exchange, this.db);
         this.tradeManager = new TradeManager(this.exchange, this.db);
         this.portfolioManager = new PortfolioManager(this.exchange, this.db);
     }

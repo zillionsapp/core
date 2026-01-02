@@ -214,4 +214,30 @@ export class SupabaseDataStore implements IDataStore {
             console.error('Error updating trade:', error);
         }
     }
+
+    async getRiskState(): Promise<{ startOfDayBalance: number, lastResetDay: number } | null> {
+        if (!this.supabase) return null;
+
+        const { data, error } = await this.supabase
+            .from('kv_store')
+            .select('value')
+            .eq('key', 'risk_state')
+            .maybeSingle();
+
+        if (error) {
+            // Table might not exist yet, ignore error or log debug
+            return null;
+        }
+        return data?.value || null;
+    }
+
+    async saveRiskState(state: { startOfDayBalance: number, lastResetDay: number }): Promise<void> {
+        if (!this.supabase) return;
+
+        const { error } = await this.supabase
+            .from('kv_store')
+            .upsert({ key: 'risk_state', value: state });
+
+        if (error) console.error('Error saving risk state:', error);
+    }
 }
