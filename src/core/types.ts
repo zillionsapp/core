@@ -56,6 +56,9 @@ export interface Trade {
     exitPrice?: number;
     exitTimestamp?: number;
 
+    // Strategy information
+    strategyName?: string; // Name of the strategy that opened this trade
+
     // Trailing Stop Loss fields
     trailingStopEnabled?: boolean;
     trailingStopActivated?: boolean;

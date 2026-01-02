@@ -45,6 +45,10 @@ describe('BotEngine Integration', () => {
     }, 30000);
 
     it('should trigger Stop Loss when price drops', async () => {
+        // Mock config to disable multiple positions for this test
+        const originalConfig = { ...config };
+        config.ALLOW_MULTIPLE_POSITIONS = false;
+
         // 1. Setup: Mock Strategy to return BUY only on first tick
         const strategySpy = jest.spyOn(engine['strategy'], 'update')
             .mockResolvedValueOnce({
@@ -84,6 +88,9 @@ describe('BotEngine Integration', () => {
             symbol: 'BTC/USDT'
         }));
         expect(engine['activeTrade']).toBeNull();
+
+        // Restore config
+        Object.assign(config, originalConfig);
     });
 
     it('should close existing position and open new one when CLOSE_ON_OPPOSITE_SIGNAL is enabled', async () => {
@@ -332,4 +339,9 @@ describe('BotEngine Integration', () => {
             symbol: 'BTC/USDT'
         }));
     });
+
+    // Note: Custom strategy ST/TP logic is demonstrated by the BaseCustomStrategy class
+    // and the extended IStrategy interface. Individual strategy implementations
+    // can override checkExit, onPositionOpened, and onPositionClosed methods
+    // to implement custom exit logic beyond static SL/TP.
 });

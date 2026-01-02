@@ -1,7 +1,9 @@
 import { IExchange } from '../interfaces/exchange.interface';
 import { IDataStore } from '../interfaces/repository.interface';
-import { Trade, OrderRequest } from './types';
+import { IStrategy } from '../interfaces/strategy.interface';
+import { Trade, OrderRequest, Candle } from './types';
 import { logger } from './logger';
+import { StrategyManager } from './strategy.manager';
 
 export class TradeManager {
     constructor(
@@ -12,7 +14,7 @@ export class TradeManager {
     /**
      * Check all open positions and manage them (check SL/TP, close if triggered)
      */
-    async checkAndManagePositions(): Promise<void> {
+    async checkAndManagePositions(latestCandle?: Candle): Promise<void> {
         try {
             const openTrades = await this.db.getOpenTrades();
 
@@ -46,7 +48,7 @@ export class TradeManager {
 
             // Check all positions using cached prices
             const checkPromises = openTrades.map(trade =>
-                this.checkPosition(trade, priceMap.get(trade.symbol)!)
+                this.checkPosition(trade, priceMap.get(trade.symbol)!, latestCandle)
             );
             await Promise.all(checkPromises);
 
@@ -55,10 +57,39 @@ export class TradeManager {
         }
     }
 
-    private async checkPosition(trade: Trade, currentPrice: number): Promise<void> {
+    private async checkPosition(trade: Trade, currentPrice: number, latestCandle?: Candle): Promise<void> {
         try {
             let exitReason: string | null = null;
             let updatedTrade: Partial<Trade> = {};
+
+            // First, check strategy-specific exit logic if available
+            if (trade.strategyName && latestCandle) {
+                try {
+                    const strategy = StrategyManager.getStrategy(trade.strategyName);
+                    if (strategy.checkExit) {
+                        const exitDecision = await strategy.checkExit(trade, latestCandle);
+
+                        if (exitDecision === 'CLOSE') {
+                            exitReason = 'STRATEGY_EXIT';
+                        } else if (typeof exitDecision === 'object') {
+                            // Handle position updates
+                            if (exitDecision.action === 'UPDATE_SL' && exitDecision.newPrice) {
+                                updatedTrade.stopLossPrice = exitDecision.newPrice;
+                                logger.info(`[TradeManager] Strategy updated SL for ${trade.symbol}: ${exitDecision.newPrice}`);
+                            } else if (exitDecision.action === 'UPDATE_TP' && exitDecision.newPrice) {
+                                updatedTrade.takeProfitPrice = exitDecision.newPrice;
+                                logger.info(`[TradeManager] Strategy updated TP for ${trade.symbol}: ${exitDecision.newPrice}`);
+                            } else if (exitDecision.action === 'PARTIAL_CLOSE' && exitDecision.quantity) {
+                                // Handle partial close - this would require more complex order management
+                                logger.warn(`[TradeManager] Partial close requested but not implemented yet`);
+                            }
+                        }
+                        // If 'HOLD', continue with standard checks
+                    }
+                } catch (error) {
+                    logger.error(`[TradeManager] Error in strategy checkExit for ${trade.id}:`, error);
+                }
+            }
 
             // Handle trailing stop loss
             if (trade.trailingStopEnabled) {
@@ -88,10 +119,10 @@ export class TradeManager {
                 }
             }
 
-            // Update trade in database if trailing stop changed
+            // Update trade in database if any fields changed
             if (Object.keys(updatedTrade).length > 0) {
                 await this.db.updateTrade(trade.id, updatedTrade);
-                logger.info(`[TradeManager] Trailing stop updated for ${trade.symbol}: SL=${updatedTrade.stopLossPrice}`);
+                logger.info(`[TradeManager] Trade updated for ${trade.symbol}: ${JSON.stringify(updatedTrade)}`);
             }
 
             if (exitReason) {
@@ -113,6 +144,18 @@ export class TradeManager {
                     exitPrice: order.price,
                     exitTimestamp: order.timestamp
                 });
+
+                // Notify strategy that position was closed
+                if (trade.strategyName) {
+                    try {
+                        const strategy = StrategyManager.getStrategy(trade.strategyName);
+                        if (strategy.onPositionClosed) {
+                            await strategy.onPositionClosed(trade);
+                        }
+                    } catch (error) {
+                        logger.error(`[TradeManager] Error in strategy onPositionClosed for ${trade.id}:`, error);
+                    }
+                }
 
                 logger.info(`[TradeManager] Position closed: ${trade.id} | Exit Price: ${order.price} | Reason: ${exitReason}`);
             }

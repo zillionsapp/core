@@ -75,7 +75,7 @@ export class BotEngine {
             }
 
             // 2. Check and manage all open positions (SL/TP)
-            await this.tradeManager.checkAndManagePositions();
+            await this.tradeManager.checkAndManagePositions(lastCandle);
 
             // Refresh active trade status after position management
             if (this.activeTrade) {
@@ -146,6 +146,7 @@ export class BotEngine {
                     status: 'OPEN',
                     stopLossPrice: exitPrices.stopLoss,
                     takeProfitPrice: exitPrices.takeProfit,
+                    strategyName: this.strategy.name, // Track which strategy opened this trade
                     trailingStopEnabled: config.TRAILING_STOP_ENABLED,
                     trailingStopActivated: false,
                     trailingStopActivationPercent: config.TRAILING_STOP_ACTIVATION_PERCENT,
@@ -155,6 +156,15 @@ export class BotEngine {
                 };
 
                 await this.db.saveTrade(trade);
+
+                // Notify strategy that position was opened
+                if (this.strategy.onPositionOpened) {
+                    try {
+                        await this.strategy.onPositionOpened(trade);
+                    } catch (error) {
+                        logger.error(`[BotEngine] Error in strategy onPositionOpened:`, error);
+                    }
+                }
 
                 // Update activeTrade for backward compatibility (single position tracking)
                 if (!config.ALLOW_MULTIPLE_POSITIONS) {
