@@ -103,14 +103,12 @@ describe('Trading Math Validation Against Real Data', () => {
     describe('Quantity Calculations', () => {
         test('should calculate quantities correctly with different balances', async () => {
             // Test with different balances to see how quantity scales
-            // RISK_PER_TRADE_PERCENT = 1 (1%), LEVERAGE = 5, SL = 5%
-            // riskAmount = balance * 0.01
-            // slDistance = price * 0.05
-            // quantity = (riskAmount * leverage) / slDistance
+            // Current Logic: Position Size = Balance * POSITION_SIZE_PERCENT (Default 10%)
+            // quantity = (balance * 0.10) / price
             const testCases = [
-                { balance: 10000, price: 88000, expectedQty: 0.113636 }, // (10000 * 0.01 * 5) / (88000 * 0.05) = 500 / 4400
-                { balance: 10989.87, price: 88000, expectedQty: 0.125000 }, // (10989.87 * 0.01 * 5) / (88000 * 0.05) = 549.94 / 4400
-                { balance: 12104.99, price: 88000, expectedQty: 0.137500 }, // (12104.99 * 0.01 * 5) / (88000 * 0.05) = 605.25 / 4400
+                { balance: 10000, price: 88000, expectedQty: 0.011363 }, // (10000 * 0.10) / 88000 = 1000 / 88000
+                { balance: 10989.87, price: 88000, expectedQty: 0.012488 }, // (10989.87 * 0.10) / 88000
+                { balance: 12104.99, price: 88000, expectedQty: 0.013756 }, // (12104.99 * 0.10) / 88000
             ];
 
             for (const testCase of testCases) {

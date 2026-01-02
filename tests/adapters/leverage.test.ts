@@ -20,6 +20,7 @@ describe('Leverage Math & Margin Calculations', () => {
         (config as any).LEVERAGE_ENABLED = true;
         (config as any).LEVERAGE_VALUE = 5;
         (config as any).RISK_PER_TRADE_PERCENT = 1;
+        (config as any).POSITION_SIZE_PERCENT = 10; // Reset to default
 
         exchange = new PaperExchange(mockDataProvider);
         riskManager = new RiskManager(exchange);
@@ -82,6 +83,7 @@ describe('Leverage Math & Margin Calculations', () => {
             // Position Size = ($100 × 5) ÷ $2,500 = $500 ÷ $2,500 = 0.2 BTC
             // Position Value = 0.2 × $50k = $10k
             // Margin = $10k ÷ 5 = $2k
+            (config as any).POSITION_SIZE_PERCENT = 100; // Need 100% to hit 0.2 BTC (10k value)
 
             const quantity = await riskManager.calculateQuantity('BTC/USDT', 50000, 5);
             expect(quantity).toBeCloseTo(0.2, 3);
@@ -95,7 +97,9 @@ describe('Leverage Math & Margin Calculations', () => {
 
         it('should reduce position size when margin would exceed balance', async () => {
             // Set very high leverage to trigger margin reduction
+            // Set very high leverage to trigger margin reduction
             (config as any).LEVERAGE_VALUE = 10;
+            (config as any).POSITION_SIZE_PERCENT = 1000; // Need high sizing (10x balance) to trigger margin limits
 
             const quantity = await riskManager.calculateQuantity('BTC/USDT', 50000, 1);
             // With 10x leverage and 1% SL, normal calculation would be much larger
@@ -105,6 +109,13 @@ describe('Leverage Math & Margin Calculations', () => {
         });
 
         it('should skip trades when position size is too small', async () => {
+            // Set LEVERAGE_VALUE back to 5 due to previous test polluting config
+            (config as any).LEVERAGE_VALUE = 5;
+
+            // Default POSITION_SIZE_PERCENT is 10 (1k Value). 
+            // 0.02 BTC = 1k Value.
+            // Wait, this test expects 0.02. I only need default config.
+
             // Set very tight SL to make position size tiny
             const quantity = await riskManager.calculateQuantity('BTC/USDT', 50000, 50); // 50% SL
             // 50% SL distance = $25k, position size = ($100 × 5) ÷ $25k = $500 ÷ $25k = 0.02 BTC

@@ -2,10 +2,12 @@ import { OrderRequest } from './types';
 import { logger } from './logger';
 import { IExchange } from '../interfaces/exchange.interface';
 import { config } from '../config/env';
+import { PrecisionUtils } from '../utils/math';
 
 export class RiskManager {
     private exchange: IExchange;
     private initialBalance: number = 0;
+    private maxEquity: number = 0;
     private isInitialized: boolean = false;
 
     constructor(exchange: IExchange) {
@@ -14,6 +16,7 @@ export class RiskManager {
 
     async init() {
         this.initialBalance = await this.exchange.getBalance(config.PAPER_BALANCE_ASSET);
+        this.maxEquity = this.initialBalance; // Initialize HWM
         this.isInitialized = true;
         logger.info(`[RiskManager] Initialized. Baseline Equity: ${this.initialBalance} ${config.PAPER_BALANCE_ASSET}`);
     }
@@ -24,13 +27,19 @@ export class RiskManager {
         // 1. Daily Drawdown Check
         if (order.side === 'BUY') { // Check before entering new risk
             const currentBalance = await this.exchange.getBalance(config.PAPER_BALANCE_ASSET);
-            // Simplified drawdown tracking: just checking Balance drop. 
-            // In real app, we need equity (Balance + Open PnL).
 
-            const drop = (this.initialBalance - currentBalance) / this.initialBalance;
+            // Update High Water Mark
+            if (currentBalance > this.maxEquity) {
+                this.maxEquity = currentBalance;
+            }
+
+            // Trailing Drawdown Check
+            // Calculate drop from Peak Equity (High Water Mark)
+            const drop = (this.maxEquity - currentBalance) / this.maxEquity;
             const limit = config.MAX_DAILY_DRAWDOWN_PERCENT / 100;
+
             if (drop > limit) {
-                logger.error(`[RiskManager] HALT. Max Drawdown hit: ${(drop * 100).toFixed(2)}%`);
+                logger.error(`[RiskManager] HALT. Max Trailing Drawdown hit: ${(drop * 100).toFixed(2)}% (Peak: ${this.maxEquity})`);
                 return false;
             }
         }
@@ -53,6 +62,9 @@ export class RiskManager {
 
         let quantity = positionSize / price;
 
+        // Apply precision (round down to 6 decimals safe for crypto)
+        quantity = PrecisionUtils.normalizeQuantity(quantity);
+
         // BULLETPROOF SAFETY CHECKS
         let positionValue = quantity * price;
         const requiredMargin = positionValue / leverage;
@@ -62,6 +74,7 @@ export class RiskManager {
         if (requiredMargin > maxAllowedMargin) {
             const adjustmentFactor = maxAllowedMargin / requiredMargin;
             quantity *= adjustmentFactor;
+            quantity = PrecisionUtils.normalizeQuantity(quantity); // Re-normalize after adjustment
             positionValue = quantity * price;
             logger.warn(`[RiskManager] Position size reduced by ${(adjustmentFactor * 100).toFixed(1)}% to fit available margin`);
         }
@@ -71,6 +84,7 @@ export class RiskManager {
         const maxPositionValue = balance * leverage * maxUtilizationPercent;
         if (positionValue > maxPositionValue) {
             quantity = maxPositionValue / price;
+            quantity = PrecisionUtils.normalizeQuantity(quantity); // Re-normalize
             positionValue = quantity * price;
             logger.warn(`[RiskManager] Position size capped to prevent over-leveraging (max ${config.MAX_LEVERAGE_UTILIZATION}% utilization)`);
         }

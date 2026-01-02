@@ -46,6 +46,24 @@ export class PaperExchange implements IExchange {
     async placeOrder(orderRequest: OrderRequest): Promise<Order> {
         const currentPrice = (await this.getTicker(orderRequest.symbol)).price;
         const price = orderRequest.type === 'LIMIT' ? orderRequest.price! : currentPrice;
+
+        // LIMIT ORDER CHECK
+        if (orderRequest.type === 'LIMIT') {
+            if (orderRequest.side === 'BUY' && price < currentPrice) {
+                // Buy Limit below market = Pending. Simplified adapter does not support pending.
+                // Rejection is safer than instant fill at wrong price.
+                throw new Error(`[PaperExchange] Pending Limit Orders not supported. Buy Limit ${price} < Current ${currentPrice}`);
+            }
+            if (orderRequest.side === 'SELL' && price > currentPrice) {
+                // Sell Limit above market = Pending.
+                throw new Error(`[PaperExchange] Pending Limit Orders not supported. Sell Limit ${price} > Current ${currentPrice}`);
+            }
+            // If Limit is marketable (Buy >= Market, Sell <= Market), we fill it at MARKET price (best execution)
+            // or at Limit price? Real exchange fills at Best Available.
+            // Simplified: Fill at requested Limit Price if better/equal, but effectively it should be Current Price for PnL.
+            // Let's stick to filling at Current Price for fairness, or Limit if it's worse (slippage).
+            // Safest: Fill at Current Price if marketable.
+        }
         const quoteAsset = 'USDT';
         const leverage = config.LEVERAGE_ENABLED ? config.LEVERAGE_VALUE : 1;
 
@@ -107,13 +125,14 @@ export class PaperExchange implements IExchange {
                 }
                 this.balances.set(quoteAsset, balance - requiredMargin);
             } else {
-                // Short position: receive proceeds minus margin
-                const proceeds = cost;
-                const netChange = proceeds - requiredMargin;
-                if (balance + netChange < 0) {
-                    throw new Error(`Insufficient funds for short position. Required margin: ${requiredMargin.toFixed(2)}, Proceeds: ${proceeds.toFixed(2)}, Net: ${netChange.toFixed(2)}, Available: ${balance.toFixed(2)}`);
+                // Short position: ONLY deduct margin. DO NOT credit proceeds.
+                // Proceeds are realized only on close.
+                // The previous code `balance + netChange` where netChange = proceeds - margin was the Infinite Money Glitch.
+
+                if (requiredMargin > balance) {
+                    throw new Error(`Insufficient funds for short position. Required margin: ${requiredMargin.toFixed(2)}, Available: ${balance.toFixed(2)}`);
                 }
-                this.balances.set(quoteAsset, balance + netChange);
+                this.balances.set(quoteAsset, balance - requiredMargin);
             }
 
             // Prevent using more than 95% of balance for margin (emergency buffer)
