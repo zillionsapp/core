@@ -17,45 +17,55 @@ export class PortfolioManager {
     async generateSnapshot(): Promise<PortfolioSnapshot> {
         const timestamp = this.timeProvider.now();
 
-        // Get all trades (no limit for production trading bot)
-        const allTrades = await this.db.getTrades(); // Get ALL trades
+        // Get all trades
+        const allTrades = await this.db.getTrades();
         const openTrades = allTrades.filter(t => t.status === 'OPEN');
         const closedTrades = allTrades.filter(t => t.status === 'CLOSED');
 
-        // Calculate current balance: initial balance minus margin for open positions
+        // Config values
         const balanceAsset = process.env.PAPER_BALANCE_ASSET || 'USDT';
         const initialBalance = parseFloat(process.env.PAPER_INITIAL_BALANCE || '10000');
 
-        // Calculate total margin used by open positions
+        // 1. Calculate realized PnL from closed trades
+        const totalRealizedPnL = closedTrades.reduce((sum, t) => sum + this.calculateTradePnL(t), 0);
+
+        // 2. Wallet Balance = Initial + Realized PnL
+        const walletBalance = initialBalance + totalRealizedPnL;
+
+        // 3. Calculate total margin used and asset holdings
         let totalMarginUsed = 0;
+        const holdings: Record<string, number> = { [balanceAsset]: 0 }; // Initialize with base asset
+
         for (const trade of openTrades) {
-            // Use leverage from config (could be stored per trade in future)
             const leverage = parseFloat(process.env.LEVERAGE_VALUE || '1');
             const positionValue = trade.quantity * trade.price;
-            const margin = leverage > 1 ? positionValue / leverage : positionValue; // No margin if leverage disabled
+            const margin = leverage > 1 ? positionValue / leverage : positionValue;
             totalMarginUsed += margin;
+
+            // Track asset holdings (quantity of the asset being traded)
+            if (trade.side === 'BUY') {
+                holdings[trade.symbol] = (holdings[trade.symbol] || 0) + trade.quantity;
+            } else {
+                // For shorts, we technically have a negative holding or a liability
+                holdings[trade.symbol] = (holdings[trade.symbol] || 0) - trade.quantity;
+            }
         }
 
-        const currentBalance = initialBalance - totalMarginUsed;
+        // 4. Current (Available) Balance = Wallet Balance - Margin
+        const currentBalance = walletBalance - totalMarginUsed;
+        holdings[balanceAsset] = currentBalance;
 
-        // Get current prices for open trades
+        // 5. Get current prices and calculate unrealized PnL
         const symbols = [...new Set(openTrades.map(t => t.symbol))];
-        const pricePromises = symbols.map(symbol => this.exchange.getTicker(symbol));
-        const tickers = await Promise.all(pricePromises);
         const priceMap = new Map<string, number>();
-        symbols.forEach((symbol, index) => {
-            priceMap.set(symbol, tickers[index].price);
-        });
 
-        // Calculate metrics
-        const pnl = this.calculateTotalPnL(closedTrades);
-        const pnlPercentage = this.calculatePnLPercentage(pnl, currentBalance);
-        const winRate = this.calculateWinRate(closedTrades);
-        const profitFactor = this.calculateProfitFactor(closedTrades);
-        const winningTrades = closedTrades.filter(trade => this.calculateTradePnL(trade) > 0).length;
-        const losingTrades = closedTrades.filter(trade => this.calculateTradePnL(trade) < 0).length;
+        if (symbols.length > 0) {
+            const tickers = await Promise.all(symbols.map(symbol => this.exchange.getTicker(symbol)));
+            symbols.forEach((symbol, index) => {
+                priceMap.set(symbol, tickers[index].price);
+            });
+        }
 
-        // Build open trades with current data
         const openTradesWithCurrent = openTrades.map(trade => {
             const currentPrice = priceMap.get(trade.symbol) || trade.price;
             const unrealizedPnL = this.calculateUnrealizedPnL(trade, currentPrice);
@@ -70,7 +80,13 @@ export class PortfolioManager {
             };
         });
 
-        // Build closed trades with PnL
+        const unrealizedPnLTotal = openTradesWithCurrent.reduce((sum, t) => sum + t.unrealizedPnL, 0);
+
+        // 6. Current Equity = Wallet Balance + Unrealized PnL
+        // This correctly represents the total value including margin and profit/loss
+        const currentEquity = walletBalance + unrealizedPnLTotal;
+
+        // Build closed trades with PnL for the snapshot
         const closedTradesWithPnL = closedTrades.map(trade => {
             const pnl = this.calculateTradePnL(trade);
             const duration = trade.exitTimestamp! - trade.timestamp;
@@ -88,33 +104,23 @@ export class PortfolioManager {
             };
         });
 
-        // Calculate current equity (balance + unrealized PnL)
-        const unrealizedPnLTotal = openTradesWithCurrent.reduce((sum, trade) => sum + trade.unrealizedPnL, 0);
-        const currentEquity = currentBalance + unrealizedPnLTotal;
-
-        // Holdings: for now, just the balance asset
-        const holdings = { [balanceAsset]: currentBalance };
-
-        // Total value is current equity
-        const totalValue = currentEquity;
-
         const snapshot: PortfolioSnapshot = {
             timestamp,
-            totalValue,
+            totalValue: currentEquity,
             holdings,
-            pnl,
-            pnlPercentage,
-            winRate,
-            profitFactor,
-            winningTrades,
-            losingTrades,
+            pnl: totalRealizedPnL,
+            pnlPercentage: (totalRealizedPnL / initialBalance) * 100,
+            winRate: this.calculateWinRate(closedTrades),
+            profitFactor: this.calculateProfitFactor(closedTrades),
+            winningTrades: closedTrades.filter(t => this.calculateTradePnL(t) > 0).length,
+            losingTrades: closedTrades.filter(t => this.calculateTradePnL(t) < 0).length,
             openTrades: openTradesWithCurrent,
             closedTrades: closedTradesWithPnL,
             currentEquity,
             currentBalance
         };
 
-        logger.info(`[PortfolioManager] Generated snapshot: PnL=${pnl.toFixed(2)}, WinRate=${(winRate * 100).toFixed(1)}%, Equity=${currentEquity.toFixed(2)}`);
+        logger.info(`[PortfolioManager] Generated snapshot: RealizedPnL=${totalRealizedPnL.toFixed(2)}, UnrealizedPnL=${unrealizedPnLTotal.toFixed(2)}, Equity=${currentEquity.toFixed(2)}, Balance=${currentBalance.toFixed(2)}`);
 
         return snapshot;
     }
@@ -178,9 +184,4 @@ export class PortfolioManager {
         return grossLoss === 0 ? (grossProfit > 0 ? Infinity : 0) : grossProfit / grossLoss;
     }
 
-    private calculatePnLPercentage(pnl: number, currentBalance: number): number {
-        // Use initial balance as base (simplified - in real trading, you'd track initial capital)
-        const initialBalance = 10000; // Default starting balance
-        return (pnl / initialBalance) * 100;
-    }
 }

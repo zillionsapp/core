@@ -5,6 +5,8 @@ import { OrderRequest } from '../../src/core/types';
 describe('PaperExchange', () => {
     let exchange: PaperExchange;
 
+    jest.setTimeout(30000);
+
     beforeEach(() => {
         // Reset env vars if needed or mock config
         process.env.PAPER_INITIAL_BALANCE = '1000';
@@ -23,7 +25,6 @@ describe('PaperExchange', () => {
     });
 
     it('should generate candles', async () => {
-        jest.setTimeout(30000);
         const candles = await exchange.getCandles('BTC/USDT', '1m', 10);
         expect(candles.length).toBe(10);
 

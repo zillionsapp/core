@@ -215,10 +215,14 @@ export class BotEngine {
                 }
 
                 pnlPercent = (pnl / entryValue) * 100;
-                equity = balance + pnl; // Simplified: balance is after margin deduction in PaperExchange
+
+                // For equity calculation: balance (available) + margin + unrealized PnL
+                const leverage = config.LEVERAGE_ENABLED ? config.LEVERAGE_VALUE : 1;
+                const margin = entryValue / leverage;
+                equity = balance + margin + pnl;
             }
 
-            logger.info(`[Portfolio] ${symbol} | Balance: ${balance.toFixed(2)} ${asset} | Equity: ${equity.toFixed(2)} ${asset} | PnL: ${pnl.toFixed(2)} ${asset} (${pnlPercent.toFixed(2)}%)`);
+            logger.info(`[Portfolio] ${symbol} | Balance: ${balance.toFixed(2)} ${asset} | Equity: ${equity.toFixed(2)} ${asset} | Unrealized PnL: ${pnl.toFixed(2)} ${asset} (${pnlPercent.toFixed(2)}%)`);
         } catch (error) {
             logger.error('[BotEngine] Error logging portfolio state:', error);
         }

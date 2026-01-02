@@ -99,15 +99,19 @@ describe('PortfolioManager', () => {
             expect(snapshot.pnl).toBe(9000);
 
             // Win rate: 2 winning trades out of 3 = 66.67%
-            expect(snapshot.winRate).toBe(2/3);
+            expect(snapshot.winRate).toBe(2 / 3);
 
             // Profit factor: gross profit / gross loss = (5000+5000) / 1000 = 10000/1000 = 10
             expect(snapshot.profitFactor).toBe(10);
 
             expect(snapshot.openTrades).toHaveLength(0);
             expect(snapshot.closedTrades).toHaveLength(3);
-            expect(snapshot.currentEquity).toBe(10000); // 10000 balance + 0 unrealized (no open trades)
-            expect(snapshot.currentBalance).toBe(10000);
+
+            // New Logic: walletBalance = initialBalance (10000) + realizedPnL (9000) = 19000
+            // Equity = walletBalance + unrealized (0) = 19000
+            // Balance = walletBalance - margin (0) = 19000
+            expect(snapshot.currentEquity).toBe(19000);
+            expect(snapshot.currentBalance).toBe(19000);
         });
 
         it('should calculate metrics for open trades with current prices', async () => {
@@ -174,10 +178,21 @@ describe('PortfolioManager', () => {
                 unrealizedPnL: 2000 // (3000 - 2800) * 10
             });
 
-            // With no leverage, margin = position value, so balance = 10000 - (50000 + 30000) = negative
-            // But equity = balance + unrealized_PnL = negative + 4000 = still negative
-            expect(snapshot.currentBalance).toBe(10000 - 50000 - 30000); // 10k - 50k - 30k = -70k
-            expect(snapshot.currentEquity).toBe(snapshot.currentBalance + 4000); // -70k + 4k = -66k
+            // New Logic: 
+            // Wallet Balance = 10000 (Initial) + 0 (Realized) = 10000
+            // Total Margin (no leverage) = 50000 (BTC) + 30000 (ETH) = 80000
+            // Current Balance = 10000 - 80000 = -70000
+            // Unrealized PnL = 2000 (BTC) + 2000 (ETH) = 4000
+            // Current Equity = Wallet Balance (10000) + Unrealized (4000) = 14000
+            expect(snapshot.currentBalance).toBe(-70000);
+            expect(snapshot.currentEquity).toBe(14000);
+
+            // Holdings should include BTC, ETH and USDT
+            expect(snapshot.holdings).toMatchObject({
+                'BTC/USDT': 1,
+                'ETH/USDT': -10, // Short
+                'USDT': -70000
+            });
 
             // Clean up
             delete process.env.PAPER_INITIAL_BALANCE;
@@ -238,11 +253,13 @@ describe('PortfolioManager', () => {
                 pnl: 5000
             });
 
-            // With no leverage, margin = position value = 10 * 3000 = 30,000
-            // Balance = 10,000 - 30,000 = -20,000
-            // Equity = -20,000 + 2,000 unrealized = -18,000
-            expect(snapshot.currentBalance).toBe(10000 - 30000); // 10k - 30k = -20k
-            expect(snapshot.currentEquity).toBe(snapshot.currentBalance + 2000); // -20k + 2k = -18k
+            // New Logic:
+            // Wallet Balance = 10000 (Initial) + 5000 (Realized) = 15000
+            // Total Margin (no leverage, ETH only) = 10 * 3000 = 30000
+            // Balance = 15000 - 30000 = -15000
+            // Equity = Wallet Balance (15000) + 2000 unrealized = 17000
+            expect(snapshot.currentBalance).toBe(-15000);
+            expect(snapshot.currentEquity).toBe(17000);
 
             // Clean up
             delete process.env.PAPER_INITIAL_BALANCE;
@@ -306,11 +323,13 @@ describe('PortfolioManager', () => {
 
             const snapshot = await portfolioManager.generateSnapshot();
 
-            // Balance should be: initial_balance - margin = 10,000 - 2,000 = 8,000
+            // New Logic: 
+            // Wallet Balance = 10000
+            // Margin = 10000 / 5 = 2000
+            // Balance = 10000 - 2000 = 8000
+            // Equity = Wallet Balance (10000) + Unrealized (0) = 10000
             expect(snapshot.currentBalance).toBe(8000);
-
-            // Equity should be: balance + unrealized_PnL = 8,000 + 0 = 8,000
-            expect(snapshot.currentEquity).toBe(8000);
+            expect(snapshot.currentEquity).toBe(10000);
 
             // Clean up
             delete process.env.LEVERAGE_VALUE;
@@ -602,7 +621,7 @@ describe('PortfolioManager', () => {
                 ];
 
                 const winRate = (portfolioManager as any).calculateWinRate(trades);
-                expect(winRate).toBe(2/3); // 2 winning trades out of 3
+                expect(winRate).toBe(2 / 3); // 2 winning trades out of 3
             });
 
             it('should return 0 for no trades', () => {

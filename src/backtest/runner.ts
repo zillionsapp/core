@@ -203,10 +203,14 @@ export class BacktestRunner {
             }
 
             pnlPercent = (pnl / entryValue) * 100;
-            equity = balance + pnl;
+
+            // For equity calculation (backtest): balance (available) + margin + unrealized PnL
+            const leverage = config.LEVERAGE_ENABLED ? config.LEVERAGE_VALUE : 1;
+            const margin = entryValue / leverage;
+            equity = balance + margin + pnl;
         }
 
-        console.log(`[Portfolio] ${symbol} | Balance: ${balance.toFixed(2)} ${asset} | Equity: ${equity.toFixed(2)} ${asset} | PnL: ${pnl.toFixed(2)} ${asset} (${pnlPercent.toFixed(2)}%)`);
+        console.log(`[Portfolio] ${symbol} | Balance: ${balance.toFixed(2)} ${asset} | Equity: ${equity.toFixed(2)} ${asset} | Unrealized PnL: ${pnl.toFixed(2)} ${asset} (${pnlPercent.toFixed(2)}%)`);
     }
 }
 
