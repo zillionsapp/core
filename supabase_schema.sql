@@ -15,6 +15,13 @@ create table public.trades (
   "exitTimestamp" bigint,
   "strategyName" text,  -- Name of the strategy that opened this trade
   duration bigint,
+  -- Trailing Stop Loss fields
+  "trailingStopEnabled" boolean,
+  "trailingStopActivated" boolean,
+  "trailingStopActivationPercent" numeric,
+  "trailingStopTrailPercent" numeric,
+  "trailingStopHighPrice" numeric,  -- For BUY positions: highest price seen
+  "trailingStopLowPrice" numeric,   -- For SELL positions: lowest price seen
   created_at timestamp with time zone default timezone('utc'::text, now())
 );
 
