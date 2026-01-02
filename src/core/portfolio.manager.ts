@@ -19,10 +19,10 @@ export class PortfolioManager {
 
         // Get all trades
         // Get trades: Explicitly fetch ALL open trades to ensure they are never missed
-        // and fetch more recent trades for PnL calculation (limit 2000)
+        // and fetch recent history for accurate PnL calculation (without artificial limits)
         const [openTrades, recentTrades] = await Promise.all([
             this.db.getOpenTrades(),
-            this.db.getTrades(undefined, 2000)
+            this.db.getTrades()
         ]);
         const closedTrades = recentTrades.filter(t => t.status === 'CLOSED');
 

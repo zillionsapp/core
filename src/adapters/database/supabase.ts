@@ -25,17 +25,29 @@ export class SupabaseDataStore implements IDataStore {
         if (error) console.error('Error saving trade:', error);
     }
 
-    async getTrades(symbol?: string, limit: number = 100, offset: number = 0): Promise<Trade[]> {
+    async getTrades(symbol?: string, limit?: number, offset?: number): Promise<Trade[]> {
         if (!this.supabase) {
             let trades = [...this.inMemoryTrades];
             if (symbol) {
                 trades = trades.filter(t => t.symbol === symbol);
             }
-            return trades.sort((a, b) => b.timestamp - a.timestamp).slice(offset, offset + limit);
+            const sorted = trades.sort((a, b) => b.timestamp - a.timestamp);
+            if (limit !== undefined) {
+                return sorted.slice(offset || 0, (offset || 0) + limit);
+            }
+            return sorted;
         }
 
-        let query = this.supabase.from('trades').select('*').order('timestamp', { ascending: false }).limit(limit).range(offset, offset + limit - 1);
+        let query = this.supabase.from('trades').select('*').order('timestamp', { ascending: false });
         if (symbol) query = query.eq('symbol', symbol);
+
+        if (limit !== undefined) {
+            query = query.limit(limit).range(offset || 0, (offset || 0) + limit - 1);
+        } else {
+            // If no limit provided, fetch a large batch to avoid "ghost positions"
+            // Default Supabase limit is often 1000, we'll request significantly more.
+            query = query.limit(10000);
+        }
 
         const { data, error } = await query;
         if (error) {
