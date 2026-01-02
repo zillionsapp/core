@@ -77,6 +77,13 @@ export class RiskManager {
             return false;
         }
 
+        // 2. Max Open Trades Check
+        const openTrades = await this.store.getOpenTrades();
+        if (openTrades.length >= config.MAX_OPEN_TRADES) {
+            logger.warn(`[RiskManager] Order Rejected. Max Open Trades reached: ${openTrades.length} (Limit: ${config.MAX_OPEN_TRADES})`);
+            return false;
+        }
+
         return true;
     }
 

@@ -464,6 +464,7 @@ The `RiskManager` module (`src/core/risk.manager.ts`) implements **professional 
 - **Consistent Risk**: Every trade risks the same percentage of your account
 - **Technical SL/TP**: Exit levels based on entry price percentages (professional standard)
 - **Daily Drawdown Protection**: Halts trading if equity drops by a specific percentage from the start-of-day balance. Resets daily at 00:00 UTC. (Default: 5%)
+- **Max Open Trades**: Limits the total number of concurrent open positions to prevent over-exposure. (Default: 10)
 
 ### Leverage Support
 Zillion Core includes **professional leveraged trading** with built-in safety measures:

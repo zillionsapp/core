@@ -60,6 +60,27 @@ describe('RiskManager', () => {
         expect(result).toBe(false);
     });
 
+    it('should reject order if MAX_OPEN_TRADES reached', async () => {
+        const { config } = require('../../src/config/env');
+        config.MAX_OPEN_TRADES = 2;
+
+        // Mock 2 open trades
+        jest.spyOn(mockStore, 'getOpenTrades').mockResolvedValue([
+            { id: '1' } as any,
+            { id: '2' } as any
+        ]);
+
+        const order: OrderRequest = {
+            symbol: 'BTC/USDT',
+            side: 'BUY',
+            type: 'MARKET',
+            quantity: 0.01
+        };
+
+        const result = await riskManager.validateOrder(order);
+        expect(result).toBe(false);
+    });
+
     describe('calculateQuantity', () => {
         it('should calculate quantity based on balance and risk percentage, capped at POSITION_SIZE_PERCENT', async () => {
             // Balance 10000, RISK_PER_TRADE_PERCENT = 1% = 100 USDT risk

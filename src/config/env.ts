@@ -44,6 +44,7 @@ const envSchema = z.object({
     LEVERAGE_ENABLED: z.string().transform(v => v === 'true').default(false as any),
     LEVERAGE_VALUE: z.coerce.number().default(1),
     MAX_LEVERAGE_UTILIZATION: z.coerce.number().default(50), // Max position value as % of (balance × leverage) - full number like other percentages
+    MAX_OPEN_TRADES: z.coerce.number().default(10), // Maximum number of concurrent open positions
 });
 
 export const config = envSchema.parse(process.env);
