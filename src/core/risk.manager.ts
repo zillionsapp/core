@@ -41,23 +41,20 @@ export class RiskManager {
     async calculateQuantity(symbol: string, price: number, slPercent?: number): Promise<number> {
         const balance = await this.exchange.getBalance(config.PAPER_BALANCE_ASSET);
 
-        // Professional approach: Calculate position size based on risk per trade
-        // Risk Amount = RISK_PER_TRADE_PERCENT of current equity
-        const riskAmount = balance * (config.RISK_PER_TRADE_PERCENT / 100);
+        // Calculate position size based on position size percentage
+        const positionSize = balance * (config.POSITION_SIZE_PERCENT / 100);
 
-        // Leverage affects position sizing: higher leverage allows larger positions for same risk
+        // Leverage affects position sizing
         const leverage = config.LEVERAGE_ENABLED ? config.LEVERAGE_VALUE : 1;
 
-        // SL Distance = entry price * SL percentage (keep SL percentages the same)
+        // SL Distance = entry price * SL percentage
         const effectiveSLPercent = slPercent ?? config.DEFAULT_STOP_LOSS_PERCENT;
         const slDistance = price * (effectiveSLPercent / 100);
 
-        // Position Size = Risk Amount ÷ SL Distance
-        // Leverage allows larger positions: multiply by leverage
-        let quantity = (riskAmount * leverage) / slDistance;
+        let quantity = positionSize / price;
 
         // BULLETPROOF SAFETY CHECKS
-        const positionValue = quantity * price;
+        let positionValue = quantity * price;
         const requiredMargin = positionValue / leverage;
 
         // 1. Prevent margin exceeding available balance (with 10% buffer)
@@ -65,6 +62,7 @@ export class RiskManager {
         if (requiredMargin > maxAllowedMargin) {
             const adjustmentFactor = maxAllowedMargin / requiredMargin;
             quantity *= adjustmentFactor;
+            positionValue = quantity * price;
             logger.warn(`[RiskManager] Position size reduced by ${(adjustmentFactor * 100).toFixed(1)}% to fit available margin`);
         }
 
@@ -73,6 +71,7 @@ export class RiskManager {
         const maxPositionValue = balance * leverage * maxUtilizationPercent;
         if (positionValue > maxPositionValue) {
             quantity = maxPositionValue / price;
+            positionValue = quantity * price;
             logger.warn(`[RiskManager] Position size capped to prevent over-leveraging (max ${config.MAX_LEVERAGE_UTILIZATION}% utilization)`);
         }
 
@@ -86,9 +85,10 @@ export class RiskManager {
         // Recalculate final values
         const finalPositionValue = quantity * price;
         const finalMargin = finalPositionValue / leverage;
+        const riskAmount = finalPositionValue * (effectiveSLPercent / 100);
 
         logger.info(`[RiskManager] Professional position sizing for ${symbol}:`);
-        logger.info(`  Risk Amount: ${riskAmount.toFixed(2)} ${config.PAPER_BALANCE_ASSET} (${config.RISK_PER_TRADE_PERCENT}% of equity)`);
+        logger.info(`  Risk Amount: ${riskAmount.toFixed(2)} ${config.PAPER_BALANCE_ASSET} (${(riskAmount / balance * 100).toFixed(2)}% of equity)`);
         logger.info(`  SL Distance: ${slDistance.toFixed(2)} (${effectiveSLPercent.toFixed(2)}% of entry)`);
         logger.info(`  Leverage: ${leverage}x`);
         logger.info(`  Quantity: ${quantity.toFixed(6)} (Position Value: ${finalPositionValue.toFixed(2)} ${config.PAPER_BALANCE_ASSET}, Margin: ${finalMargin.toFixed(2)} ${config.PAPER_BALANCE_ASSET})`);

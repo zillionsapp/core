@@ -86,7 +86,7 @@ export class PaperExchange implements IExchange {
                 this.positions.set(orderRequest.symbol, {
                     ...existingPos,
                     quantity: existingPos.quantity - closeQty,
-                    margin: existingPos.margin - marginToReturn
+                    margin: existingPos.margin - marginUsed
                 });
             }
         } else {
@@ -100,16 +100,27 @@ export class PaperExchange implements IExchange {
                 throw new Error(`Invalid margin calculation: ${requiredMargin}`);
             }
 
-            if (requiredMargin > balance) {
-                throw new Error(`Insufficient funds (Margin). Required: ${requiredMargin.toFixed(2)}, Available: ${balance.toFixed(2)} (Cost: ${cost.toFixed(2)}, Leverage: ${leverage}x)`);
+            if (orderRequest.side === 'BUY') {
+                // Long position: pay margin
+                if (requiredMargin > balance) {
+                    throw new Error(`Insufficient funds (Margin). Required: ${requiredMargin.toFixed(2)}, Available: ${balance.toFixed(2)} (Cost: ${cost.toFixed(2)}, Leverage: ${leverage}x)`);
+                }
+                this.balances.set(quoteAsset, balance - requiredMargin);
+            } else {
+                // Short position: receive proceeds minus margin
+                const proceeds = cost;
+                const netChange = proceeds - requiredMargin;
+                if (balance + netChange < 0) {
+                    throw new Error(`Insufficient funds for short position. Required margin: ${requiredMargin.toFixed(2)}, Proceeds: ${proceeds.toFixed(2)}, Net: ${netChange.toFixed(2)}, Available: ${balance.toFixed(2)}`);
+                }
+                this.balances.set(quoteAsset, balance + netChange);
             }
 
             // Prevent using more than 95% of balance for margin (emergency buffer)
+            // For shorts, check the margin against the new balance or something, but simplified
             if (requiredMargin > balance * 0.95) {
                 throw new Error(`Margin too high: ${requiredMargin.toFixed(2)} > 95% of balance (${(balance * 0.95).toFixed(2)}). Reduce position size.`);
             }
-
-            this.balances.set(quoteAsset, balance - requiredMargin);
 
             this.positions.set(orderRequest.symbol, {
                 symbol: orderRequest.symbol,
