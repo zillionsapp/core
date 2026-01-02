@@ -100,14 +100,14 @@ export class BotEngine {
                 if (signal.forceClose && conflictingTrades.length > 0) {
                     logger.info(`[BotEngine] Force closing ${conflictingTrades.length} conflicting positions`);
                     for (const trade of conflictingTrades) {
-                        await this.forceClosePosition(trade, 'FORCE_CLOSE');
+                        await this.tradeManager.forceClosePosition(trade, 'FORCE_CLOSE');
                     }
                 }
                 // Handle close on opposite signal configuration
                 else if (config.CLOSE_ON_OPPOSITE_SIGNAL && conflictingTrades.length > 0) {
                     logger.info(`[BotEngine] Closing ${conflictingTrades.length} positions due to opposite signal`);
                     for (const trade of conflictingTrades) {
-                        await this.forceClosePosition(trade, 'OPPOSITE_SIGNAL');
+                        await this.tradeManager.forceClosePosition(trade, 'OPPOSITE_SIGNAL');
                     }
                 }
                 // Check if we should skip opening new position due to existing positions
@@ -221,33 +221,5 @@ export class BotEngine {
             await new Promise(resolve => setTimeout(resolve, sleepTime));
         }
     }
-
-    private async forceClosePosition(trade: Trade, reason: string): Promise<void> {
-        try {
-            logger.info(`[BotEngine] Force closing position ${trade.id} due to ${reason}`);
-
-            // Place closing order
-            const orderRequest: OrderRequest = {
-                symbol: trade.symbol,
-                side: trade.side === 'BUY' ? 'SELL' : 'BUY',
-                type: 'MARKET',
-                quantity: trade.quantity
-            };
-
-            const order = await this.exchange.placeOrder(orderRequest);
-
-            // Update trade in database
-            await this.db.updateTrade(trade.id, {
-                status: 'CLOSED',
-                exitPrice: order.price,
-                exitTimestamp: order.timestamp
-            });
-
-            logger.info(`[BotEngine] Position force closed: ${trade.id} | Exit Price: ${order.price} | Reason: ${reason}`);
-        } catch (error) {
-            logger.error(`[BotEngine] Error force closing position ${trade.id}:`, error);
-        }
-    }
-
 
 }

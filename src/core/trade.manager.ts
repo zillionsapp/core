@@ -227,4 +227,46 @@ export class TradeManager {
 
         return { shouldExit, newStopLoss, updatedFields };
     }
+
+    /**
+     * Force close a position immediately
+     */
+    async forceClosePosition(trade: Trade, reason: string): Promise<void> {
+        try {
+            logger.info(`[TradeManager] Force closing position ${trade.id} due to ${reason}`);
+
+            // Place closing order
+            const orderRequest: OrderRequest = {
+                symbol: trade.symbol,
+                side: trade.side === 'BUY' ? 'SELL' : 'BUY',
+                type: 'MARKET',
+                quantity: trade.quantity
+            };
+
+            const order = await this.exchange.placeOrder(orderRequest);
+
+            // Update trade in database
+            await this.db.updateTrade(trade.id, {
+                status: 'CLOSED',
+                exitPrice: order.price,
+                exitTimestamp: order.timestamp
+            });
+
+            // Notify strategy that position was closed
+            if (trade.strategyName) {
+                try {
+                    const strategy = StrategyManager.getStrategy(trade.strategyName);
+                    if (strategy.onPositionClosed) {
+                        await strategy.onPositionClosed(trade);
+                    }
+                } catch (error) {
+                    logger.error(`[TradeManager] Error in strategy onPositionClosed for ${trade.id}:`, error);
+                }
+            }
+
+            logger.info(`[TradeManager] Position force closed: ${trade.id} | Exit Price: ${order.price} | Reason: ${reason}`);
+        } catch (error) {
+            logger.error(`[TradeManager] Error force closing position ${trade.id}:`, error);
+        }
+    }
 }
