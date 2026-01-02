@@ -85,7 +85,7 @@ export class BacktestRunner {
                 if (signal && signal.action !== 'HOLD') {
                     try {
                         // Calculate proper position size based on risk management
-                        const quantity = await this.riskManager.calculateQuantity(symbol, currentCandle.close);
+                        const quantity = await this.riskManager.calculateQuantity(symbol, currentCandle.close, signal.stopLoss);
 
                         const order = await this.exchange.placeOrder({
                             symbol,

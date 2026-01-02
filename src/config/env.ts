@@ -21,9 +21,10 @@ const envSchema = z.object({
 
     // Risk Management
     MAX_DAILY_DRAWDOWN_PERCENT: z.coerce.number().default(5), // 5%
-    DEFAULT_STOP_LOSS_PERCENT: z.coerce.number().default(5), // 5%
-    DEFAULT_TAKE_PROFIT_PERCENT: z.coerce.number().default(10), // 10%
-    POSITION_SIZE_PERCENT: z.coerce.number().default(10), // 10%
+    DEFAULT_STOP_LOSS_PERCENT: z.coerce.number().default(5), // 5% of entry price (technical SL)
+    DEFAULT_TAKE_PROFIT_PERCENT: z.coerce.number().default(10), // 10% of entry price (technical TP)
+    POSITION_SIZE_PERCENT: z.coerce.number().default(10), // 10% of balance (position size)
+    RISK_PER_TRADE_PERCENT: z.coerce.number().default(1), // 1% of equity per trade (professional risk)
 
     // Trailing Stop Loss
     TRAILING_STOP_ENABLED: z.string().default('false').transform(v => v === 'true'),

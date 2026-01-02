@@ -363,10 +363,17 @@ function calculatePnL(trade: Trade): number {
 ## 🛡 Risk Management
 
 ### RiskManager
-The `RiskManager` module (`src/core/risk.manager.ts`) intercepts every order before execution.
-- **Position Sizing**: Dynamically calculates order quantity based on a percentage of your total balance (Default: 10%).
-- **Stop Loss/Take Profit**: Calculates exit prices based on percentages of position value (professional risk management).
-- **Daily Drawdown**: Halts trading if equity drops by a specific percentage in a single day (Default: 5%).
+The `RiskManager` module (`src/core/risk.manager.ts`) implements **professional risk management** following the "Golden Sequence":
+
+1. **Risk Per Trade**: Fixed percentage of equity risked per trade (Default: 1%)
+2. **Technical SL Levels**: Stop Loss based on percentages of entry price (chart-based levels)
+3. **Position Sizing**: Calculated to match risk amount with technical SL distance
+
+**Key Features:**
+- **Risk-Based Position Sizing**: Position size = (Risk % × Equity) ÷ SL Distance
+- **Consistent Risk**: Every trade risks the same percentage of your account
+- **Technical SL/TP**: Exit levels based on entry price percentages (professional standard)
+- **Daily Drawdown Protection**: Halts trading if equity drops by a specific percentage in a single day (Default: 5%)
 
 ### TradeManager
 The `TradeManager` (`src/core/trade.manager.ts`) provides **global position management** across all trading activities:

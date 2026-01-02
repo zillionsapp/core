@@ -38,39 +38,49 @@ export class RiskManager {
         return true;
     }
 
-    async calculateQuantity(symbol: string, price: number): Promise<number> {
+    async calculateQuantity(symbol: string, price: number, slPercent?: number): Promise<number> {
         const balance = await this.exchange.getBalance(config.PAPER_BALANCE_ASSET);
-        const tradeValue = balance * (config.POSITION_SIZE_PERCENT / 100);
-        const quantity = tradeValue / price;
 
-        logger.info(`[RiskManager] Calculated quantity for ${symbol}: ${quantity.toFixed(6)} (Value: ${tradeValue.toFixed(2)} ${config.PAPER_BALANCE_ASSET})`);
+        // Professional approach: Calculate position size based on risk per trade
+        // Risk Amount = RISK_PER_TRADE_PERCENT of current equity
+        const riskAmount = balance * (config.RISK_PER_TRADE_PERCENT / 100);
+
+        // SL Distance = entry price * SL percentage (technical SL level)
+        const effectiveSLPercent = slPercent ?? config.DEFAULT_STOP_LOSS_PERCENT;
+        const slDistance = price * (effectiveSLPercent / 100);
+
+        // Position Size = Risk Amount ÷ SL Distance
+        const quantity = riskAmount / slDistance;
+
+        logger.info(`[RiskManager] Professional position sizing for ${symbol}:`);
+        logger.info(`  Risk Amount: ${riskAmount.toFixed(2)} ${config.PAPER_BALANCE_ASSET} (${config.RISK_PER_TRADE_PERCENT}% of equity)`);
+        logger.info(`  SL Distance: ${slDistance.toFixed(2)} (${effectiveSLPercent}% of entry)`);
+        logger.info(`  Quantity: ${quantity.toFixed(6)} (Value: ${(quantity * price).toFixed(2)} ${config.PAPER_BALANCE_ASSET})`);
+
         return quantity;
     }
 
     calculateExitPrices(entryPrice: number, quantity: number, side: 'BUY' | 'SELL',
         signalSL?: number, signalTP?: number): { stopLoss: number, takeProfit: number } {
 
-        // Professional approach: Risk a fixed percentage of position value (not entry price)
-        // This ensures consistent dollar risk regardless of asset price
-        const positionValue = entryPrice * quantity;
+        // Professional approach: Interpret percentages as equity risk (not position value)
+        // This follows the "Golden Sequence": Technical levels → Risk amount → Position size
         const slPercent = (signalSL ?? config.DEFAULT_STOP_LOSS_PERCENT) / 100;
         const tpPercent = (signalTP ?? config.DEFAULT_TAKE_PROFIT_PERCENT) / 100;
 
-        // Calculate dollar risk/reward amounts
-        const riskAmount = positionValue * slPercent;
-        const rewardAmount = positionValue * tpPercent;
-
+        // Calculate risk/reward as percentage of entry price (technical approach)
+        // This gives consistent percentage moves regardless of position size
         let stopLoss = 0;
         let takeProfit = 0;
 
         if (side === 'BUY') {
             // For long positions: SL below entry, TP above entry
-            stopLoss = entryPrice - (riskAmount / quantity);
-            takeProfit = entryPrice + (rewardAmount / quantity);
+            stopLoss = entryPrice * (1 - slPercent);
+            takeProfit = entryPrice * (1 + tpPercent);
         } else {
             // For short positions: SL above entry, TP below entry
-            stopLoss = entryPrice + (riskAmount / quantity);
-            takeProfit = entryPrice - (rewardAmount / quantity);
+            stopLoss = entryPrice * (1 + slPercent);
+            takeProfit = entryPrice * (1 - tpPercent);
         }
 
         return { stopLoss, takeProfit };

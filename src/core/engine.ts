@@ -117,7 +117,7 @@ export class BotEngine {
                 }
 
                 // 3. Risk Check
-                const quantity = await this.riskManager.calculateQuantity(signal.symbol, lastCandle.close);
+                const quantity = await this.riskManager.calculateQuantity(signal.symbol, lastCandle.close, signal.stopLoss);
 
                 const orderRequest: OrderRequest = {
                     symbol: signal.symbol,
