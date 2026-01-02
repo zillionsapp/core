@@ -13,6 +13,7 @@ create table public.trades (
   "takeProfitPrice" numeric,
   "exitPrice" numeric,
   "exitTimestamp" bigint,
+  "strategyName" text,  -- Name of the strategy that opened this trade
   duration bigint,
   created_at timestamp with time zone default timezone('utc'::text, now())
 );
