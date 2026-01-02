@@ -43,7 +43,7 @@ const envSchema = z.object({
     // Leverage Configuration
     LEVERAGE_ENABLED: z.string().transform(v => v === 'true').default(false as any),
     LEVERAGE_VALUE: z.coerce.number().default(1),
-    MAX_LEVERAGE_UTILIZATION: z.coerce.number().default(0.5), // Max position value as % of (balance × leverage)
+    MAX_LEVERAGE_UTILIZATION: z.coerce.number().default(50), // Max position value as % of (balance × leverage) - full number like other percentages
 });
 
 export const config = envSchema.parse(process.env);

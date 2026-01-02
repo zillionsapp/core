@@ -69,10 +69,11 @@ export class RiskManager {
         }
 
         // 2. Prevent position value from exceeding reasonable limits
-        const maxPositionValue = balance * leverage * config.MAX_LEVERAGE_UTILIZATION;
+        const maxUtilizationPercent = config.MAX_LEVERAGE_UTILIZATION / 100; // Convert from full number to decimal
+        const maxPositionValue = balance * leverage * maxUtilizationPercent;
         if (positionValue > maxPositionValue) {
             quantity = maxPositionValue / price;
-            logger.warn(`[RiskManager] Position size capped to prevent over-leveraging (max ${(config.MAX_LEVERAGE_UTILIZATION * 100).toFixed(1)}% utilization)`);
+            logger.warn(`[RiskManager] Position size capped to prevent over-leveraging (max ${config.MAX_LEVERAGE_UTILIZATION}% utilization)`);
         }
 
         // 3. Minimum position size check

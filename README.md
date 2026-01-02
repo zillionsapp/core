@@ -441,7 +441,7 @@ Zillion Core includes **professional leveraged trading** with built-in safety me
 LEVERAGE_ENABLED=true
 LEVERAGE_VALUE=5          # 5x leverage
 RISK_PER_TRADE_PERCENT=1  # 1% risk per trade
-MAX_LEVERAGE_UTILIZATION=0.5  # Max 50% leverage utilization (conservative)
+MAX_LEVERAGE_UTILIZATION=50  # Max 50% leverage utilization (conservative)
 ```
 
 **Example with 5x Leverage:**
