@@ -7,8 +7,12 @@ describe('RiskManager', () => {
     let exchange: PaperExchange;
 
     beforeEach(async () => {
-        // Reset Env
-        process.env.PAPER_INITIAL_BALANCE = '10000';
+        // Reset config directly
+        const { config } = require('../../src/config/env');
+        config.PAPER_INITIAL_BALANCE = 10000;
+        config.LEVERAGE_ENABLED = false;
+        config.LEVERAGE_VALUE = 1;
+        config.RISK_PER_TRADE_PERCENT = 1;
 
         // Mock Provider
         const mockProvider = {
@@ -51,101 +55,90 @@ describe('RiskManager', () => {
     });
 
     describe('calculateQuantity', () => {
-        it('should calculate quantity based on balance and config percentage', async () => {
-            // Balance 10000, 10% = 1000 USDT. Price 1000 => Quantity 1.
+        it('should calculate quantity based on balance and risk percentage', async () => {
+            // Balance 10000, RISK_PER_TRADE_PERCENT = 1% = 100 USDT risk
+            // SL distance = 1000 * 5% = 50
+            // Leverage = 1 (default), quantity = (100 * 1) / 50 = 2
             const quantity = await riskManager.calculateQuantity('BTC/USDT', 1000);
-            expect(quantity).toBe(1);
+            expect(quantity).toBe(2);
         });
 
-        it('should respect custom POSITION_SIZE_PERCENT', async () => {
+        it('should respect custom RISK_PER_TRADE_PERCENT', async () => {
             // Change config (we can override it directly for the test)
             const { config } = require('../../src/config/env');
-            const originalValue = config.POSITION_SIZE_PERCENT;
-            config.POSITION_SIZE_PERCENT = 5; // 5%
+            const originalValue = config.RISK_PER_TRADE_PERCENT;
+            config.RISK_PER_TRADE_PERCENT = 0.5; // 0.5%
 
-            // Balance 10000, 5% = 500 USDT. Price 1000 => Quantity 0.5.
+            // Balance 10000, 0.5% = 50 USDT risk
+            // SL distance = 1000 * 5% = 50
+            // Leverage = 1, quantity = (50 * 1) / 50 = 1
             const quantity = await riskManager.calculateQuantity('BTC/USDT', 1000);
-            expect(quantity).toBe(0.5);
+            expect(quantity).toBe(1);
 
-            config.POSITION_SIZE_PERCENT = originalValue; // Restore
+            config.RISK_PER_TRADE_PERCENT = originalValue; // Restore
         });
     });
 
     describe('calculateExitPrices', () => {
-        it('should calculate SL/TP based on position value for BUY position with defaults', () => {
+        it('should calculate SL/TP as percentages of entry price for BUY position with defaults', () => {
             const entryPrice = 50000;
             const quantity = 1;
             const { stopLoss, takeProfit } = riskManager.calculateExitPrices(entryPrice, quantity, 'BUY');
 
-            // Position value = 50000 * 1 = 50000
-            // Risk amount = 50000 * 0.05 = 2500
-            // Reward amount = 50000 * 0.10 = 5000
-            // SL = 50000 - (2500 / 1) = 47500
-            // TP = 50000 + (5000 / 1) = 55000
-            expect(stopLoss).toBe(47500);
-            expect(takeProfit).toBe(55000);
+            // SL = entry * (1 - 0.05) = 50000 * 0.95 = 47500
+            // TP = entry * (1 + 0.10) = 50000 * 1.10 = 55000
+            expect(stopLoss).toBeCloseTo(47500, 2);
+            expect(takeProfit).toBeCloseTo(55000, 2);
         });
 
-        it('should calculate SL/TP based on position value for BUY position with custom percentages', () => {
+        it('should calculate SL/TP as percentages of entry price for BUY position with custom percentages', () => {
             const entryPrice = 50000;
             const quantity = 1;
             const customSL = 3; // 3%
             const customTP = 8; // 8%
             const { stopLoss, takeProfit } = riskManager.calculateExitPrices(entryPrice, quantity, 'BUY', customSL, customTP);
 
-            // Position value = 50000 * 1 = 50000
-            // Risk amount = 50000 * 0.03 = 1500
-            // Reward amount = 50000 * 0.08 = 4000
-            // SL = 50000 - (1500 / 1) = 48500
-            // TP = 50000 + (4000 / 1) = 54000
+            // SL = entry * (1 - 0.03) = 50000 * 0.97 = 48500
+            // TP = entry * (1 + 0.08) = 50000 * 1.08 = 54000
             expect(stopLoss).toBe(48500);
             expect(takeProfit).toBe(54000);
         });
 
-        it('should calculate SL/TP based on position value for SELL position with defaults', () => {
+        it('should calculate SL/TP as percentages of entry price for SELL position with defaults', () => {
             const entryPrice = 50000;
             const quantity = 1;
             const { stopLoss, takeProfit } = riskManager.calculateExitPrices(entryPrice, quantity, 'SELL');
 
-            // Position value = 50000 * 1 = 50000
-            // Risk amount = 50000 * 0.05 = 2500
-            // Reward amount = 50000 * 0.10 = 5000
-            // SL = 50000 + (2500 / 1) = 52500 (above entry for shorts)
-            // TP = 50000 - (5000 / 1) = 45000 (below entry for shorts)
+            // SL = entry * (1 + 0.05) = 50000 * 1.05 = 52500 (above entry for shorts)
+            // TP = entry * (1 - 0.10) = 50000 * 0.90 = 45000 (below entry for shorts)
             expect(stopLoss).toBe(52500);
             expect(takeProfit).toBe(45000);
         });
 
-        it('should calculate SL/TP based on position value for SELL position with custom percentages', () => {
+        it('should calculate SL/TP as percentages of entry price for SELL position with custom percentages', () => {
             const entryPrice = 50000;
             const quantity = 1;
             const customSL = 2; // 2%
             const customTP = 6; // 6%
             const { stopLoss, takeProfit } = riskManager.calculateExitPrices(entryPrice, quantity, 'SELL', customSL, customTP);
 
-            // Position value = 50000 * 1 = 50000
-            // Risk amount = 50000 * 0.02 = 1000
-            // Reward amount = 50000 * 0.06 = 3000
-            // SL = 50000 + (1000 / 1) = 51000
-            // TP = 50000 - (3000 / 1) = 47000
+            // SL = entry * (1 + 0.02) = 50000 * 1.02 = 51000
+            // TP = entry * (1 - 0.06) = 50000 * 0.94 = 47000
             expect(stopLoss).toBe(51000);
             expect(takeProfit).toBe(47000);
         });
 
-        it('should scale SL/TP correctly with quantity', () => {
+        it('should calculate SL/TP as percentages regardless of quantity', () => {
             const entryPrice = 100000;
-            const quantity = 0.1; // Smaller position
+            const quantity = 0.1; // Smaller position - should not affect percentage calculation
             const signalSL = 10; // 10%
             const signalTP = 15; // 15%
             const { stopLoss, takeProfit } = riskManager.calculateExitPrices(entryPrice, quantity, 'BUY', signalSL, signalTP);
 
-            // Position value = 100000 * 0.1 = 10000
-            // Risk amount = 10000 * 0.10 = 1000
-            // Reward amount = 10000 * 0.15 = 1500
-            // SL = 100000 - (1000 / 0.1) = 100000 - 10000 = 90000
-            // TP = 100000 + (1500 / 0.1) = 100000 + 15000 = 115000
-            expect(stopLoss).toBe(90000);
-            expect(takeProfit).toBe(115000);
+            // SL = entry * (1 - 0.10) = 100000 * 0.90 = 90000
+            // TP = entry * (1 + 0.15) = 100000 * 1.15 = 115000
+            expect(stopLoss).toBeCloseTo(90000, 2);
+            expect(takeProfit).toBeCloseTo(115000, 2);
         });
     });
 });

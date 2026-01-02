@@ -61,7 +61,7 @@ describe('Trading Math Validation Against Real Data', () => {
         (config as any).PAPER_INITIAL_BALANCE = 10000;
         (config as any).LEVERAGE_ENABLED = true;
         (config as any).LEVERAGE_VALUE = 5;
-        (config as any).POSITION_SIZE_PERCENT = 10;
+        (config as any).RISK_PER_TRADE_PERCENT = 1; // 1% risk per trade
         (config as any).DEFAULT_STOP_LOSS_PERCENT = 5;
         (config as any).DEFAULT_TAKE_PROFIT_PERCENT = 10;
 
@@ -103,11 +103,14 @@ describe('Trading Math Validation Against Real Data', () => {
     describe('Quantity Calculations', () => {
         test('should calculate quantities correctly with different balances', async () => {
             // Test with different balances to see how quantity scales
-            // POSITION_SIZE_PERCENT = 10 (10%)
+            // RISK_PER_TRADE_PERCENT = 1 (1%), LEVERAGE = 5, SL = 5%
+            // riskAmount = balance * 0.01
+            // slDistance = price * 0.05
+            // quantity = (riskAmount * leverage) / slDistance
             const testCases = [
-                { balance: 10000, price: 88000, expectedQty: 0.011364 }, // 10000 * 0.1 / 88000
-                { balance: 10989.87, price: 88000, expectedQty: 0.012489 }, // 10989.87 * 0.1 / 88000
-                { balance: 12104.99, price: 88000, expectedQty: 0.013767 }, // 12104.99 * 0.1 / 88000
+                { balance: 10000, price: 88000, expectedQty: 0.113636 }, // (10000 * 0.01 * 5) / (88000 * 0.05) = 500 / 4400
+                { balance: 10989.87, price: 88000, expectedQty: 0.125000 }, // (10989.87 * 0.01 * 5) / (88000 * 0.05) = 549.94 / 4400
+                { balance: 12104.99, price: 88000, expectedQty: 0.137500 }, // (12104.99 * 0.01 * 5) / (88000 * 0.05) = 605.25 / 4400
             ];
 
             for (const testCase of testCases) {
@@ -263,40 +266,11 @@ describe('Trading Math Validation Against Real Data', () => {
 
     describe('Risk Management Validation', () => {
         test('should reject orders that exceed drawdown limits', async () => {
-            // Simulate a large loss first
-            const price = 50000;
-            const quantity = 1;
+            // Mock the exchange to return a balance that exceeds drawdown limit
+            // Initial balance = 10000, MAX_DAILY_DRAWDOWN_PERCENT = 5%
+            // Drawdown limit = 500, so balance needs to be <= 9500 to trigger rejection
+            jest.spyOn(exchange, 'getBalance').mockResolvedValue(9000); // 10% drawdown
 
-            mockDataProvider.getTicker.mockResolvedValue({
-                symbol: 'BTC/USDT',
-                price: price,
-                timestamp: Date.now()
-            });
-
-            // Buy
-            await exchange.placeOrder({
-                symbol: 'BTC/USDT',
-                side: 'BUY',
-                type: 'MARKET',
-                quantity: quantity
-            });
-
-            // Simulate price drop to trigger large loss
-            mockDataProvider.getTicker.mockResolvedValue({
-                symbol: 'BTC/USDT',
-                price: price * 0.5, // 50% drop
-                timestamp: Date.now()
-            });
-
-            // Sell at loss
-            await exchange.placeOrder({
-                symbol: 'BTC/USDT',
-                side: 'SELL',
-                type: 'MARKET',
-                quantity: quantity
-            });
-
-            // Now try to place another order - should be rejected if drawdown exceeded
             const isValid = await riskManager.validateOrder({
                 symbol: 'BTC/USDT',
                 side: 'BUY',
@@ -304,9 +278,8 @@ describe('Trading Math Validation Against Real Data', () => {
                 quantity: 0.1
             });
 
-            // Depending on MAX_DAILY_DRAWDOWN_PERCENT setting, this might be rejected
-            // We just verify the validation logic runs
-            expect(typeof isValid).toBe('boolean');
+            // Should be rejected due to drawdown
+            expect(isValid).toBe(false);
         });
     });
 });
