@@ -13,6 +13,7 @@ create table public.trades (
   "takeProfitPrice" numeric,
   "exitPrice" numeric,
   "exitTimestamp" bigint,
+  "exitReason" text,  -- Reason for closing the trade (e.g., STOP_LOSS, TAKE_PROFIT, TRAILING_STOP_LOSS, STRATEGY_EXIT)
   "strategyName" text,  -- Name of the strategy that opened this trade
   leverage numeric,
   margin numeric,

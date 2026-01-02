@@ -143,7 +143,8 @@ export class TradeManager {
                     status: 'CLOSED',
                     exitPrice: order.price,
                     exitTimestamp: order.timestamp,
-                    duration: order.timestamp - trade.timestamp
+                    duration: order.timestamp - trade.timestamp,
+                    exitReason: exitReason
                 });
 
                 // Notify strategy that position was closed
@@ -251,7 +252,8 @@ export class TradeManager {
                 status: 'CLOSED',
                 exitPrice: order.price,
                 exitTimestamp: order.timestamp,
-                duration: order.timestamp - trade.timestamp
+                duration: order.timestamp - trade.timestamp,
+                exitReason: reason
             });
 
             // Notify strategy that position was closed

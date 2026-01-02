@@ -55,6 +55,7 @@ export interface Trade {
     takeProfitPrice?: number;
     exitPrice?: number;
     exitTimestamp?: number;
+    exitReason?: string; // Reason for closing the trade (e.g., STOP_LOSS, TAKE_PROFIT, TRAILING_STOP_LOSS, STRATEGY_EXIT)
 
     // Strategy and Risk information
     strategyName?: string; // Name of the strategy that opened this trade

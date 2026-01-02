@@ -188,6 +188,7 @@
                             <th class="text-xs font-bold uppercase py-4">Exit / Price</th>
                             <th class="text-xs font-bold uppercase py-4">SL / TP</th>
                             <th class="text-xs font-bold uppercase py-4">Duration</th>
+                            <th class="text-xs font-bold uppercase py-4">Exit Reason</th>
                             <th class="text-xs font-bold uppercase py-4 text-right">Qty</th>
                             <th class="text-xs font-bold uppercase py-4 text-right">PnL (%)</th>
                         </tr>
@@ -583,6 +584,11 @@
                         const slDisplay = t.stopLossPrice ? `$${t.stopLossPrice.toLocaleString()}` : '-';
                         const tpDisplay = t.takeProfitPrice ? `$${t.takeProfitPrice.toLocaleString()}` : '-';
 
+                        // Format exit reason for display
+                        const exitReasonDisplay = t.status === 'CLOSED' && t.exitReason
+                            ? t.exitReason.replace(/_/g, ' ')
+                            : '-';
+
                         return `
                         <tr class="hover text-xs">
                             <td><span class="badge ${t.status === 'OPEN' ? 'badge-warning' : 'badge-success'} badge-sm font-bold text-[10px]">${t.status}</span></td>
@@ -602,6 +608,7 @@
                                 TP: ${tpDisplay}
                             </td>
                             <td class="font-mono opacity-70">${duration}</td>
+                            <td class="text-[10px] opacity-70">${exitReasonDisplay}</td>
                             <td class="text-right font-mono">${t.quantity}</td>
                             <td class="text-right font-mono ${pnlClass} font-bold">
                                 ${pnlPercentDisplay}<br>
