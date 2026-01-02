@@ -111,6 +111,10 @@ describe('PortfolioManager', () => {
         });
 
         it('should calculate metrics for open trades with current prices', async () => {
+            // Set up environment for proper balance calculation
+            process.env.PAPER_INITIAL_BALANCE = '10000';
+            process.env.LEVERAGE_VALUE = '1'; // No leverage for this test
+
             const openTrades: Trade[] = [
                 {
                     id: 'trade1',
@@ -170,10 +174,21 @@ describe('PortfolioManager', () => {
                 unrealizedPnL: 2000 // (3000 - 2800) * 10
             });
 
-            expect(snapshot.currentEquity).toBe(14000); // 10000 balance + 4000 unrealized
+            // With no leverage, margin = position value, so balance = 10000 - (50000 + 30000) = negative
+            // But equity = balance + unrealized_PnL = negative + 4000 = still negative
+            expect(snapshot.currentBalance).toBe(10000 - 50000 - 30000); // 10k - 50k - 30k = -70k
+            expect(snapshot.currentEquity).toBe(snapshot.currentBalance + 4000); // -70k + 4k = -66k
+
+            // Clean up
+            delete process.env.PAPER_INITIAL_BALANCE;
+            delete process.env.LEVERAGE_VALUE;
         });
 
         it('should handle mixed open and closed trades', async () => {
+            // Set up environment for proper balance calculation
+            process.env.PAPER_INITIAL_BALANCE = '10000';
+            process.env.LEVERAGE_VALUE = '1'; // No leverage
+
             const trades: Trade[] = [
                 // Closed winning trade
                 {
@@ -223,7 +238,15 @@ describe('PortfolioManager', () => {
                 pnl: 5000
             });
 
-            expect(snapshot.currentEquity).toBe(12000); // 10000 balance + 2000 unrealized
+            // With no leverage, margin = position value = 10 * 3000 = 30,000
+            // Balance = 10,000 - 30,000 = -20,000
+            // Equity = -20,000 + 2,000 unrealized = -18,000
+            expect(snapshot.currentBalance).toBe(10000 - 30000); // 10k - 30k = -20k
+            expect(snapshot.currentEquity).toBe(snapshot.currentBalance + 2000); // -20k + 2k = -18k
+
+            // Clean up
+            delete process.env.PAPER_INITIAL_BALANCE;
+            delete process.env.LEVERAGE_VALUE;
         });
 
         it('should handle profit factor with only losses', async () => {
@@ -257,6 +280,169 @@ describe('PortfolioManager', () => {
             const snapshot = await portfolioManager.generateSnapshot();
 
             expect(snapshot.profitFactor).toBe(0);
+        });
+
+        it('should calculate balance correctly with leverage: initial_balance - margin_for_open_positions', async () => {
+            // Set up environment for leverage calculations
+            process.env.LEVERAGE_VALUE = '5';
+            process.env.PAPER_INITIAL_BALANCE = '10000';
+
+            const openTrades: Trade[] = [
+                {
+                    id: 'trade1',
+                    orderId: 'order1',
+                    symbol: 'BTC/USDT',
+                    side: 'BUY',
+                    quantity: 0.2, // Position value: 0.2 * 50000 = 10,000
+                    price: 50000,
+                    timestamp: Date.now(),
+                    status: 'OPEN'
+                    // Margin = 10,000 / 5 = 2,000
+                }
+            ];
+
+            mockDb.getTrades.mockResolvedValue(openTrades);
+            mockExchange.getTicker.mockResolvedValue({ symbol: 'BTC/USDT', price: 50000, timestamp: Date.now() });
+
+            const snapshot = await portfolioManager.generateSnapshot();
+
+            // Balance should be: initial_balance - margin = 10,000 - 2,000 = 8,000
+            expect(snapshot.currentBalance).toBe(8000);
+
+            // Equity should be: balance + unrealized_PnL = 8,000 + 0 = 8,000
+            expect(snapshot.currentEquity).toBe(8000);
+
+            // Clean up
+            delete process.env.LEVERAGE_VALUE;
+            delete process.env.PAPER_INITIAL_BALANCE;
+        });
+
+        it('should calculate balance correctly with multiple open positions and leverage', async () => {
+            // Set up environment
+            process.env.LEVERAGE_VALUE = '10';
+            process.env.PAPER_INITIAL_BALANCE = '20000';
+
+            const openTrades: Trade[] = [
+                {
+                    id: 'trade1',
+                    orderId: 'order1',
+                    symbol: 'BTC/USDT',
+                    side: 'BUY',
+                    quantity: 0.1, // Position value: 0.1 * 50000 = 5,000
+                    price: 50000,
+                    timestamp: Date.now(),
+                    status: 'OPEN'
+                    // Margin = 5,000 / 10 = 500
+                },
+                {
+                    id: 'trade2',
+                    orderId: 'order2',
+                    symbol: 'ETH/USDT',
+                    side: 'SELL',
+                    quantity: 5, // Position value: 5 * 3000 = 15,000
+                    price: 3000,
+                    timestamp: Date.now(),
+                    status: 'OPEN'
+                    // Margin = 15,000 / 10 = 1,500
+                }
+            ];
+
+            mockDb.getTrades.mockResolvedValue(openTrades);
+            mockExchange.getTicker
+                .mockResolvedValueOnce({ symbol: 'BTC/USDT', price: 50000, timestamp: Date.now() })
+                .mockResolvedValueOnce({ symbol: 'ETH/USDT', price: 3000, timestamp: Date.now() });
+
+            const snapshot = await portfolioManager.generateSnapshot();
+
+            // Total margin = 500 + 1,500 = 2,000
+            // Balance should be: initial_balance - total_margin = 20,000 - 2,000 = 18,000
+            expect(snapshot.currentBalance).toBe(18000);
+
+            // Clean up
+            delete process.env.LEVERAGE_VALUE;
+            delete process.env.PAPER_INITIAL_BALANCE;
+        });
+
+        it('should calculate balance correctly when leverage is disabled', async () => {
+            // Leverage disabled means leverage = 1 (no margin, full position value as margin)
+            process.env.LEVERAGE_VALUE = '1';
+            process.env.PAPER_INITIAL_BALANCE = '10000';
+
+            const openTrades: Trade[] = [
+                {
+                    id: 'trade1',
+                    orderId: 'order1',
+                    symbol: 'BTC/USDT',
+                    side: 'BUY',
+                    quantity: 0.1, // Position value: 0.1 * 50000 = 5,000
+                    price: 50000,
+                    timestamp: Date.now(),
+                    status: 'OPEN'
+                    // Margin = 5,000 / 1 = 5,000 (full position value when no leverage)
+                }
+            ];
+
+            mockDb.getTrades.mockResolvedValue(openTrades);
+            mockExchange.getTicker.mockResolvedValue({ symbol: 'BTC/USDT', price: 50000, timestamp: Date.now() });
+
+            const snapshot = await portfolioManager.generateSnapshot();
+
+            // Balance should be: initial_balance - margin = 10,000 - 5,000 = 5,000
+            expect(snapshot.currentBalance).toBe(5000);
+
+            // Clean up
+            delete process.env.LEVERAGE_VALUE;
+            delete process.env.PAPER_INITIAL_BALANCE;
+        });
+
+        it('should handle balance calculation with no open positions', async () => {
+            process.env.PAPER_INITIAL_BALANCE = '15000';
+
+            mockDb.getTrades.mockResolvedValue([]); // No trades
+
+            const snapshot = await portfolioManager.generateSnapshot();
+
+            // Balance should be initial balance when no positions
+            expect(snapshot.currentBalance).toBe(15000);
+
+            // Clean up
+            delete process.env.PAPER_INITIAL_BALANCE;
+        });
+
+        it('should maintain balance consistency regardless of exchange state', async () => {
+            // This test verifies that balance calculation is deterministic
+            // and doesn't depend on exchange.getBalance() which can be inconsistent
+            process.env.LEVERAGE_VALUE = '5';
+            process.env.PAPER_INITIAL_BALANCE = '10000';
+
+            const openTrades: Trade[] = [
+                {
+                    id: 'trade1',
+                    orderId: 'order1',
+                    symbol: 'BTC/USDT',
+                    side: 'BUY',
+                    quantity: 0.2, // Position value: 10,000, Margin: 2,000
+                    price: 50000,
+                    timestamp: Date.now(),
+                    status: 'OPEN'
+                }
+            ];
+
+            mockDb.getTrades.mockResolvedValue(openTrades);
+            mockExchange.getTicker.mockResolvedValue({ symbol: 'BTC/USDT', price: 50000, timestamp: Date.now() });
+
+            // Mock exchange returning inconsistent balance (simulating restart)
+            mockExchange.getBalance.mockResolvedValue(5000); // Wrong balance
+
+            const snapshot = await portfolioManager.generateSnapshot();
+
+            // Balance should still be calculated correctly: 10,000 - 2,000 = 8,000
+            // Not using the exchange's inconsistent 5,000
+            expect(snapshot.currentBalance).toBe(8000);
+
+            // Clean up
+            delete process.env.LEVERAGE_VALUE;
+            delete process.env.PAPER_INITIAL_BALANCE;
         });
     });
 

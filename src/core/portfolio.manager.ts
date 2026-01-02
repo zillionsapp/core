@@ -15,14 +15,26 @@ export class PortfolioManager {
     async generateSnapshot(): Promise<PortfolioSnapshot> {
         const timestamp = Date.now();
 
-        // Get all trades
-        const allTrades = await this.db.getTrades(undefined, 1000); // Get last 1000 trades
+        // Get all trades (no limit for production trading bot)
+        const allTrades = await this.db.getTrades(); // Get ALL trades
         const openTrades = allTrades.filter(t => t.status === 'OPEN');
         const closedTrades = allTrades.filter(t => t.status === 'CLOSED');
 
-        // Get current balance first (needed for PnL percentage calculation)
+        // Calculate current balance: initial balance minus margin for open positions
         const balanceAsset = process.env.PAPER_BALANCE_ASSET || 'USDT';
-        const currentBalance = await this.exchange.getBalance(balanceAsset);
+        const initialBalance = parseFloat(process.env.PAPER_INITIAL_BALANCE || '10000');
+
+        // Calculate total margin used by open positions
+        let totalMarginUsed = 0;
+        for (const trade of openTrades) {
+            // Use leverage from config (could be stored per trade in future)
+            const leverage = parseFloat(process.env.LEVERAGE_VALUE || '1');
+            const positionValue = trade.quantity * trade.price;
+            const margin = leverage > 1 ? positionValue / leverage : positionValue; // No margin if leverage disabled
+            totalMarginUsed += margin;
+        }
+
+        const currentBalance = initialBalance - totalMarginUsed;
 
         // Get current prices for open trades
         const symbols = [...new Set(openTrades.map(t => t.symbol))];
