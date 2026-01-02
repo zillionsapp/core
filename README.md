@@ -4,6 +4,44 @@
 
 ---
 
+## Table of Contents
+
+- [🚀 Key Features](#key-features)
+- [🛠 Prerequisites](#prerequisites)
+- [📦 Installation](#installation)
+- [🏃‍♂️ Usage](#usage)
+- [🐳 Deployment](#deployment)
+  - [Docker](#docker)
+  - [PM2 (VPS/Bare Metal)](#pm2-vps-bare-metal)
+  - [Vercel (Serverless / Production)](#vercel-serverless-production)
+    - [💡 Vercel Hobby Plan (Free Tier)](#vercel-hobby-plan-free-tier)
+- [🛠 Available Strategies](#available-strategies)
+- [🏛 Architecture](#architecture)
+- [🧩 Adding Strategies](#adding-strategies)
+  - [Basic Strategy (Signal-Based)](#basic-strategy-signal-based)
+  - [Advanced Strategy (Custom ST/TP Logic)](#advanced-strategy-custom-sttp-logic)
+  - [Strategy Capabilities](#strategy-capabilities)
+  - [Registering Your Strategy](#registering-your-strategy)
+- [🛡 Risk Management](#risk-management)
+  - [RiskManager](#riskmanager)
+  - [Leverage Support](#leverage-support)
+  - [TradeManager](#trademanager)
+    - [Trailing Stop Loss](#trailing-stop-loss)
+  - [Position Management](#position-management)
+    - [Signal Conflict Resolution](#signal-conflict-resolution)
+    - [Configuration](#configuration)
+    - [How It Works](#how-it-works)
+    - [Strategy Control](#strategy-control)
+    - [Default Behavior](#default-behavior)
+  - [PortfolioManager](#portfoliomanager)
+- [🔮 Roadmap](#roadmap)
+- [🚀 REST API](#rest-api)
+  - [Running the API & Dashboard](#running-the-api--dashboard)
+  - [Endpoints](#endpoints)
+  - [Triggering a Backtest](#triggering-a-backtest)
+- [🤝 Contributing](#contributing)
+- [🔗 Connect](#connect)
+
 ## 🚀 Key Features
 
 *   **Hexagonal Architecture**: Core logic is isolated from external adapters (Exchanges, Database), allowing easy swapping of components.
