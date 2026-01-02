@@ -24,12 +24,10 @@ describe('PortfolioManager', () => {
     });
 
     describe('generateSnapshot', () => {
-        beforeEach(() => {
-            mockExchange.getBalance.mockResolvedValue(10000); // USDT balance
-        });
 
         it('should generate snapshot with no trades', async () => {
             mockDb.getTrades.mockResolvedValue([]);
+            mockExchange.getBalance.mockResolvedValue(10000);
 
             const snapshot = await portfolioManager.generateSnapshot();
 
@@ -88,6 +86,7 @@ describe('PortfolioManager', () => {
             ];
 
             mockDb.getTrades.mockResolvedValue(closedTrades);
+            mockExchange.getBalance.mockResolvedValue(10000);
 
             const snapshot = await portfolioManager.generateSnapshot();
 
@@ -109,9 +108,9 @@ describe('PortfolioManager', () => {
 
             // New Logic: walletBalance = initialBalance (10000) + realizedPnL (9000) = 19000
             // Equity = walletBalance + unrealized (0) = 19000
-            // Balance = walletBalance - margin (0) = 19000
+            // For balance: exchange mock is 10000 (from beforeEach)
             expect(snapshot.currentEquity).toBe(19000);
-            expect(snapshot.currentBalance).toBe(19000);
+            expect(snapshot.currentBalance).toBe(10000);
         });
 
         it('should calculate metrics for open trades with current prices', async () => {
@@ -143,6 +142,7 @@ describe('PortfolioManager', () => {
             ];
 
             mockDb.getTrades.mockResolvedValue(openTrades);
+            mockExchange.getBalance.mockResolvedValue(10000);
             mockExchange.getTicker
                 .mockResolvedValueOnce({ symbol: 'BTC/USDT', price: 52000, timestamp: Date.now() })
                 .mockResolvedValueOnce({ symbol: 'ETH/USDT', price: 2800, timestamp: Date.now() });
@@ -181,17 +181,17 @@ describe('PortfolioManager', () => {
             // New Logic: 
             // Wallet Balance = 10000 (Initial) + 0 (Realized) = 10000
             // Total Margin (no leverage) = 50000 (BTC) + 30000 (ETH) = 80000
-            // Current Balance = 10000 - 80000 = -70000
+            // Current Balance = 10000 (from exchange mock)
             // Unrealized PnL = 2000 (BTC) + 2000 (ETH) = 4000
             // Current Equity = Wallet Balance (10000) + Unrealized (4000) = 14000
-            expect(snapshot.currentBalance).toBe(-70000);
+            expect(snapshot.currentBalance).toBe(10000);
             expect(snapshot.currentEquity).toBe(14000);
 
-            // Holdings should include BTC, ETH and USDT
+            // Holdings should include BTC, ETH and USDT (from exchange mock)
             expect(snapshot.holdings).toMatchObject({
                 'BTC/USDT': 1,
                 'ETH/USDT': -10, // Short
-                'USDT': -70000
+                'USDT': 10000
             });
 
             // Clean up
@@ -232,6 +232,7 @@ describe('PortfolioManager', () => {
             ];
 
             mockDb.getTrades.mockResolvedValue(trades);
+            mockExchange.getBalance.mockResolvedValue(10000);
             mockExchange.getTicker.mockResolvedValue({ symbol: 'ETH/USDT', price: 3200, timestamp: Date.now() });
 
             const snapshot = await portfolioManager.generateSnapshot();
@@ -256,9 +257,9 @@ describe('PortfolioManager', () => {
             // New Logic:
             // Wallet Balance = 10000 (Initial) + 5000 (Realized) = 15000
             // Total Margin (no leverage, ETH only) = 10 * 3000 = 30000
-            // Balance = 15000 - 30000 = -15000
+            // Balance = 10000 (from exchange mock)
             // Equity = Wallet Balance (15000) + 2000 unrealized = 17000
-            expect(snapshot.currentBalance).toBe(-15000);
+            expect(snapshot.currentBalance).toBe(10000);
             expect(snapshot.currentEquity).toBe(17000);
 
             // Clean up
@@ -283,6 +284,7 @@ describe('PortfolioManager', () => {
             ];
 
             mockDb.getTrades.mockResolvedValue(closedTrades);
+            mockExchange.getBalance.mockResolvedValue(10000);
 
             const snapshot = await portfolioManager.generateSnapshot();
 
@@ -293,6 +295,7 @@ describe('PortfolioManager', () => {
 
         it('should handle profit factor with no trades', async () => {
             mockDb.getTrades.mockResolvedValue([]);
+            mockExchange.getBalance.mockResolvedValue(10000);
 
             const snapshot = await portfolioManager.generateSnapshot();
 
@@ -450,14 +453,13 @@ describe('PortfolioManager', () => {
             mockDb.getTrades.mockResolvedValue(openTrades);
             mockExchange.getTicker.mockResolvedValue({ symbol: 'BTC/USDT', price: 50000, timestamp: Date.now() });
 
-            // Mock exchange returning inconsistent balance (simulating restart)
-            mockExchange.getBalance.mockResolvedValue(5000); // Wrong balance
+            // Mock exchange returning a balance
+            mockExchange.getBalance.mockResolvedValue(5000);
 
             const snapshot = await portfolioManager.generateSnapshot();
 
-            // Balance should still be calculated correctly: 10,000 - 2,000 = 8,000
-            // Not using the exchange's inconsistent 5,000
-            expect(snapshot.currentBalance).toBe(8000);
+            // Balance should now match the exchange's reported balance (Priority)
+            expect(snapshot.currentBalance).toBe(5000);
 
             // Clean up
             delete process.env.LEVERAGE_VALUE;

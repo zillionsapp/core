@@ -56,8 +56,10 @@ export interface Trade {
     exitPrice?: number;
     exitTimestamp?: number;
 
-    // Strategy information
+    // Strategy and Risk information
     strategyName?: string; // Name of the strategy that opened this trade
+    leverage?: number;
+    margin?: number;
 
     // Trailing Stop Loss fields
     trailingStopEnabled?: boolean;

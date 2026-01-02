@@ -14,6 +14,8 @@ create table public.trades (
   "exitPrice" numeric,
   "exitTimestamp" bigint,
   "strategyName" text,  -- Name of the strategy that opened this trade
+  leverage numeric,
+  margin numeric,
   duration bigint,
   -- Trailing Stop Loss fields
   "trailingStopEnabled" boolean,

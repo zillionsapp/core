@@ -37,22 +37,41 @@ export class PortfolioManager {
         const holdings: Record<string, number> = { [balanceAsset]: 0 }; // Initialize with base asset
 
         for (const trade of openTrades) {
-            const leverage = parseFloat(process.env.LEVERAGE_VALUE || '1');
-            const positionValue = trade.quantity * trade.price;
-            const margin = leverage > 1 ? positionValue / leverage : positionValue;
+            // Use stored margin if available, otherwise recalculate
+            let margin = trade.margin;
+            if (margin === undefined) {
+                const leverage = parseFloat(process.env.LEVERAGE_VALUE || '1');
+                const positionValue = trade.quantity * trade.price;
+                margin = leverage > 1 ? positionValue / leverage : positionValue;
+            }
             totalMarginUsed += margin;
 
-            // Track asset holdings (quantity of the asset being traded)
+            // Track asset holdings
             if (trade.side === 'BUY') {
                 holdings[trade.symbol] = (holdings[trade.symbol] || 0) + trade.quantity;
             } else {
-                // For shorts, we technically have a negative holding or a liability
                 holdings[trade.symbol] = (holdings[trade.symbol] || 0) - trade.quantity;
             }
         }
 
         // 4. Current (Available) Balance = Wallet Balance - Margin
-        const currentBalance = walletBalance - totalMarginUsed;
+        // Try to get real balance from exchange if available (more accurate for live)
+        let currentBalance: number;
+        try {
+            const realBalance = await this.exchange.getBalance(balanceAsset);
+            // If exchange returns a valid numeric balance, use it as the source of truth for "Available"
+            if (typeof realBalance === 'number' && !isNaN(realBalance)) {
+                currentBalance = realBalance;
+            } else {
+                currentBalance = walletBalance - totalMarginUsed;
+            }
+        } catch (error) {
+            // Fallback to calculation
+            currentBalance = walletBalance - totalMarginUsed;
+        }
+
+        // CRITICAL: Available balance cannot be negative
+        currentBalance = Math.max(0, currentBalance);
         holdings[balanceAsset] = currentBalance;
 
         // 5. Get current prices and calculate unrealized PnL

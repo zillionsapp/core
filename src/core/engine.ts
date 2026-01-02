@@ -147,6 +147,9 @@ export class BotEngine {
                 // 5. Persistence
                 const exitPrices = this.riskManager.calculateExitPrices(order.price, order.quantity, order.side, signal.stopLoss, signal.takeProfit);
 
+                const leverage = config.LEVERAGE_ENABLED ? config.LEVERAGE_VALUE : 1;
+                const margin = (order.price * order.quantity) / leverage;
+
                 const trade: Trade = {
                     id: order.id,
                     orderId: order.id,
@@ -159,6 +162,8 @@ export class BotEngine {
                     stopLossPrice: exitPrices.stopLoss,
                     takeProfitPrice: exitPrices.takeProfit,
                     strategyName: this.strategy.name, // Track which strategy opened this trade
+                    leverage,
+                    margin,
                     trailingStopEnabled: config.TRAILING_STOP_ENABLED,
                     trailingStopActivated: false,
                     trailingStopActivationPercent: config.TRAILING_STOP_ACTIVATION_PERCENT,

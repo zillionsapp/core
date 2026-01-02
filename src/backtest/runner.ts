@@ -123,6 +123,9 @@ export class BacktestRunner {
                         // Calculate SL/TP using the actual position size
                         const exitPrices = this.riskManager.calculateExitPrices(order.price, order.quantity, order.side, signal.stopLoss, signal.takeProfit);
 
+                        const leverage = config.LEVERAGE_ENABLED ? config.LEVERAGE_VALUE : 1;
+                        const margin = (order.price * order.quantity) / leverage;
+
                         this.activeTrade = {
                             id: order.id,
                             orderId: order.id,
@@ -133,7 +136,9 @@ export class BacktestRunner {
                             timestamp: order.timestamp,
                             status: 'OPEN',
                             stopLossPrice: exitPrices.stopLoss,
-                            takeProfitPrice: exitPrices.takeProfit
+                            takeProfitPrice: exitPrices.takeProfit,
+                            leverage,
+                            margin
                         };
                         if (verbose) console.log(`[Backtest] ${signal.action} Entry. SL: ${this.activeTrade.stopLossPrice}, TP: ${this.activeTrade.takeProfitPrice}`);
 
