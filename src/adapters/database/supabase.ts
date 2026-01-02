@@ -44,9 +44,9 @@ export class SupabaseDataStore implements IDataStore {
         if (limit !== undefined) {
             query = query.limit(limit).range(offset || 0, (offset || 0) + limit - 1);
         } else {
-            // If no limit provided, fetch a large batch to avoid "ghost positions"
-            // Default Supabase limit is often 1000, we'll request significantly more.
-            query = query.limit(10000);
+            // If no limit provided, fetch a very large batch (unlimited for practical purposes)
+            // default is often 1,000 in Supabase, we'll request a much higher ceiling.
+            query = query.limit(100000);
         }
 
         const { data, error } = await query;

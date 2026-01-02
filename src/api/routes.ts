@@ -38,7 +38,7 @@ router.get('/trades', async (req, res) => {
         const offset = parseInt(req.query.offset as string) || 0;
 
         // Get both closed and open trades
-        const closedTrades = await db.getTrades(symbol, 10000); // Get all closed trades
+        const closedTrades = await db.getTrades(symbol); // Get all trades
         const openTrades = await db.getOpenTrades(); // Get all open trades
 
         // Filter open trades by symbol if specified
