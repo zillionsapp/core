@@ -31,7 +31,7 @@ export class PaperExchange implements IExchange {
     }
 
     async start(): Promise<void> {
-        console.log(`[PaperExchange] Started with balance: ${config.PAPER_INITIAL_BALANCE} ${config.PAPER_BALANCE_ASSET}`);
+        // console.log(`[PaperExchange] Started with balance: ${config.PAPER_INITIAL_BALANCE} ${config.PAPER_BALANCE_ASSET}`);
     }
 
     async getCandles(symbol: string, interval: string, limit: number = 100): Promise<Candle[]> {
