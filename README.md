@@ -312,17 +312,7 @@ class AdvancedStrategy implements IStrategy {
 }
 ```
 
-### 4. Optional: Name-Based Registration
-If you want to use your strategy by name (e.g. via `.env` for CLI usage), register it in `src/core/strategy.manager.ts`:
-
-```typescript
-private static strategies = new Map([
-    ['MY_STRATEGY', MyStrategy]
-]);
-```
-Then simply set `STRATEGY_NAME=MY_STRATEGY` in your `.env`.
-
-### 5. Serverless / Vercel Usage
+### 4. Serverless / Vercel Usage
 For serverless environments, use the `tick()` method for stateless execution:
 
 ```typescript
