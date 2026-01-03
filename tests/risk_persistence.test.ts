@@ -16,9 +16,12 @@ class MockStore implements IDataStore {
     async saveBacktestResult() { }
     async getBacktestResults() { return []; }
     async getLatestPortfolioSnapshot() { return null; }
+    async getPortfolioSnapshots() { return []; }
     async getActiveTrade() { return null; }
     async getOpenTrades() { return []; }
     async updateTrade() { }
+    async updateChartCache() { }
+    async getChartCache() { return []; }
 }
 
 class MockExchange implements IExchange {

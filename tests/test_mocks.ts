@@ -4,20 +4,25 @@ import { Trade } from '../src/core/types';
 
 export class MockStore implements IDataStore {
     private trades: Trade[] = [];
-    private riskState: any = null;
+    private riskState: { startOfDayBalance: number, lastResetDay: number } | null = null;
     private snapshots: PortfolioSnapshot[] = [];
+    private chartCache: Map<string, any[]> = new Map();
 
-    async saveRiskState(state: any) { this.riskState = state; }
+    async saveRiskState(state: { startOfDayBalance: number, lastResetDay: number }) { this.riskState = state; }
     async getRiskState() { return this.riskState; }
 
     async saveTrade(trade: Trade) {
         this.trades.push(trade);
     }
 
-    async getTrades(symbol?: string) {
-        let t = this.trades;
+    async getTrades(symbol?: string, limit?: number, offset?: number) {
+        let t = [...this.trades];
         if (symbol) t = t.filter(x => x.symbol === symbol);
-        return [...t].sort((a, b) => b.timestamp - a.timestamp);
+        t.sort((a, b) => b.timestamp - a.timestamp);
+
+        const start = offset || 0;
+        const end = limit ? start + limit : t.length;
+        return t.slice(start, end);
     }
 
     async savePortfolioSnapshot(snapshot: PortfolioSnapshot) {
@@ -26,6 +31,11 @@ export class MockStore implements IDataStore {
 
     async getLatestPortfolioSnapshot() {
         return this.snapshots.length > 0 ? this.snapshots[this.snapshots.length - 1] : null;
+    }
+
+    async getPortfolioSnapshots(limit: number, period?: string) {
+        // Mock implementation ignores period for simplicity
+        return this.snapshots.slice(-limit);
     }
 
     async getActiveTrade(symbol: string) {
@@ -43,6 +53,14 @@ export class MockStore implements IDataStore {
 
     async saveBacktestResult(result: any) { }
     async getBacktestResults() { return []; }
+
+    async updateChartCache(period: string, data: any[]) {
+        this.chartCache.set(period, data);
+    }
+
+    async getChartCache(period: string) {
+        return this.chartCache.get(period) || [];
+    }
 }
 
 export class MockTimeProvider implements ITimeProvider {

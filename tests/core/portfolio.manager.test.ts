@@ -23,7 +23,10 @@ describe('PortfolioManager', () => {
         mockDb = {
             getTrades: jest.fn(),
             getOpenTrades: jest.fn().mockResolvedValue([]),
-            savePortfolioSnapshot: jest.fn()
+            savePortfolioSnapshot: jest.fn(),
+            getPortfolioSnapshots: jest.fn().mockResolvedValue([]),
+            getChartCache: jest.fn().mockResolvedValue([]),
+            updateChartCache: jest.fn().mockResolvedValue(undefined)
         };
 
         portfolioManager = new PortfolioManager(mockExchange, mockDb);
@@ -43,10 +46,10 @@ describe('PortfolioManager', () => {
                 pnl: 0,
                 winRate: 0,
                 profitFactor: 0,
-                openTrades: [],
-                closedTrades: [],
+                openTradesCount: 0,
                 currentEquity: 10000,
-                currentBalance: 10000
+                currentBalance: 10000,
+                walletBalance: 10000
             });
             expect(snapshot.timestamp).toBeGreaterThan(0);
         });
@@ -109,14 +112,13 @@ describe('PortfolioManager', () => {
             // Profit factor: gross profit / gross loss = (5000+5000) / 1000 = 10000/1000 = 10
             expect(snapshot.profitFactor).toBe(10);
 
-            expect(snapshot.openTrades).toHaveLength(0);
-            expect(snapshot.closedTrades).toHaveLength(3);
+            expect(snapshot.openTradesCount).toBe(0);
 
             // New Logic: walletBalance = initialBalance (10000) + realizedPnL (9000) = 19000
             // Equity = walletBalance + unrealized (0) = 19000
-            // For balance: exchange mock is 10000 (from beforeEach)
+            // Balance = Settled Cash (19000) - Notional (0) = 19000
             expect(snapshot.currentEquity).toBe(19000);
-            expect(snapshot.currentBalance).toBe(10000);
+            expect(snapshot.currentBalance).toBe(19000);
         });
 
         it('should calculate metrics for open trades with current prices', async () => {
@@ -159,46 +161,26 @@ describe('PortfolioManager', () => {
             expect(snapshot.pnl).toBe(0); // No closed trades
             expect(snapshot.winRate).toBe(0);
             expect(snapshot.profitFactor).toBe(0);
-            expect(snapshot.openTrades).toHaveLength(2);
-            expect(snapshot.closedTrades).toHaveLength(0);
+            expect(snapshot.openTradesCount).toBe(2);
 
-            // Check open trades details
-            const btcTrade = snapshot.openTrades.find(t => t.symbol === 'BTC/USDT');
-            expect(btcTrade).toMatchObject({
-                id: 'trade1',
-                symbol: 'BTC/USDT',
-                side: 'BUY',
-                quantity: 1,
-                entryPrice: 50000,
-                currentPrice: 52000,
-                unrealizedPnL: 2000 // (52000 - 50000) * 1
-            });
+            // We no longer expose trade lists on the snapshot. 
+            // Verification of individual trade PnL calculations should be done in separate unit tests if needed,
+            // or checked via the data store.
 
-            const ethTrade = snapshot.openTrades.find(t => t.symbol === 'ETH/USDT');
-            expect(ethTrade).toMatchObject({
-                id: 'trade2',
-                symbol: 'ETH/USDT',
-                side: 'SELL',
-                quantity: 10,
-                entryPrice: 3000,
-                currentPrice: 2800,
-                unrealizedPnL: 2000 // (3000 - 2800) * 10
-            });
-
-            // New Logic: 
+            // New Logic (Notional Deduction): 
             // Wallet Balance = 10000 (Initial) + 0 (Realized) = 10000
-            // Total Margin (no leverage) = 50000 (BTC) + 30000 (ETH) = 80000
-            // Current Balance = 10000 (from exchange mock)
+            // Total Notional = 50000 (BTC) + 30000 (ETH) = 80000
+            // Current Balance = 10000 - 80000 -> clamped to 0
             // Unrealized PnL = 2000 (BTC) + 2000 (ETH) = 4000
             // Current Equity = Wallet Balance (10000) + Unrealized (4000) = 14000
-            expect(snapshot.currentBalance).toBe(10000);
+            expect(snapshot.currentBalance).toBe(0);
             expect(snapshot.currentEquity).toBe(14000);
 
-            // Holdings should include BTC, ETH and USDT (from exchange mock)
+            // Holdings should include BTC, ETH and USDT (clamped to 0 since notional > cash)
             expect(snapshot.holdings).toMatchObject({
                 'BTC/USDT': 1,
                 'ETH/USDT': -10, // Short
-                'USDT': 10000
+                'USDT': 0
             });
 
             // Clean up
@@ -248,26 +230,14 @@ describe('PortfolioManager', () => {
             expect(snapshot.pnl).toBe(5000); // Only from closed trade
             expect(snapshot.winRate).toBe(1); // 1 winning trade out of 1 closed
             expect(snapshot.profitFactor).toBe(Infinity); // Profit with no loss
-            expect(snapshot.openTrades).toHaveLength(1);
-            expect(snapshot.closedTrades).toHaveLength(1);
+            expect(snapshot.openTradesCount).toBe(1);
 
-            // Check closed trade details
-            expect(snapshot.closedTrades[0]).toMatchObject({
-                id: 'closed1',
-                symbol: 'BTC/USDT',
-                side: 'BUY',
-                quantity: 1,
-                entryPrice: 50000,
-                exitPrice: 55000,
-                pnl: 5000
-            });
-
-            // New Logic:
+            // New Logic (Notional Deduction):
             // Wallet Balance = 10000 (Initial) + 5000 (Realized) = 15000
-            // Total Margin (no leverage, ETH only) = 10 * 3000 = 30000
-            // Balance = 10000 (from exchange mock)
+            // Total Notional (ETH only) = 10 * 3000 = 30000
+            // Balance = 15000 - 30000 -> clamped to 0
             // Equity = Wallet Balance (15000) + 2000 unrealized = 17000
-            expect(snapshot.currentBalance).toBe(10000);
+            expect(snapshot.currentBalance).toBe(0);
             expect(snapshot.currentEquity).toBe(17000);
 
             // Clean up
@@ -337,10 +307,10 @@ describe('PortfolioManager', () => {
 
             // New Logic: 
             // Wallet Balance = 10000
-            // Margin = 10000 / 5 = 2000
-            // Balance = 10000 - 2000 = 8000
+            // Notional = 10000
+            // Balance = 10000 - 10000 = 0
             // Equity = Wallet Balance (10000) + Unrealized (0) = 10000
-            expect(snapshot.currentBalance).toBe(8000);
+            expect(snapshot.currentBalance).toBe(0);
             expect(snapshot.currentEquity).toBe(10000);
 
             // Clean up
@@ -386,9 +356,9 @@ describe('PortfolioManager', () => {
 
             const snapshot = await portfolioManager.generateSnapshot();
 
-            // Total margin = 500 + 1,500 = 2,000
-            // Balance should be: initial_balance - total_margin = 20,000 - 2,000 = 18,000
-            expect(snapshot.currentBalance).toBe(18000);
+            // Total Notional = 5000 + 15000 = 20,000
+            // Balance should be: settled_balance - total_notional = 20,000 - 20,000 = 0
+            expect(snapshot.currentBalance).toBe(0);
 
             // Clean up
             delete process.env.LEVERAGE_VALUE;
@@ -420,7 +390,7 @@ describe('PortfolioManager', () => {
 
             const snapshot = await portfolioManager.generateSnapshot();
 
-            // Balance should be: initial_balance - margin = 10,000 - 5,000 = 5,000
+            // Balance should be: settled_balance - notional = 10,000 - 5,000 = 5,000
             expect(snapshot.currentBalance).toBe(5000);
 
             // Clean up
@@ -470,8 +440,9 @@ describe('PortfolioManager', () => {
 
             const snapshot = await portfolioManager.generateSnapshot();
 
-            // Balance should now match the exchange's reported balance (Priority)
-            expect(snapshot.currentBalance).toBe(5000);
+            // New Logic (Notional Deduction):
+            // Balance = Settled (10000) - Notional (10000) = 0
+            expect(snapshot.currentBalance).toBe(0);
 
             // Clean up
             delete process.env.LEVERAGE_VALUE;
@@ -494,8 +465,7 @@ describe('PortfolioManager', () => {
                     pnl: 0,
                     winRate: 0,
                     profitFactor: 0,
-                    openTrades: [],
-                    closedTrades: [],
+                    openTradesCount: 0,
                     currentEquity: 10000,
                     currentBalance: 10000,
                     timestamp: expect.any(Number)
