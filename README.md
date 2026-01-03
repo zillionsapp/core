@@ -594,10 +594,10 @@ The `PortfolioManager` (`src/core/portfolio.manager.ts`) provides **comprehensiv
 - **PnL**: Total realized profit/loss from closed trades.
 - **Win Rate**: Percentage of profitable trades (0-100%).
 - **Profit Factor**: Ratio of gross profits to gross losses.
-- **Open Trades**: Current positions with unrealized PnL and market values.
-- **Closed Trades**: Historical trades with realized PnL.
-- **Current Equity**: Total account value including unrealized gains.
-- **Current Balance**: Available cash balance.
+- **Open Trades**: Current positions with unrealized PnL based on live market prices.
+- **Closed Trades**: Historical trades with confirmed realized PnL.
+- **Current Equity**: Total account value including unrealized gains/losses (`Wallet Balance + Unrealized PnL`).
+- **Current Balance**: Available cash balance for new trades (`Wallet Balance - Used Margin`). **Note**: This intelligently falls back to a calculated value if the exchange API is unavailable.
 
 **Key Benefits:**
 - **Performance Tracking**: Monitor trading performance with industry-standard metrics.

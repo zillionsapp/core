@@ -7,6 +7,10 @@ const router = Router();
 const db = new SupabaseDataStore();
 
 // GET /api/portfolio - Latest portfolio snapshot
+/**
+ * Retrieves the most recent portfolio snapshot.
+ * Returns 404 if no snapshot is found.
+ */
 router.get('/portfolio', async (req, res) => {
     try {
         const snapshot = await db.getLatestPortfolioSnapshot();
@@ -20,6 +24,11 @@ router.get('/portfolio', async (req, res) => {
 });
 
 // GET /api/portfolio-history - Historical portfolio snapshots
+/**
+ * Retrieves historical portfolio snapshots with optional filtering.
+ * @query limit - Number of snapshots to return (default: 50)
+ * @query period - Time period filter (default: 'all')
+ */
 router.get('/portfolio-history', async (req, res) => {
     try {
         const limit = parseInt(req.query.limit as string) || 50;
