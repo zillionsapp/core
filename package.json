@@ -1,10 +1,10 @@
 {
   "name": "core",
   "version": "0.1.0",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
-    "start": "ts-node src/index.ts",
-    "dev": "nodemon --watch src src/index.ts",
+    "start": "ts-node src/main.ts",
+    "dev": "nodemon --watch src src/main.ts",
     "backtest": "ts-node src/backtest/runner.ts",
     "replay": "ts-node scripts/replay.ts",
     "api": "ts-node src/api/server.ts",

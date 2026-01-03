@@ -10,6 +10,7 @@
 - [🛠 Prerequisites](#prerequisites)
 - [📦 Installation](#installation)
 - [🏃‍♂️ Usage](#usage)
+- [📦 Zillions SDK](#zillions-sdk)
 - [🐳 Deployment](#deployment)
   - [Docker](#docker)
   - [PM2 (VPS/Bare Metal)](#pm2-vps-bare-metal)
@@ -241,6 +242,74 @@ await bot.tick('ETH/USDT', '1h', {
 });
 ```
 
+
+---
+
+## � Zillions SDK
+
+You can use Zillions Core as an SDK in your own projects to build custom trading applications or deploy to serverless environments.
+
+### 1. Installation
+In your new project, add Zillions Core as a dependency:
+```bash
+npm install @zillions/core
+```
+
+### 2. Basic Usage
+Import the `BotEngine` and start the bot with a built-in strategy:
+```typescript
+import { BotEngine, startApi } from '@zillions/core';
+
+async function main() {
+    // Optional: Start the dashboard on port 3000
+    startApi(3000);
+
+    const bot = new BotEngine('MACD');
+    await bot.start('BTC/USDT', '15m');
+}
+```
+
+### 3. Injecting Custom Strategies
+The SDK allows you to implement and inject your own strategies from outside the library.
+
+```typescript
+import { BotEngine, IStrategy, Candle, Signal } from '@zillions/core';
+
+class MyCustomStrategy implements IStrategy {
+    name = 'MyCustomStrategy';
+    
+    async init(config: any) {
+        // Initialize logic
+    }
+
+    async update(candle: Candle): Promise<Signal | null> {
+        // Your custom logic
+        return {
+            symbol: candle.symbol,
+            action: 'BUY'
+        };
+    }
+}
+
+const bot = new BotEngine(new MyCustomStrategy());
+await bot.start('BTC/USDT', '1h');
+```
+
+### 4. Serverless / Vercel Usage
+For serverless environments, use the `tick()` method to run the engine in a stateless manner:
+
+```typescript
+import { BotEngine } from '@zillions/core';
+
+export default async function handler(req, res) {
+    const bot = new BotEngine(new MyCustomStrategy());
+    
+    // Execute one cycle (fetches data, manage positions, update strategy)
+    await bot.tick('BTC/USDT', '1h');
+    
+    res.status(200).json({ status: 'ok' });
+}
+```
 
 ---
 

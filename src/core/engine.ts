@@ -26,14 +26,20 @@ export class BotEngine {
     private timeProvider: ITimeProvider;
 
     constructor(
-        strategyName: string,
+        strategy: string | IStrategy,
         timeProvider: ITimeProvider = new RealTimeProvider(),
         exchange?: IExchange,
         db?: IDataStore
     ) {
         this.timeProvider = timeProvider;
         this.exchange = exchange || ExchangeFactory.getExchange();
-        this.strategy = StrategyManager.getStrategy(strategyName);
+
+        if (typeof strategy === 'string') {
+            this.strategy = StrategyManager.getStrategy(strategy);
+        } else {
+            this.strategy = strategy;
+        }
+
         this.db = db || new SupabaseDataStore();
         this.riskManager = new RiskManager(this.exchange, this.db, this.timeProvider);
         this.tradeManager = new TradeManager(this.exchange, this.db);
