@@ -67,7 +67,8 @@ describe('TradeManager', () => {
                 status: 'CLOSED',
                 exitPrice: 47000,
                 exitTimestamp: expect.any(Number),
-                duration: expect.any(Number)
+                duration: expect.any(Number),
+                exitReason: 'STOP_LOSS'
             });
         });
 
@@ -105,7 +106,8 @@ describe('TradeManager', () => {
                 status: 'CLOSED',
                 exitPrice: 56000,
                 exitTimestamp: expect.any(Number),
-                duration: expect.any(Number)
+                duration: expect.any(Number),
+                exitReason: 'TAKE_PROFIT'
             });
         });
 
@@ -143,7 +145,8 @@ describe('TradeManager', () => {
                 status: 'CLOSED',
                 exitPrice: 53000,
                 exitTimestamp: expect.any(Number),
-                duration: expect.any(Number)
+                duration: expect.any(Number),
+                exitReason: 'STOP_LOSS'
             });
         });
 
@@ -338,7 +341,8 @@ describe('TradeManager', () => {
                 status: 'CLOSED',
                 exitPrice: 51400,
                 exitTimestamp: expect.any(Number),
-                duration: expect.any(Number)
+                duration: expect.any(Number),
+                exitReason: 'TRAILING_STOP_LOSS'
             });
         });
 
@@ -437,7 +441,8 @@ describe('TradeManager', () => {
                 status: 'CLOSED',
                 exitPrice: 47000,
                 exitTimestamp: expect.any(Number),
-                duration: expect.any(Number)
+                duration: expect.any(Number),
+                exitReason: 'STOP_LOSS'
             });
         });
     });
