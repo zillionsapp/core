@@ -11,13 +11,11 @@
 - [📦 Installation](#installation)
 - [🏃‍♂️ Usage](#usage)
 - [📦 Zillions SDK](#zillions-sdk)
-- [ Available Strategies](#available-strategies)
-- [🏛 Architecture](#architecture)
-- [🧩 Adding Strategies](#adding-strategies)
-  - [Basic Strategy (Signal-Based)](#basic-strategy-signal-based)
-  - [Advanced Strategy (Custom ST/TP Logic)](#advanced-strategy-custom-sttp-logic)
-  - [Strategy Capabilities](#strategy-capabilities)
-  - [Registering Your Strategy](#registering-your-strategy)
+  - [Setup](#setup)
+  - [Basic Usage](#basic-usage)
+  - [Custom Strategies](#custom-strategies)
+  - [Serverless / Vercel Usage](#serverless--vercel-usage)
+- [🛠 Available Strategies](#available-strategies)
 - [🛡 Risk Management](#risk-management)
   - [RiskManager](#riskmanager)
   - [Leverage Support](#leverage-support)
@@ -274,48 +272,70 @@ async function main() {
 }
 ```
 
-### 3. Injecting Custom Strategies
-The SDK allows you to implement and inject your own strategies from outside the library.
+### 3. Custom Strategies
 
+Zillion's strategy system is highly extensible. You can implement the `IStrategy` interface and inject your instance directly into `BotEngine`.
+
+#### Simple Strategy (Signal-Based)
 ```typescript
-import { BotEngine, IStrategy, Candle, Signal } from 'zillions';
+import { IStrategy, Candle, Signal } from 'zillions';
 
-class MyCustomStrategy implements IStrategy {
-    name = 'MyCustomStrategy';
-    
-    async init(config: any) {
-        // Initialize logic
-    }
-
+class MyStrategy implements IStrategy {
+    name = 'MY_STRATEGY';
     async update(candle: Candle): Promise<Signal | null> {
-        // Your custom logic
-        return {
-            symbol: candle.symbol,
-            action: 'BUY'
-        };
+        if (candle.close > 100) {
+            return { action: 'BUY', symbol: candle.symbol, stopLoss: 5, takeProfit: 10 };
+        }
+        return null;
     }
 }
 
-const bot = new BotEngine(new MyCustomStrategy());
-await bot.start('BTC/USDT', '1h');
+const bot = new BotEngine(new MyStrategy());
 ```
 
-### 4. Serverless / Vercel Usage
-For serverless environments, use the `tick()` method to run the engine in a stateless manner:
+#### Advanced Strategy (Custom Exit Hooks)
+For dynamic stop losses or complex lifecycle management, you can use the optional hooks:
 
 ```typescript
-import { BotEngine } from '@zillions/core';
+class AdvancedStrategy implements IStrategy {
+    name = 'ADVANCED_STRATEGY';
+    
+    // Manage existing positions dynamically
+    async checkExit(trade: Trade, candle: Candle) {
+        if (someCondition) return 'CLOSE';
+        return 'HOLD';
+    }
+
+    // Lifecycle hooks
+    async onPositionOpened(trade: Trade) { /* Custom tracking */ }
+    async onPositionClosed(trade: Trade) { /* Performance analysis */ }
+}
+```
+
+### 4. Optional: Name-Based Registration
+If you want to use your strategy by name (e.g. via `.env` for CLI usage), register it in `src/core/strategy.manager.ts`:
+
+```typescript
+private static strategies = new Map([
+    ['MY_STRATEGY', MyStrategy]
+]);
+```
+Then simply set `STRATEGY_NAME=MY_STRATEGY` in your `.env`.
+
+### 5. Serverless / Vercel Usage
+For serverless environments, use the `tick()` method for stateless execution:
+
+```typescript
+import { BotEngine } from 'zillions';
 
 export default async function handler(req, res) {
     const bot = new BotEngine(new MyCustomStrategy());
-    
-    // Execute one cycle (fetches data, manage positions, update strategy)
     await bot.tick('BTC/USDT', '1h');
-    
     res.status(200).json({ status: 'ok' });
 }
 ```
 
+---
 ---
  
  ##  Available Strategies
@@ -330,195 +350,6 @@ export default async function handler(req, res) {
  | **Volume** | `CMF`, `EMV`, `FI`, `MFI`, `NVI`, `VWAP` |
  
  ---
- 
-## 🏛 Architecture
-
-```
-src/
-├── index.ts           # Main entry point
-├── core/               # Domain Logic (Engine, Risk Manager, Logger)
-├── interfaces/         # Port Definitions (IExchange, IStrategy, IDataStore)
-├── adapters/
-│   ├── exchange/       # Adapters (Paper, Binance, Hyperliquid...)
-│   └── database/       # Adapters (Supabase)
-├── api/                # REST API routes and server
-├── strategies/         # Trading Strategies
-├── backtest/           # Backtesting module
-└── config/             # Zod-typed Env validation
-```
-
----
-
-## 🧩 Adding Strategies
-
-Zillion's strategy system is highly extensible. You can create simple signal-based strategies or complex strategies with custom exit logic.
-
-### Basic Strategy (Signal-Based)
-
-For simple strategies that generate entry signals with static exits:
-
-1.  **Create a file**: `src/strategies/my_strategy.ts`
-2.  **Implement the Interface**:
-    ```typescript
-    import { IStrategy } from '../interfaces/strategy.interface';
-    import { Candle, Signal } from '../core/types';
-
-    export class MyStrategy implements IStrategy {
-        name = 'MY_STRATEGY';
-
-        init(config: any): void {
-            // Load parameters
-        }
-
-        async update(candle: Candle): Promise<Signal | null> {
-            // Your entry logic here...
-            if (candle.close > 100) {
-                return {
-                    action: 'BUY',
-                    symbol: candle.symbol,
-                    stopLoss: 5,    // 5% stop loss
-                    takeProfit: 10, // 10% take profit
-                    forceClose: false // Optional: force close conflicting positions
-                };
-            }
-            return null; // HOLD
-        }
-    }
-    ```
-
-### Advanced Strategy (Custom ST/TP Logic)
-
-For strategies with dynamic stop losses, custom exit conditions, or complex position management:
-
-```typescript
-import { IStrategy, StrategyConfig } from '../interfaces/strategy.interface';
-import { Candle, Signal, Trade } from '../core/types';
-
-export class AdvancedStrategy implements IStrategy {
-    name = 'ADVANCED_STRATEGY';
-    private positionCount = 0;
-
-    init(config: StrategyConfig): void {
-        // Initialize with config
-    }
-
-    async update(candle: Candle): Promise<Signal | null> {
-        // Entry logic - can still use static SL/TP or rely on checkExit
-        if (this.shouldEnter(candle)) {
-            return {
-                action: 'BUY',
-                symbol: candle.symbol,
-                stopLoss: 2, // Wide initial stop, will be managed dynamically
-                takeProfit: 20
-            };
-        }
-        return null;
-    }
-
-    async checkExit(trade: Trade, candle: Candle): Promise<'HOLD' | 'CLOSE' | { action: 'UPDATE_SL' | 'UPDATE_TP' | 'PARTIAL_CLOSE', quantity?: number, newPrice?: number }> {
-        const profitPercent = calculateProfitPercent(trade, candle.close);
-
-        // Dynamic trailing stop based on profit
-        if (profitPercent > 3) {
-            const trailPercent = Math.min(1.5, profitPercent * 0.3); // Tighter trail as profit grows
-            const newSL = trade.side === 'BUY'
-                ? candle.close * (1 - trailPercent / 100)
-                : candle.close * (1 + trailPercent / 100);
-
-            return { action: 'UPDATE_SL', newPrice: newSL };
-        }
-
-        // Time-based exit (avoid holding overnight)
-        const positionAge = Date.now() - trade.timestamp;
-        if (positionAge > 8 * 60 * 60 * 1000) { // 8 hours
-            return 'CLOSE';
-        }
-
-        // Momentum-based exit
-        if (this.detectReversal(candle)) {
-            return 'CLOSE';
-        }
-
-        return 'HOLD';
-    }
-
-    async onPositionOpened(trade: Trade): Promise<void> {
-        this.positionCount++;
-        console.log(`Position opened: ${trade.id}, total positions: ${this.positionCount}`);
-        // Set up custom tracking, alerts, etc.
-    }
-
-    async onPositionClosed(trade: Trade): Promise<void> {
-        this.positionCount--;
-        const pnl = calculatePnL(trade);
-        console.log(`Position closed: ${trade.id}, PnL: ${pnl}%, total positions: ${this.positionCount}`);
-        // Performance analysis, logging, etc.
-    }
-
-    private shouldEnter(candle: Candle): boolean {
-        // Your entry conditions
-        return candle.close > this.calculateSupport(candle.symbol);
-    }
-
-    private detectReversal(candle: Candle): boolean {
-        // Custom reversal detection logic
-        return false; // Placeholder
-    }
-
-    private calculateSupport(symbol: string): number {
-        // Calculate support level
-        return 0; // Placeholder
-    }
-}
-
-function calculateProfitPercent(trade: Trade, currentPrice: number): number {
-    return trade.side === 'BUY'
-        ? ((currentPrice - trade.price) / trade.price) * 100
-        : ((trade.price - currentPrice) / trade.price) * 100;
-}
-
-function calculatePnL(trade: Trade): number {
-    if (!trade.exitPrice) return 0;
-    return calculateProfitPercent(trade, trade.exitPrice);
-}
-```
-
-### Strategy Capabilities
-
-| Feature | Basic Strategy | Advanced Strategy |
-|---------|---------------|-------------------|
-| Entry Signals | ✅ | ✅ |
-| Static SL/TP | ✅ | ✅ |
-| Force Close | ✅ | ✅ |
-| Dynamic SL/TP | ❌ | ✅ |
-| Custom Exit Logic | ❌ | ✅ |
-| Position Lifecycle Hooks | ❌ | ✅ |
-| Partial Closes | ❌ | ✅ |
-| Time-based Exits | ❌ | ✅ |
-| Momentum-based Exits | ❌ | ✅ |
-
-### Registering Your Strategy (Optional)
-
-If you want to use your strategy by name (e.g., via `.env` or during Backtesting), you must register it. For SDK usage, you can skip this and inject the instance directly into `BotEngine`.
-
-3.  **Register it**:
-    Open `src/core/strategy.manager.ts` and add it to the map:
-    ```typescript
-    import { MyStrategy } from '../strategies/my_strategy';
-    // ...
-    private static strategies = new Map([
-        ['SMA_CROSSOVER', SmaCrossoverStrategy],
-        ['MY_STRATEGY', MyStrategy] // <-- Add this
-    ]);
-    ```
-
-4.  **Run it via config**: Update `.env` or use environment variables:
-    ```env
-    STRATEGY_NAME=MY_STRATEGY
-    STRATEGY_SYMBOL=ETH/USDT
-    STRATEGY_INTERVAL=5m
-    ```
-
 ---
 
 ## 🛡 Risk Management
