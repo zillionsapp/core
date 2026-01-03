@@ -23,17 +23,15 @@ router.get('/portfolio', async (req, res) => {
     }
 });
 
-// GET /api/portfolio-history - Historical portfolio snapshots
+// GET /api/portfolio-history - Historical portfolio snapshots (cached)
 /**
- * Retrieves historical portfolio snapshots with optional filtering.
- * @query limit - Number of snapshots to return (default: 50)
+ * Retrieves historical portfolio chart data from cache.
  * @query period - Time period filter (default: 'all')
  */
 router.get('/portfolio-history', async (req, res) => {
     try {
-        const limit = parseInt(req.query.limit as string) || 50;
         const period = req.query.period as string || 'all';
-        const snapshots = await db.getPortfolioSnapshots(limit, period);
+        const snapshots = await db.getChartCache(period);
         res.json(snapshots);
     } catch (error: any) {
         console.error('[API] Error fetching portfolio history:', error.message);

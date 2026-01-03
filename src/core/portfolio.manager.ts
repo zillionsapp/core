@@ -141,7 +141,89 @@ export class PortfolioManager {
     async saveSnapshot(): Promise<void> {
         const snapshot = await this.generateSnapshot();
         await this.db.savePortfolioSnapshot(snapshot);
+
+        // Update chart cache incrementally (perspective of now)
+        this.refreshChartCache({
+            timestamp: snapshot.timestamp,
+            equity: snapshot.currentEquity
+        }).catch(err => logger.error(`[PortfolioManager] Failed to update chart cache: ${err.message}`));
     }
+
+    private async refreshChartCache(newPoint: { timestamp: number, equity: number }): Promise<void> {
+        const periods = ['1d', '1w', '1m', '1y', 'all'];
+        const now = newPoint.timestamp;
+
+        for (const period of periods) {
+            let cacheData = await this.db.getChartCache(period);
+
+            // Bootstrap: If cache is empty, fetch limited history once
+            if (cacheData.length === 0) {
+                logger.info(`[PortfolioManager] Bootstrapping chart cache for ${period}...`);
+                const limit = 1000;
+                const snapshots = await this.db.getPortfolioSnapshots(limit, period);
+                cacheData = snapshots.map(s => ({ timestamp: s.timestamp, equity: s.currentEquity }));
+                // Sort to be safe, although DataStore typically returns DESC which we then reverse
+                cacheData.sort((a, b) => a.timestamp - b.timestamp);
+            }
+
+            // Incremental Update: Add new point
+            cacheData.push(newPoint);
+
+            // Filter by period cutoff
+            if (period !== 'all') {
+                let cutoff = now;
+                switch (period) {
+                    case '1d': cutoff = now - (24 * 60 * 60 * 1000); break;
+                    case '1w': cutoff = now - (7 * 24 * 60 * 60 * 1000); break;
+                    case '1m': cutoff = now - (30 * 24 * 60 * 60 * 1000); break;
+                    case '1y': cutoff = now - (365 * 24 * 60 * 60 * 1000); break;
+                }
+                cacheData = cacheData.filter(p => p.timestamp >= cutoff);
+            }
+
+            // Deduplicate (in case of double triggers within same ms)
+            cacheData = cacheData.filter((p, index) =>
+                cacheData.findIndex(p2 => p2.timestamp === p.timestamp) === index
+            );
+
+            // Maintain max size / Consolidate
+            const MAX_POINTS = 500;
+            const TARGET_POINTS = 200;
+            if (cacheData.length > MAX_POINTS) {
+                cacheData = this.downsample(cacheData, TARGET_POINTS);
+            }
+
+            await this.db.updateChartCache(period, cacheData);
+        }
+
+        logger.debug(`[PortfolioManager] Incrementally updated chart cache for all periods`);
+    }
+
+    private downsample(data: any[], targetCount: number): any[] {
+        if (data.length <= targetCount) return data;
+
+        const blockSize = data.length / targetCount;
+        const consolidated: any[] = [];
+
+        for (let i = 0; i < targetCount; i++) {
+            const startIdx = Math.floor(i * blockSize);
+            const endIdx = Math.floor((i + 1) * blockSize);
+            const slice = data.slice(startIdx, endIdx);
+
+            if (slice.length === 0) continue;
+
+            const last = slice[slice.length - 1];
+            const avgEquity = slice.reduce((sum, item) => sum + item.equity, 0) / slice.length;
+
+            consolidated.push({
+                timestamp: last.timestamp,
+                equity: avgEquity
+            });
+        }
+
+        return consolidated;
+    }
+
 
     private calculateTotalPnL(trades: Trade[]): number {
         return trades.reduce((total, trade) => total + this.calculateTradePnL(trade), 0);

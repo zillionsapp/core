@@ -51,6 +51,11 @@ export interface IDataStore {
     getLatestPortfolioSnapshot(): Promise<PortfolioSnapshot | null>;
 
     /**
+     * Get historical portfolio snapshots
+     */
+    getPortfolioSnapshots(limit: number, period?: string): Promise<PortfolioSnapshot[]>;
+
+    /**
      * Get active trade for a symbol
      */
     getActiveTrade(symbol: string): Promise<Trade | null>;
@@ -74,4 +79,14 @@ export interface IDataStore {
      * Save risk state
      */
     saveRiskState(state: { startOfDayBalance: number, lastResetDay: number }): Promise<void>;
+
+    /**
+     * Update/Upsert chart cache for a specific period
+     */
+    updateChartCache(period: string, data: any[]): Promise<void>;
+
+    /**
+     * Get chart cache for a period
+     */
+    getChartCache(period: string): Promise<any[]>;
 }

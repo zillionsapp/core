@@ -50,6 +50,13 @@ create table public.portfolio_snapshots (
   created_at timestamp with time zone default timezone('utc'::text, now())
 );
 create index if not exists idx_portfolio_snapshots_timestamp on public.portfolio_snapshots (timestamp desc);
+ 
+-- Portfolio Chart Cache (Optimized for instant dashboard loading)
+create table public.portfolio_chart_cache (
+  period text primary key, -- e.g. '1d', '1w', '1m', '1y', 'all'
+  data jsonb not null, -- Array of {timestamp, equity} points
+  updated_at timestamp with time zone default timezone('utc'::text, now())
+);
 
 -- Backtest Results
 create table public.backtest_results (

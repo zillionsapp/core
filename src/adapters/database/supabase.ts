@@ -353,4 +353,27 @@ export class SupabaseDataStore implements IDataStore {
 
         if (error) console.error('Error saving risk state:', error);
     }
+
+    async updateChartCache(period: string, data: any[]): Promise<void> {
+        if (!this.supabase) return;
+        const { error } = await this.supabase
+            .from('portfolio_chart_cache')
+            .upsert({ period, data, updated_at: new Date().toISOString() });
+        if (error) console.error(`Error updating chart cache for ${period}:`, error);
+    }
+
+    async getChartCache(period: string): Promise<any[]> {
+        if (!this.supabase) return [];
+        const { data, error } = await this.supabase
+            .from('portfolio_chart_cache')
+            .select('data')
+            .eq('period', period)
+            .maybeSingle();
+
+        if (error) {
+            console.error(`Error fetching chart cache for ${period}:`, error);
+            return [];
+        }
+        return data?.data || [];
+    }
 }
