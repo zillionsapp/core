@@ -11,6 +11,7 @@ export interface PortfolioSnapshot {
     winningTrades: number; // Number of winning closed trades
     losingTrades: number; // Number of losing closed trades
     openTradesCount: number; // Number of currently open trades
+    totalNotionalValue: number; // Sum of (Qty * EntryPrice)
     currentEquity: number;
     currentBalance: number;
     totalMarginUsed: number;

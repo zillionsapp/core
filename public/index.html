@@ -384,21 +384,18 @@
                 if (portData && !portData.error) {
                     // Mapping to Industry Standards
                     const initialCapital = portData.initialBalance || 10000;
-                    const cashBalance = portData.walletBalance || initialCapital; // Settled: Initial + Realized
-                    const totalEquity = portData.currentEquity || portData.totalValue || cashBalance; // Live: Cash + Unrealized
-                    const availableBalance = portData.currentBalance || 0; // Free to trade: Cash - Margin
-                    const totalMarginUsed = portData.totalMarginUsed || 0;
+                    const currentBalance = portData.currentBalance || 0;
+                    const currentEquity = portData.currentEquity || 0;
+                    const totalRealizedPnL = portData.pnl || 0;
+                    const realizedPnLPercentage = portData.pnlPercentage || 0;
+                    const unrealizedPnL = currentEquity - currentBalance;
 
-                    const netPnL = totalEquity - initialCapital;
-                    const netPnLPercentage = (netPnL / initialCapital) * 100;
-                    const unrealizedPnL = totalEquity - cashBalance;
+                    // 1. Tile: Current Balance -> (Initial + Realized) - Notional
+                    document.getElementById('currentBalance').innerText = `$${currentBalance.toLocaleString()}`;
+                    document.querySelector('#currentBalance + .stat-desc').innerText = `Available Cash (Settled - Notional)`;
 
-                    // 1. Tile: Current Balance -> Available Cash
-                    document.getElementById('currentBalance').innerText = `$${availableBalance.toLocaleString()}`;
-                    document.querySelector('#currentBalance + .stat-desc').innerText = `Available to Trade (USDT)`;
-
-                    // 2. Tile: Current Equity -> Total Live Value
-                    document.getElementById('currentEquity').innerText = `$${totalEquity.toLocaleString()}`;
+                    // 2. Tile: Current Equity -> Current Balance + Unrealized
+                    document.getElementById('currentEquity').innerText = `$${currentEquity.toLocaleString()}`;
                     const equityChangeEl = document.getElementById('equityChange');
                     equityChangeEl.innerText = `${unrealizedPnL >= 0 ? '+' : '-'}$${Math.abs(unrealizedPnL).toFixed(2)} unrealized profit`;
                     equityChangeEl.classList.toggle('text-success', unrealizedPnL >= 0);
@@ -408,22 +405,24 @@
                     document.getElementById('winRate').innerText = `${((portData.winRate || 0) * 100).toFixed(1)}%`;
                     document.getElementById('profitFactor').innerText = (portData.profitFactor || 0).toFixed(2);
 
-                    // 4. Tile: Total PnL -> Net Growth since Deposit
+                    // 4. Tile: Total PnL -> Total Realized PnL
                     const totalPnLEl = document.getElementById('totalPnL');
-                    totalPnLEl.innerText = `${netPnL >= 0 ? '+' : '-'}$${Math.abs(netPnL).toFixed(2)}`;
-                    totalPnLEl.classList.toggle('text-success', netPnL >= 0);
-                    totalPnLEl.classList.toggle('text-error', netPnL < 0);
+                    totalPnLEl.innerText = `${totalRealizedPnL >= 0 ? '+' : '-'}$${Math.abs(totalRealizedPnL).toFixed(2)}`;
+                    totalPnLEl.classList.toggle('text-success', totalRealizedPnL >= 0);
+                    totalPnLEl.classList.toggle('text-error', totalRealizedPnL < 0);
 
                     const pnlPercentageEl = document.getElementById('totalPnLPercentage');
-                    pnlPercentageEl.innerText = `${netPnLPercentage >= 0 ? '+' : '-'}${Math.abs(netPnLPercentage).toFixed(2)}% net return on initial`;
-                    pnlPercentageEl.classList.toggle('text-success', netPnLPercentage >= 0);
-                    pnlPercentageEl.classList.toggle('text-error', netPnLPercentage < 0);
+                    pnlPercentageEl.innerText = `${realizedPnLPercentage >= 0 ? '+' : '-'}${Math.abs(realizedPnLPercentage).toFixed(2)}% total realized profit`;
+                    pnlPercentageEl.classList.toggle('text-success', realizedPnLPercentage >= 0);
+                    pnlPercentageEl.classList.toggle('text-error', realizedPnLPercentage < 0);
 
-                    // 5. Tile: Open Positions -> Show Margin & Settled Cash
+                    // 5. Tile: Open Positions -> Show Exposure & Margin
                     const openTradesCount = portData.openTradesCount || 0;
+                    const totalNotionalValue = portData.totalNotionalValue || 0;
+                    const marginValue = portData.totalMarginUsed || 0;
                     document.getElementById('openPositions').innerText = openTradesCount.toString();
                     const openPositionsValueEl = document.getElementById('openPositionsValue');
-                    openPositionsValueEl.innerHTML = `<span class="opacity-70">Cash:</span> $${cashBalance.toLocaleString()} <span class="mx-1 opacity-40">|</span> <span class="opacity-70">Margin:</span> $${totalMarginUsed.toLocaleString()}`;
+                    openPositionsValueEl.innerHTML = `<span class="opacity-70">Exposure:</span> $${totalNotionalValue.toLocaleString()} <span class="mx-1 opacity-40">|</span> <span class="opacity-70">Margin:</span> $${marginValue.toLocaleString()}`;
                     openPositionsValueEl.className = 'stat-desc mt-1 font-mono text-[10px] leading-tight';
 
                     // 6. Tile: Closed Trades

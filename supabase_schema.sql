@@ -45,6 +45,7 @@ create table public.portfolio_snapshots (
   "currentBalance" numeric,
   "walletBalance" numeric,
   "totalMarginUsed" numeric,
+  "totalNotionalValue" numeric,
   "initialBalance" numeric,
   created_at timestamp with time zone default timezone('utc'::text, now())
 );

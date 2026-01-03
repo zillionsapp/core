@@ -59,16 +59,19 @@ export class PortfolioManager {
         // 2. Wallet Balance = Initial + Realized PnL
         const walletBalance = initialBalance + totalRealizedPnL;
 
-        // 3. Calculate total margin used and asset holdings
+        // 3. Calculate total margin used, notional value, and asset holdings
         let totalMarginUsed = 0;
+        let totalNotionalValue = 0;
         const holdings: Record<string, number> = { [balanceAsset]: 0 }; // Initialize with base asset
 
         for (const trade of openTrades) {
+            const positionValue = trade.quantity * trade.price;
+            totalNotionalValue += positionValue;
+
             // Use stored margin if available and valid, otherwise recalculate
             let margin = trade.margin;
             if (!margin || margin <= 0) {
                 const leverage = trade.leverage || parseFloat(process.env.LEVERAGE_VALUE || '1');
-                const positionValue = trade.quantity * trade.price;
                 margin = leverage > 1 ? positionValue / leverage : positionValue;
                 logger.debug(`[PortfolioManager] Recalculated margin for ${trade.id} (${trade.symbol}): ${margin.toFixed(2)} (Leverage: ${leverage}x)`);
             }
@@ -82,24 +85,8 @@ export class PortfolioManager {
             }
         }
 
-        // 4. Current (Available) Balance = Wallet Balance - Margin
-        // For PAPER trading, we strictly prefer our deterministic DB calculation over the in-memory exchange balance,
-        // because the exchange instance may lose state between separate processes (e.g. Bot vs API).
-        let currentBalance: number;
-        if (process.env.PAPER_TRADING === 'true' || process.env.PAPER_INITIAL_BALANCE) {
-            currentBalance = walletBalance - totalMarginUsed;
-        } else {
-            try {
-                const realBalance = await this.exchange.getBalance(balanceAsset);
-                if (typeof realBalance === 'number' && !isNaN(realBalance)) {
-                    currentBalance = realBalance;
-                } else {
-                    currentBalance = walletBalance - totalMarginUsed;
-                }
-            } catch (error) {
-                currentBalance = walletBalance - totalMarginUsed;
-            }
-        }
+        // 4. Current Balance = Settled Cash - Total Notional Value (User requirement)
+        let currentBalance = walletBalance - totalNotionalValue;
 
         // CRITICAL: Available balance cannot be negative
         currentBalance = Math.max(0, currentBalance);
@@ -121,8 +108,8 @@ export class PortfolioManager {
             return sum + this.calculateUnrealizedPnL(trade, currentPrice);
         }, 0);
 
-        // 6. Current Equity = Wallet Balance + Unrealized PnL
-        const currentEquity = walletBalance + unrealizedPnLTotal;
+        // 6. Current Equity = Current Balance + Unrealized PnL (User requirement)
+        const currentEquity = currentBalance + unrealizedPnLTotal;
 
         const snapshot: PortfolioSnapshot = {
             timestamp,
@@ -135,6 +122,7 @@ export class PortfolioManager {
             winningTrades: closedTrades.filter(t => this.calculateTradePnL(t) > 0).length,
             losingTrades: closedTrades.filter(t => this.calculateTradePnL(t) < 0).length,
             openTradesCount: openTrades.length,
+            totalNotionalValue,
             currentEquity,
             currentBalance,
             totalMarginUsed,
