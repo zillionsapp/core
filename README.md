@@ -293,22 +293,100 @@ class MyStrategy implements IStrategy {
 const bot = new BotEngine(new MyStrategy());
 ```
 
-#### Advanced Strategy (Custom Exit Hooks)
-For dynamic stop losses or complex lifecycle management, you can use the optional hooks:
+#### Advanced Strategy (Custom ST/TP Logic)
+
+For strategies with dynamic stop losses, custom exit conditions, or complex position management:
 
 ```typescript
-class AdvancedStrategy implements IStrategy {
+import { IStrategy, StrategyConfig } from '../interfaces/strategy.interface';
+import { Candle, Signal, Trade } from '../core/types';
+
+export class AdvancedStrategy implements IStrategy {
     name = 'ADVANCED_STRATEGY';
-    
-    // Manage existing positions dynamically
-    async checkExit(trade: Trade, candle: Candle) {
-        if (someCondition) return 'CLOSE';
+    private positionCount = 0;
+
+    init(config: StrategyConfig): void {
+        // Initialize with config
+    }
+
+    async update(candle: Candle): Promise<Signal | null> {
+        // Entry logic - can still use static SL/TP or rely on checkExit
+        if (this.shouldEnter(candle)) {
+            return {
+                action: 'BUY',
+                symbol: candle.symbol,
+                stopLoss: 2, // Wide initial stop, will be managed dynamically
+                takeProfit: 20
+            };
+        }
+        return null;
+    }
+
+    async checkExit(trade: Trade, candle: Candle): Promise<'HOLD' | 'CLOSE' | { action: 'UPDATE_SL' | 'UPDATE_TP' | 'PARTIAL_CLOSE', quantity?: number, newPrice?: number }> {
+        const profitPercent = calculateProfitPercent(trade, candle.close);
+
+        // Dynamic trailing stop based on profit
+        if (profitPercent > 3) {
+            const trailPercent = Math.min(1.5, profitPercent * 0.3); // Tighter trail as profit grows
+            const newSL = trade.side === 'BUY'
+                ? candle.close * (1 - trailPercent / 100)
+                : candle.close * (1 + trailPercent / 100);
+
+            return { action: 'UPDATE_SL', newPrice: newSL };
+        }
+
+        // Time-based exit (avoid holding overnight)
+        const positionAge = Date.now() - trade.timestamp;
+        if (positionAge > 8 * 60 * 60 * 1000) { // 8 hours
+            return 'CLOSE';
+        }
+
+        // Momentum-based exit
+        if (this.detectReversal(candle)) {
+            return 'CLOSE';
+        }
+
         return 'HOLD';
     }
 
-    // Lifecycle hooks
-    async onPositionOpened(trade: Trade) { /* Custom tracking */ }
-    async onPositionClosed(trade: Trade) { /* Performance analysis */ }
+    async onPositionOpened(trade: Trade): Promise<void> {
+        this.positionCount++;
+        console.log(`Position opened: ${trade.id}, total positions: ${this.positionCount}`);
+        // Set up custom tracking, alerts, etc.
+    }
+
+    async onPositionClosed(trade: Trade): Promise<void> {
+        this.positionCount--;
+        const pnl = calculatePnL(trade);
+        console.log(`Position closed: ${trade.id}, PnL: ${pnl}%, total positions: ${this.positionCount}`);
+        // Performance analysis, logging, etc.
+    }
+
+    private shouldEnter(candle: Candle): boolean {
+        // Your entry conditions
+        return candle.close > this.calculateSupport(candle.symbol);
+    }
+
+    private detectReversal(candle: Candle): boolean {
+        // Custom reversal detection logic
+        return false; // Placeholder
+    }
+
+    private calculateSupport(symbol: string): number {
+        // Calculate support level
+        return 0; // Placeholder
+    }
+}
+
+function calculateProfitPercent(trade: Trade, currentPrice: number): number {
+    return trade.side === 'BUY'
+        ? ((currentPrice - trade.price) / trade.price) * 100
+        : ((trade.price - currentPrice) / trade.price) * 100;
+}
+
+function calculatePnL(trade: Trade): number {
+    if (!trade.exitPrice) return 0;
+    return calculateProfitPercent(trade, trade.exitPrice);
 }
 ```
 
