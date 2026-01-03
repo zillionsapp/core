@@ -141,9 +141,16 @@ export class SupabaseDataStore implements IDataStore {
             query = query.gte('timestamp', cutoffTime);
         }
 
+        // For any period filter (including 1d/1w), we want to fetch all relevant data
+        // and let the consolidation logic (or natural size) handle the density.
+        let queryLimit = limit;
+        if (period) {
+            queryLimit = 50000; // Fetch almost-unlimited for any chart view
+        }
+
         const { data, error } = await query
             .order('timestamp', { ascending: false }) // Get most recent first
-            .limit(limit);
+            .limit(queryLimit);
 
         if (error) {
             console.error('Error fetching portfolio snapshots:', error);
@@ -151,7 +158,7 @@ export class SupabaseDataStore implements IDataStore {
         }
 
         // Transform the data to match our interface
-        const snapshots = (data || []).map((snapshot: any) => ({
+        let snapshots = (data || []).map((snapshot: any) => ({
             timestamp: snapshot.timestamp,
             totalValue: snapshot.totalValue,
             holdings: snapshot.holdings || {},
@@ -168,7 +175,45 @@ export class SupabaseDataStore implements IDataStore {
         })) as PortfolioSnapshot[];
 
         // Reverse to get chronological order (oldest to newest) for chart display
-        return snapshots.reverse();
+        snapshots = snapshots.reverse();
+
+        // Consolidate data if too large (target ~500 points for chart)
+        const TARGET_POINTS = 500;
+        if (snapshots.length > TARGET_POINTS) {
+            snapshots = this.consolidateSnapshots(snapshots, TARGET_POINTS);
+        }
+
+        return snapshots;
+    }
+
+    private consolidateSnapshots(data: PortfolioSnapshot[], targetCount: number): PortfolioSnapshot[] {
+        if (data.length <= targetCount) return data;
+
+        const blockSize = data.length / targetCount;
+        const consolidated: PortfolioSnapshot[] = [];
+
+        for (let i = 0; i < targetCount; i++) {
+            const startIdx = Math.floor(i * blockSize);
+            const endIdx = Math.floor((i + 1) * blockSize);
+            const slice = data.slice(startIdx, endIdx);
+
+            if (slice.length === 0) continue;
+
+            const last = slice[slice.length - 1]; // Use latest state properties
+
+            // Average the values for smoother chart
+            const avgTotalValue = slice.reduce((sum, item) => sum + item.totalValue, 0) / slice.length;
+            const avgEquity = slice.reduce((sum, item) => sum + item.currentEquity, 0) / slice.length;
+
+            consolidated.push({
+                ...last,
+                totalValue: avgTotalValue,
+                currentEquity: avgEquity,
+                timestamp: last.timestamp // Use the timestamp of the last item in bucket
+            });
+        }
+
+        return consolidated;
     }
 
     async saveBacktestResult(result: any): Promise<void> {
