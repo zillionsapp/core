@@ -245,15 +245,29 @@ await bot.tick('ETH/USDT', '1h', {
 
 ---
 
-## � Zillions SDK
+## 📦 Zillions SDK
 
-You can use Zillions Core as an SDK in your own projects to build custom trading applications or deploy to serverless environments.
+You can use Zillions Core as an SDK in your own projects by cloning the repository and building it locally.
 
-### 1. Installation
-In your new project, add Zillions Core as a dependency:
-```bash
-npm install zillions
-```
+### 1. Setup
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/zillionsapp/core.git
+   cd core
+   ```
+2. Install dependencies and build:
+   ```bash
+   npm install
+   npm run build
+   ```
+3. Link the package locally:
+   ```bash
+   npm link
+   ```
+4. In your new project, link the SDK:
+   ```bash
+   npm link zillions
+   ```
 
 ### 2. Basic Usage
 Import the `BotEngine` and start the bot with a built-in strategy:
