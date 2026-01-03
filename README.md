@@ -11,12 +11,7 @@
 - [📦 Installation](#installation)
 - [🏃‍♂️ Usage](#usage)
 - [📦 Zillions SDK](#zillions-sdk)
-- [🐳 Deployment](#deployment)
-  - [Docker](#docker)
-  - [PM2 (VPS/Bare Metal)](#pm2-vps-bare-metal)
-  - [Vercel (Serverless / Production)](#vercel-serverless-production)
-    - [💡 Vercel Hobby Plan (Free Tier)](#vercel-hobby-plan-free-tier)
-- [🛠 Available Strategies](#available-strategies)
+- [ Available Strategies](#available-strategies)
 - [🏛 Architecture](#architecture)
 - [🧩 Adding Strategies](#adding-strategies)
   - [Basic Strategy (Signal-Based)](#basic-strategy-signal-based)
@@ -35,7 +30,12 @@
     - [Strategy Control](#strategy-control)
     - [Default Behavior](#default-behavior)
   - [PortfolioManager](#portfoliomanager)
-- [🔮 Roadmap](#roadmap)
+- [� Deployment](#deployment)
+  - [Docker](#docker)
+  - [PM2 (VPS/Bare Metal)](#pm2-vps-bare-metal)
+  - [Vercel (Serverless / Production)](#vercel-serverless-production)
+    - [💡 Vercel Hobby Plan (Free Tier)](#vercel-hobby-plan-free-tier)
+- [�🔮 Roadmap](#roadmap)
 - [🚀 REST API](#rest-api)
   - [Running the API & Dashboard](#running-the-api--dashboard)
   - [Endpoints](#endpoints)
@@ -317,59 +317,8 @@ export default async function handler(req, res) {
 ```
 
 ---
-
-## 🐳 Deployment
-
-### Docker
-1.  **Build Image**:
-    ```bash
-    docker build -t zillion-core .
-    ```
-2.  **Run Container**:
-    ```bash
-    docker run -d --env-file .env --name zillion-bot zillion-core
-    ```
-
-### PM2 (VPS/Bare Metal)
-Zillion includes an `ecosystem.config.js` for process management.
-```bash
-npm install -g pm2
-npm run build
-pm2 start ecosystem.config.js
-```
-
-### Vercel (Serverless / Production)
-Zillion is optimized for Vercel Cron deployment. This mode uses a "pulsed" execution model where the bot runs once per minute and state is recovered from Supabase.
-
-1.  **Preparation**:
-    - **Database**: You **must** use Supabase for Vercel deployment. Run the SQL in `supabase_schema.sql` AND the migration script in `walkthrough.md` in your Supabase SQL Editor.
-2.  **Deployment**:
-    - Import your project into Vercel.
-    - Add the following **Environment Variables** in the Vercel Dashboard:
-        - `SUPABASE_URL` / `SUPABASE_KEY`
-        - `EXCHANGE_DRIVER` (use `BINANCE` or `CCXT` for real trading)
-        - `EXCHANGE_API_KEY` / `EXCHANGE_API_SECRET`
-        - `STRATEGY_NAME`, `STRATEGY_SYMBOL`, `STRATEGY_INTERVAL`
-        - `CRON_SECRET`: Generate a random string (e.g. via `openssl rand -base64 32`).
-3.  **Security**:
-    - Vercel will automatically detect `vercel.json` and protect your cron endpoint using the `CRON_SECRET`.
-    - The Express Dashboard API is also accessible at `https://your-domain.vercel.app/api/...` via the bridging setup.
-
-#### 💡 Vercel Hobby Plan (Free Tier)
-Vercel Hobby limited crons to **once per day**. To run your bot every minute for free:
-1.  **Use an External Pinger**: Sign up for a free service like [Cron-job.org](https://cron-job.org/).
-2.  **Configure the Job**:
-    - **URL**: `https://your-project.vercel.app/api/cron`
-    - **Schedule**: Every 1 minute.
-    - **Headers**: Add `Authorization: Bearer your_cron_secret_here`.
-3.  **Execution**: This will "wake up" your Vercel function every minute, bypassing the built-in cron limit.
-
-> [!IMPORTANT]
-> When running on Vercel, the bot does **not** use `npm start`. It is triggered automatically by the Vercel Cron scheduler (Pro) or an External Pinger (Hobby). Ensure you do not have the same account running locally simultaneously to avoid duplicate orders.
-
----
  
- ## 🛠 Available Strategies
+ ##  Available Strategies
  
  Zillion includes 24 professional-grade strategies from the `indicatorts` library, organized by category:
  
@@ -729,6 +678,58 @@ The `PortfolioManager` (`src/core/portfolio.manager.ts`) provides **comprehensiv
 
 > [!NOTE]
 > All risk management percentages are configured as full numbers in the `.env` file (e.g., `5` means `5%`).
+
+---
+
+## 🐳 Deployment
+
+### Docker
+1.  **Build Image**:
+    ```bash
+    docker build -t zillion-core .
+    ```
+2.  **Run Container**:
+    ```bash
+    docker run -d --env-file .env --name zillion-bot zillion-core
+    ```
+
+### PM2 (VPS/Bare Metal)
+Zillion includes an `ecosystem.config.js` for process management.
+```bash
+npm install -g pm2
+npm run build
+pm2 start ecosystem.config.js
+```
+
+### Vercel (Serverless / Production)
+Zillion is optimized for Vercel Cron deployment. This mode uses a "pulsed" execution model where the bot runs once per minute and state is recovered from Supabase.
+
+1.  **Preparation**:
+    - **Database**: You **must** use Supabase for Vercel deployment. Run the SQL in `supabase_schema.sql` AND the migration script in `walkthrough.md` in your Supabase SQL Editor.
+2.  **Deployment**:
+    - Import your project into Vercel.
+    - Add the following **Environment Variables** in the Vercel Dashboard:
+        - `SUPABASE_URL` / `SUPABASE_KEY`
+        - `EXCHANGE_DRIVER` (use `BINANCE` or `CCXT` for real trading)
+        - `EXCHANGE_API_KEY` / `EXCHANGE_API_SECRET`
+        - `STRATEGY_NAME`, `STRATEGY_SYMBOL`, `STRATEGY_INTERVAL`
+        - `CRON_SECRET`: Generate a random string (e.g. via `openssl rand -base64 32`).
+3.  **Security**:
+    - Vercel will automatically detect `vercel.json` and protect your cron endpoint using the `CRON_SECRET`.
+    - The Express Dashboard API is also accessible at `https://your-domain.vercel.app/api/...` via the bridging setup.
+
+#### 💡 Vercel Hobby Plan (Free Tier)
+Vercel Hobby limited crons to **once per day**. To run your bot every minute for free:
+1.  **Use an External Pinger**: Sign up for a free service like [Cron-job.org](https://cron-job.org/).
+2.  **Configure the Job**:
+    - **URL**: `https://your-project.vercel.app/api/cron`
+    - **Schedule**: Every 1 minute.
+    - **Headers**: Add `Authorization: Bearer your_cron_secret_here`.
+3.  **Execution**: This will "wake up" your Vercel function every minute, bypassing the built-in cron limit.
+
+> [!IMPORTANT]
+> When running on Vercel, the bot does **not** use `npm start`. It is triggered automatically by the Vercel Cron scheduler (Pro) or an External Pinger (Hobby). Ensure you do not have the same account running locally simultaneously to avoid duplicate orders.
+
 
 ---
 
