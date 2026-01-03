@@ -548,7 +548,9 @@ function calculatePnL(trade: Trade): number {
 | Time-based Exits | ❌ | ✅ |
 | Momentum-based Exits | ❌ | ✅ |
 
-### Registering Your Strategy
+### Registering Your Strategy (Optional)
+
+If you want to use your strategy by name (e.g., via `.env` or during Backtesting), you must register it. For SDK usage, you can skip this and inject the instance directly into `BotEngine`.
 
 3.  **Register it**:
     Open `src/core/strategy.manager.ts` and add it to the map:
@@ -561,7 +563,7 @@ function calculatePnL(trade: Trade): number {
     ]);
     ```
 
-4.  **Run it**: Update `.env` or use environment variables:
+4.  **Run it via config**: Update `.env` or use environment variables:
     ```env
     STRATEGY_NAME=MY_STRATEGY
     STRATEGY_SYMBOL=ETH/USDT
