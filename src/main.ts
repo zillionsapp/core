@@ -1,6 +1,4 @@
-import { BotEngine } from './core/engine';
-import { config } from './config/env';
-import { startApi } from './api/server';
+import { BotEngine, config, startApi } from './index';
 
 async function main() {
     console.log('--- Zillion Trading Bot ---');
@@ -17,7 +15,7 @@ async function main() {
         process.exit(0);
     });
 
-    await bot.start(config.STRATEGY_SYMBOL, config.STRATEGY_INTERVAL, {/* Pass custom Strategy config here if needed */});
+    await bot.start(config.STRATEGY_SYMBOL, config.STRATEGY_INTERVAL, {/* Pass custom Strategy config here if needed */ });
 }
 
 main().catch(err => console.error(err));
