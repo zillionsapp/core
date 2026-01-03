@@ -252,13 +252,13 @@ You can use Zillions Core as an SDK in your own projects to build custom trading
 ### 1. Installation
 In your new project, add Zillions Core as a dependency:
 ```bash
-npm install @zillions/core
+npm install zillions
 ```
 
 ### 2. Basic Usage
 Import the `BotEngine` and start the bot with a built-in strategy:
 ```typescript
-import { BotEngine, startApi } from '@zillions/core';
+import { BotEngine, startApi } from 'zillions';
 
 async function main() {
     // Optional: Start the dashboard on port 3000
@@ -273,7 +273,7 @@ async function main() {
 The SDK allows you to implement and inject your own strategies from outside the library.
 
 ```typescript
-import { BotEngine, IStrategy, Candle, Signal } from '@zillions/core';
+import { BotEngine, IStrategy, Candle, Signal } from 'zillions';
 
 class MyCustomStrategy implements IStrategy {
     name = 'MyCustomStrategy';

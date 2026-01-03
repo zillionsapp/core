@@ -5,9 +5,12 @@
   "start_url": "/",
   "display": "standalone",
   "background_color": "#1a1b1e",
-  "theme_color": "#00ff9d",
+  "theme_color": "#1a1b1e",
   "orientation": "portrait-primary",
-  "categories": ["finance", "productivity"],
+  "categories": [
+    "tradingbot",
+    "crypto"
+  ],
   "lang": "en",
   "dir": "ltr",
   "icons": [

@@ -1,7 +1,15 @@
 {
-  "name": "core",
-  "version": "0.1.0",
+  "name": "zillions",
+  "version": "1.0.0",
+  "description": "Professional-grade, scalable, and modular trading bot engine SDK.",
   "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "public"
+  ],
   "scripts": {
     "start": "ts-node src/main.ts",
     "dev": "nodemon --watch src src/main.ts",
@@ -14,7 +22,6 @@
   "keywords": [],
   "author": "@christonomous",
   "license": "Apache-2.0",
-  "description": "",
   "devDependencies": {
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
