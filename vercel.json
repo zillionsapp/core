@@ -15,6 +15,9 @@
         },
         "api/trades.ts": {
             "maxDuration": 10
+        },
+        "api/prices.ts": {
+            "maxDuration": 10
         }
     }
 }
