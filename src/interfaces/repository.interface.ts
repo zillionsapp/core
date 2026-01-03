@@ -33,6 +33,8 @@ export interface PortfolioSnapshot {
     }>;
     currentEquity: number;
     currentBalance: number;
+    totalMarginUsed: number;
+    walletBalance: number;
 }
 
 export interface IDataStore {

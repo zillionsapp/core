@@ -382,55 +382,60 @@
                 const portData = await portRes.json();
 
                 if (portData && !portData.error) {
-                    // Calculate metrics
-                    const pnlValue = portData.pnl || 0;
-                    const openTrades = portData.openTrades || [];
-                    const totalUnrealizedPnL = openTrades.reduce((sum, trade) => sum + (trade.unrealizedPnL || 0), 0);
-                    const currentBalance = (portData.currentBalance || 0) + pnlValue;
-                    const currentEquity = currentBalance + totalUnrealizedPnL;
+                    // Use backend-calculated metrics directly
+                    const realizedPnL = portData.pnl || 0;
+                    const walletBalance = portData.walletBalance || 10000;
+                    const totalEquity = portData.currentEquity || portData.totalValue || 0;
+                    const availableBalance = portData.currentBalance || 0;
+                    const totalMarginUsed = portData.totalMarginUsed || 0;
 
-                    // Update main portfolio metrics
-                    document.getElementById('currentBalance').innerText = `$${currentBalance.toLocaleString()}`;
-                    document.getElementById('currentEquity').innerText = `$${currentEquity.toLocaleString()}`;
+                    // Net PnL = Total change in account value since initial deposit (Equity - Initial)
+                    const initialCapital = 10000; // Expected from env but explicitly use the constant for math clarity
+                    const netPnL = totalEquity - initialCapital;
+                    const netPnLPercentage = (netPnL / initialCapital) * 100;
+                    const totalUnrealizedPnL = totalEquity - walletBalance;
+
+                    // 1. Current Balance = Available Cash (whats left to trade)
+                    document.getElementById('currentBalance').innerText = `$${availableBalance.toLocaleString()}`;
+                    document.querySelector('#currentBalance + .stat-desc').innerText = `Available Cash on Account`;
+
+                    // 2. Current Equity = Balance + Position Value (incl. Margin)
+                    // Backend already does: Equity = Wallet Balance (Initial + Realized) + Unrealized PnL
+                    document.getElementById('currentEquity').innerText = `$${totalEquity.toLocaleString()}`;
+                    const equityChangeEl = document.getElementById('equityChange');
+                    equityChangeEl.innerText = `${totalUnrealizedPnL >= 0 ? '+' : '-'}$${Math.abs(totalUnrealizedPnL).toFixed(2)} unrealized profit/loss`;
+                    equityChangeEl.classList.toggle('text-success', totalUnrealizedPnL >= 0);
+                    equityChangeEl.classList.toggle('text-error', totalUnrealizedPnL < 0);
+
+                    // 3. Win Rate & Profit Factor
                     document.getElementById('winRate').innerText = `${((portData.winRate || 0) * 100).toFixed(1)}%`;
                     document.getElementById('profitFactor').innerText = (portData.profitFactor || 0).toFixed(2);
 
-                    // Update additional metrics
+                    // 4. Total PnL = Total profit/loss since initial deposit
                     const totalPnLEl = document.getElementById('totalPnL');
-                    totalPnLEl.innerText = `${pnlValue >= 0 ? '+' : '-'}$${Math.abs(pnlValue).toFixed(2)}`;
-                    totalPnLEl.classList.toggle('text-success', pnlValue >= 0);
-                    totalPnLEl.classList.toggle('text-error', pnlValue < 0);
+                    totalPnLEl.innerText = `${netPnL >= 0 ? '+' : '-'}$${Math.abs(netPnL).toFixed(2)}`;
+                    totalPnLEl.classList.toggle('text-success', netPnL >= 0);
+                    totalPnLEl.classList.toggle('text-error', netPnL < 0);
 
-                    // PnL percentage
                     const pnlPercentageEl = document.getElementById('totalPnLPercentage');
-                    const pnlPercentage = portData.pnlPercentage || 0;
-                    pnlPercentageEl.innerText = `${pnlPercentage >= 0 ? '+' : '-'}${Math.abs(pnlPercentage).toFixed(2)}% of initial capital`;
-                    pnlPercentageEl.classList.toggle('text-success', pnlPercentage >= 0);
-                    pnlPercentageEl.classList.toggle('text-error', pnlPercentage < 0);
+                    pnlPercentageEl.innerText = `${netPnLPercentage >= 0 ? '+' : '-'}${Math.abs(netPnLPercentage).toFixed(2)}% net return on initial`;
+                    pnlPercentageEl.classList.toggle('text-success', netPnLPercentage >= 0);
+                    pnlPercentageEl.classList.toggle('text-error', netPnLPercentage < 0);
 
-                    // Open positions
+                    // 5. Open positions stats - Show margin here to clarify Balance vs Equity
+                    const openTrades = portData.openTrades || [];
                     document.getElementById('openPositions').innerText = openTrades.length.toString();
-
                     const openPositionsValueEl = document.getElementById('openPositionsValue');
-                    openPositionsValueEl.innerText = `${totalUnrealizedPnL >= 0 ? '+' : '-'}$${Math.abs(totalUnrealizedPnL).toFixed(2)} unrealized`;
-                    openPositionsValueEl.classList.toggle('text-success', totalUnrealizedPnL >= 0);
-                    openPositionsValueEl.classList.toggle('text-error', totalUnrealizedPnL < 0);
+                    openPositionsValueEl.innerText = `$${totalMarginUsed.toFixed(2)} locked in margin`;
+                    openPositionsValueEl.className = 'stat-desc mt-1 opacity-70';
 
-                    // Closed trades with win/loss breakdown
+                    // 6. Closed trades
                     const winningTrades = portData.winningTrades || 0;
                     const losingTrades = portData.losingTrades || 0;
-                    const totalClosedTrades = winningTrades + losingTrades;
-                    document.getElementById('closedTrades').innerText = totalClosedTrades.toString();
+                    document.getElementById('closedTrades').innerText = (winningTrades + losingTrades).toString();
 
-                    // Update equity change indicator
-                    const equityChangeEl = document.getElementById('equityChange');
-                    const equityChange = currentEquity - currentBalance;
-                    equityChangeEl.innerText = `${equityChange >= 0 ? '+' : '-'}$${Math.abs(equityChange).toFixed(2)} unrealized`;
-                    equityChangeEl.classList.toggle('text-success', equityChange >= 0);
-                    equityChangeEl.classList.toggle('text-error', equityChange < 0);
-
-                    // Update chart colors based on portfolio performance
-                    updateChartColors(pnlValue >= 0);
+                    // Update chart colors based on net performance
+                    updateChartColors(netPnL >= 0);
                 }
 
                 // Fetch Portfolio History for Chart
