@@ -420,8 +420,8 @@
                     pnlPercentageEl.classList.toggle('text-error', netPnLPercentage < 0);
 
                     // 5. Tile: Open Positions -> Show Margin & Settled Cash
-                    const openTrades = portData.openTrades || [];
-                    document.getElementById('openPositions').innerText = openTrades.length.toString();
+                    const openTradesCount = portData.openTradesCount || 0;
+                    document.getElementById('openPositions').innerText = openTradesCount.toString();
                     const openPositionsValueEl = document.getElementById('openPositionsValue');
                     openPositionsValueEl.innerHTML = `<span class="opacity-70">Cash:</span> $${cashBalance.toLocaleString()} <span class="mx-1 opacity-40">|</span> <span class="opacity-70">Margin:</span> $${totalMarginUsed.toLocaleString()}`;
                     openPositionsValueEl.className = 'stat-desc mt-1 font-mono text-[10px] leading-tight';

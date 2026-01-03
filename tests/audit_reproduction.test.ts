@@ -50,6 +50,7 @@ describe('Audit Reproduction: Balance vs Equity Discrepancy', () => {
 
         // 1. Initial State
         let snapshot = await portfolioManager.generateSnapshot();
+        expect(snapshot.initialBalance).toBe(10000);
         expect(snapshot.walletBalance).toBe(10000);
         expect(snapshot.currentBalance).toBe(10000); // Available
         expect(snapshot.currentEquity).toBe(10000);

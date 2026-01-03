@@ -31,14 +31,23 @@ export class PortfolioManager {
     async generateSnapshot(): Promise<PortfolioSnapshot> {
         const timestamp = this.timeProvider.now();
 
-        // Get all trades
-        // Get trades: Explicitly fetch ALL open trades to ensure they are never missed
-        // and fetch recent history for accurate PnL calculation (without artificial limits)
-        const [openTrades, recentTrades] = await Promise.all([
+        const [openTradesRaw, recentTrades] = await Promise.all([
             this.db.getOpenTrades(),
             this.db.getTrades()
         ]);
+
+        // Merge to ensure we don't miss anything due to query differences
+        const openTradesMap = new Map<string, Trade>();
+        openTradesRaw.forEach(t => openTradesMap.set(t.id, t));
+        recentTrades.filter(t => t.status === 'OPEN').forEach(t => openTradesMap.set(t.id, t));
+
+        const openTrades = Array.from(openTradesMap.values());
         const closedTrades = recentTrades.filter(t => t.status === 'CLOSED');
+
+        logger.info(`[PortfolioManager] Diagnostic: Fetch finished. OpenTrades=${openTrades.length}, RecentTotal=${recentTrades.length}, ClosedFiltered=${closedTrades.length}`);
+        if (openTrades.length > 0) {
+            logger.info(`[PortfolioManager] Open Trade IDs: ${openTrades.map(t => t.id).join(', ')}`);
+        }
 
         // Config values
         const balanceAsset = process.env.PAPER_BALANCE_ASSET || 'USDT';
@@ -55,12 +64,13 @@ export class PortfolioManager {
         const holdings: Record<string, number> = { [balanceAsset]: 0 }; // Initialize with base asset
 
         for (const trade of openTrades) {
-            // Use stored margin if available, otherwise recalculate
+            // Use stored margin if available and valid, otherwise recalculate
             let margin = trade.margin;
-            if (margin === undefined) {
-                const leverage = parseFloat(process.env.LEVERAGE_VALUE || '1');
+            if (!margin || margin <= 0) {
+                const leverage = trade.leverage || parseFloat(process.env.LEVERAGE_VALUE || '1');
                 const positionValue = trade.quantity * trade.price;
                 margin = leverage > 1 ? positionValue / leverage : positionValue;
+                logger.debug(`[PortfolioManager] Recalculated margin for ${trade.id} (${trade.symbol}): ${margin.toFixed(2)} (Leverage: ${leverage}x)`);
             }
             totalMarginUsed += margin;
 
@@ -73,19 +83,22 @@ export class PortfolioManager {
         }
 
         // 4. Current (Available) Balance = Wallet Balance - Margin
-        // Try to get real balance from exchange if available (more accurate for live)
+        // For PAPER trading, we strictly prefer our deterministic DB calculation over the in-memory exchange balance,
+        // because the exchange instance may lose state between separate processes (e.g. Bot vs API).
         let currentBalance: number;
-        try {
-            const realBalance = await this.exchange.getBalance(balanceAsset);
-            // If exchange returns a valid numeric balance, use it as the source of truth for "Available"
-            if (typeof realBalance === 'number' && !isNaN(realBalance)) {
-                currentBalance = realBalance;
-            } else {
+        if (process.env.PAPER_TRADING === 'true' || process.env.PAPER_INITIAL_BALANCE) {
+            currentBalance = walletBalance - totalMarginUsed;
+        } else {
+            try {
+                const realBalance = await this.exchange.getBalance(balanceAsset);
+                if (typeof realBalance === 'number' && !isNaN(realBalance)) {
+                    currentBalance = realBalance;
+                } else {
+                    currentBalance = walletBalance - totalMarginUsed;
+                }
+            } catch (error) {
                 currentBalance = walletBalance - totalMarginUsed;
             }
-        } catch (error) {
-            // Fallback to calculation
-            currentBalance = walletBalance - totalMarginUsed;
         }
 
         // CRITICAL: Available balance cannot be negative
@@ -103,43 +116,13 @@ export class PortfolioManager {
             });
         }
 
-        const openTradesWithCurrent = openTrades.map(trade => {
+        const unrealizedPnLTotal = openTrades.reduce((sum, trade) => {
             const currentPrice = priceMap.get(trade.symbol) || trade.price;
-            const unrealizedPnL = this.calculateUnrealizedPnL(trade, currentPrice);
-            return {
-                id: trade.id,
-                symbol: trade.symbol,
-                side: trade.side,
-                quantity: trade.quantity,
-                entryPrice: trade.price,
-                currentPrice,
-                unrealizedPnL
-            };
-        });
-
-        const unrealizedPnLTotal = openTradesWithCurrent.reduce((sum, t) => sum + t.unrealizedPnL, 0);
+            return sum + this.calculateUnrealizedPnL(trade, currentPrice);
+        }, 0);
 
         // 6. Current Equity = Wallet Balance + Unrealized PnL
-        // This correctly represents the total value including margin and profit/loss
         const currentEquity = walletBalance + unrealizedPnLTotal;
-
-        // Build closed trades with PnL for the snapshot
-        const closedTradesWithPnL = closedTrades.map(trade => {
-            const pnl = this.calculateTradePnL(trade);
-            const duration = trade.exitTimestamp! - trade.timestamp;
-            return {
-                id: trade.id,
-                symbol: trade.symbol,
-                side: trade.side,
-                quantity: trade.quantity,
-                entryPrice: trade.price,
-                exitPrice: trade.exitPrice!,
-                pnl,
-                duration,
-                entryTime: trade.timestamp,
-                exitTime: trade.exitTimestamp!
-            };
-        });
 
         const snapshot: PortfolioSnapshot = {
             timestamp,
@@ -151,8 +134,7 @@ export class PortfolioManager {
             profitFactor: this.calculateProfitFactor(closedTrades),
             winningTrades: closedTrades.filter(t => this.calculateTradePnL(t) > 0).length,
             losingTrades: closedTrades.filter(t => this.calculateTradePnL(t) < 0).length,
-            openTrades: openTradesWithCurrent,
-            closedTrades: closedTradesWithPnL,
+            openTradesCount: openTrades.length,
             currentEquity,
             currentBalance,
             totalMarginUsed,

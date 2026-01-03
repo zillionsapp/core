@@ -40,10 +40,12 @@ create table public.portfolio_snapshots (
   "profitFactor" numeric,
   "winningTrades" integer,
   "losingTrades" integer,
-  "openTrades" jsonb,
-  "closedTrades" jsonb,
+  "openTradesCount" integer,
   "currentEquity" numeric,
   "currentBalance" numeric,
+  "walletBalance" numeric,
+  "totalMarginUsed" numeric,
+  "initialBalance" numeric,
   created_at timestamp with time zone default timezone('utc'::text, now())
 );
 

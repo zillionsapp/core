@@ -1,4 +1,7 @@
 import { SupabaseDataStore } from '../src/adapters/database/supabase';
+import { PortfolioManager } from '../src/core/portfolio.manager';
+import { ExchangeFactory } from '../src/adapters/exchange/factory';
+import { RealTimeProvider } from '../src/core/time.provider';
 
 export default async function handler(req: any, res: any) {
     if (req.method !== 'GET') {
@@ -7,10 +10,14 @@ export default async function handler(req: any, res: any) {
 
     try {
         const db = new SupabaseDataStore();
-        const snapshot = await db.getLatestPortfolioSnapshot();
+        const exchange = ExchangeFactory.getExchange();
+        const portfolioManager = new PortfolioManager(exchange, db, new RealTimeProvider());
+
+        // Generate a LIVE snapshot instead of fetching cached one
+        const snapshot = await portfolioManager.generateSnapshot();
 
         if (!snapshot) {
-            return res.status(404).json({ error: 'No portfolio snapshots found' });
+            return res.status(404).json({ error: 'Failed to generate portfolio snapshot' });
         }
 
         res.status(200).json(snapshot);

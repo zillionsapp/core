@@ -10,27 +10,7 @@ export interface PortfolioSnapshot {
     profitFactor: number; // Gross profit / gross loss
     winningTrades: number; // Number of winning closed trades
     losingTrades: number; // Number of losing closed trades
-    openTrades: Array<{
-        id: string;
-        symbol: string;
-        side: string;
-        quantity: number;
-        entryPrice: number;
-        currentPrice: number;
-        unrealizedPnL: number;
-    }>;
-    closedTrades: Array<{
-        id: string;
-        symbol: string;
-        side: string;
-        quantity: number;
-        entryPrice: number;
-        exitPrice: number;
-        pnl: number;
-        duration: number; // Duration in milliseconds
-        entryTime: number; // Entry timestamp
-        exitTime: number; // Exit timestamp
-    }>;
+    openTradesCount: number; // Number of currently open trades
     currentEquity: number;
     currentBalance: number;
     totalMarginUsed: number;

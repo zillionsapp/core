@@ -69,10 +69,12 @@ export class SupabaseDataStore implements IDataStore {
             "profitFactor": snapshot.profitFactor,
             "winningTrades": snapshot.winningTrades,
             "losingTrades": snapshot.losingTrades,
-            "openTrades": snapshot.openTrades,
-            "closedTrades": snapshot.closedTrades,
+            "openTradesCount": snapshot.openTradesCount,
             "currentEquity": snapshot.currentEquity,
-            "currentBalance": snapshot.currentBalance
+            "currentBalance": snapshot.currentBalance,
+            "walletBalance": snapshot.walletBalance,
+            "totalMarginUsed": snapshot.totalMarginUsed,
+            "initialBalance": snapshot.initialBalance
         });
         if (error) console.error('Error saving snapshot:', error);
     }
@@ -92,7 +94,6 @@ export class SupabaseDataStore implements IDataStore {
             return null;
         }
 
-        // Ensure the data matches the PortfolioSnapshot interface
         const snapshot = data as any;
         return {
             timestamp: snapshot.timestamp,
@@ -104,10 +105,12 @@ export class SupabaseDataStore implements IDataStore {
             profitFactor: snapshot.profitFactor || 0,
             winningTrades: snapshot.winningTrades || 0,
             losingTrades: snapshot.losingTrades || 0,
-            openTrades: snapshot.openTrades || [],
-            closedTrades: snapshot.closedTrades || [],
+            openTradesCount: snapshot.openTradesCount || 0,
             currentEquity: snapshot.currentEquity || snapshot.totalValue,
-            currentBalance: snapshot.currentBalance || snapshot.totalValue
+            currentBalance: snapshot.currentBalance || snapshot.totalValue,
+            walletBalance: snapshot.walletBalance || snapshot.currentBalance || snapshot.totalValue,
+            totalMarginUsed: snapshot.totalMarginUsed || 0,
+            initialBalance: snapshot.initialBalance || 10000
         } as PortfolioSnapshot;
     }
 
@@ -168,10 +171,12 @@ export class SupabaseDataStore implements IDataStore {
             profitFactor: snapshot.profitFactor || 0,
             winningTrades: snapshot.winningTrades || 0,
             losingTrades: snapshot.losingTrades || 0,
-            openTrades: snapshot.openTrades || [],
-            closedTrades: snapshot.closedTrades || [],
+            openTradesCount: snapshot.openTradesCount || 0,
             currentEquity: snapshot.currentEquity || snapshot.totalValue,
-            currentBalance: snapshot.currentBalance || snapshot.totalValue
+            currentBalance: snapshot.currentBalance || snapshot.totalValue,
+            walletBalance: snapshot.walletBalance || snapshot.currentBalance || snapshot.totalValue,
+            totalMarginUsed: snapshot.totalMarginUsed || 0,
+            initialBalance: snapshot.initialBalance || 10000
         })) as PortfolioSnapshot[];
 
         // Reverse to get chronological order (oldest to newest) for chart display
