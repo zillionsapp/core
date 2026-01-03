@@ -433,8 +433,18 @@
                     updateChartColors(pnlValue >= 0);
                 }
 
+                // Determine limit based on period
+                const limits = {
+                    '1d': 100,
+                    '1w': 500,
+                    '1m': 1000,
+                    '1y': 5000,
+                    'all': 10000
+                };
+                const limit = limits[period] || 500;
+
                 // Fetch Portfolio History for Chart
-                const historyRes = await fetch(`${API_BASE}/portfolio-history?limit=50&period=${period}`);
+                const historyRes = await fetch(`${API_BASE}/portfolio-history?limit=${limit}&period=${period}`);
                 const history = await historyRes.json();
 
                 if (history && history.length > 0) {
@@ -487,7 +497,7 @@
 
         function calculatePnL(trade, currentPrices = {}) {
             const leverage = trade.leverage || 1;
-            
+
             if (trade.status === 'CLOSED' && trade.exitPrice) {
                 // Realized PnL for closed trades
                 const entryPrice = trade.price;
