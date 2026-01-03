@@ -189,7 +189,7 @@
                             <th class="text-xs font-bold uppercase py-4">SL / TP</th>
                             <th class="text-xs font-bold uppercase py-4">Duration</th>
                             <th class="text-xs font-bold uppercase py-4">Exit Reason</th>
-                            <th class="text-xs font-bold uppercase py-4 text-right">Qty</th>
+                            <th class="text-xs font-bold uppercase py-4 text-right">Qty / Value</th>
                             <th class="text-xs font-bold uppercase py-4 text-right">PnL (%)</th>
                         </tr>
                     </thead>
@@ -616,7 +616,10 @@
                             </td>
                             <td class="font-mono opacity-70">${duration}</td>
                             <td class="text-[10px] opacity-70">${exitReasonDisplay}</td>
-                            <td class="text-right font-mono">${t.quantity}</td>
+                            <td class="text-right font-mono">
+                                ${t.quantity}<br>
+                                <span class="text-[10px] opacity-60 font-normal">$${(t.quantity * t.price).toLocaleString()}</span>
+                            </td>
                             <td class="text-right font-mono ${pnlClass} font-bold">
                                 ${pnlPercentDisplay}<br>
                                 <span class="text-[10px] font-normal opacity-70">${pnlDollarDisplay}</span>
