@@ -83,10 +83,15 @@
     cd zillion-core
     ```
 
-2.  **Install Dependencies**:
+2.  **Install & Build for SDK Usage**:
     ```bash
     npm install
+    npm run build
+    npm link # Makes the 'zillions' package available locally
     ```
+
+> [!TIP]
+> After running `npm link` in this directory, you can use the SDK in any other local project by running `npm link zillions` in that project's root.
 
 3.  **Environment Setup**:
     Copy the example configuration:
@@ -247,27 +252,13 @@ await bot.tick('ETH/USDT', '1h', {
 
 ## 📦 Zillions SDK
 
-You can use Zillions Core as an SDK in your own projects by cloning the repository and building it locally.
+You can use Zillions Core as an SDK in your own projects by referencing the local build.
 
-### 1. Setup
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/zillionsapp/core.git
-   cd core
-   ```
-2. Install dependencies and build:
-   ```bash
-   npm install
-   npm run build
-   ```
-3. Link the package locally:
-   ```bash
-   npm link
-   ```
-4. In your new project, link the SDK:
-   ```bash
-   npm link zillions
-   ```
+### 1. Usage Hint
+After completing the **Installation** steps above, run the following in your **new project**:
+```bash
+npm link zillions
+```
 
 ### 2. Basic Usage
 Import the `BotEngine` and start the bot with a built-in strategy:
