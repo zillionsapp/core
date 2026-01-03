@@ -156,7 +156,8 @@ export class PortfolioManager {
             currentEquity,
             currentBalance,
             totalMarginUsed,
-            walletBalance
+            walletBalance,
+            initialBalance
         };
 
         logger.info(`[PortfolioManager] Generated snapshot: RealizedPnL=${totalRealizedPnL.toFixed(2)}, UnrealizedPnL=${unrealizedPnLTotal.toFixed(2)}, Equity=${currentEquity.toFixed(2)}, Balance=${currentBalance.toFixed(2)}`);

@@ -382,36 +382,33 @@
                 const portData = await portRes.json();
 
                 if (portData && !portData.error) {
-                    // Use backend-calculated metrics directly
-                    const realizedPnL = portData.pnl || 0;
-                    const walletBalance = portData.walletBalance || 10000;
-                    const totalEquity = portData.currentEquity || portData.totalValue || 0;
-                    const availableBalance = portData.currentBalance || 0;
+                    // Mapping to Industry Standards
+                    const initialCapital = portData.initialBalance || 10000;
+                    const cashBalance = portData.walletBalance || initialCapital; // Settled: Initial + Realized
+                    const totalEquity = portData.currentEquity || portData.totalValue || cashBalance; // Live: Cash + Unrealized
+                    const availableBalance = portData.currentBalance || 0; // Free to trade: Cash - Margin
                     const totalMarginUsed = portData.totalMarginUsed || 0;
 
-                    // Net PnL = Total change in account value since initial deposit (Equity - Initial)
-                    const initialCapital = 10000; // Expected from env but explicitly use the constant for math clarity
                     const netPnL = totalEquity - initialCapital;
                     const netPnLPercentage = (netPnL / initialCapital) * 100;
-                    const totalUnrealizedPnL = totalEquity - walletBalance;
+                    const unrealizedPnL = totalEquity - cashBalance;
 
-                    // 1. Current Balance = Available Cash (whats left to trade)
+                    // 1. Tile: Current Balance -> Available Cash
                     document.getElementById('currentBalance').innerText = `$${availableBalance.toLocaleString()}`;
-                    document.querySelector('#currentBalance + .stat-desc').innerText = `Available Cash on Account`;
+                    document.querySelector('#currentBalance + .stat-desc').innerText = `Available to Trade (USDT)`;
 
-                    // 2. Current Equity = Balance + Position Value (incl. Margin)
-                    // Backend already does: Equity = Wallet Balance (Initial + Realized) + Unrealized PnL
+                    // 2. Tile: Current Equity -> Total Live Value
                     document.getElementById('currentEquity').innerText = `$${totalEquity.toLocaleString()}`;
                     const equityChangeEl = document.getElementById('equityChange');
-                    equityChangeEl.innerText = `${totalUnrealizedPnL >= 0 ? '+' : '-'}$${Math.abs(totalUnrealizedPnL).toFixed(2)} unrealized profit/loss`;
-                    equityChangeEl.classList.toggle('text-success', totalUnrealizedPnL >= 0);
-                    equityChangeEl.classList.toggle('text-error', totalUnrealizedPnL < 0);
+                    equityChangeEl.innerText = `${unrealizedPnL >= 0 ? '+' : '-'}$${Math.abs(unrealizedPnL).toFixed(2)} unrealized profit`;
+                    equityChangeEl.classList.toggle('text-success', unrealizedPnL >= 0);
+                    equityChangeEl.classList.toggle('text-error', unrealizedPnL < 0);
 
                     // 3. Win Rate & Profit Factor
                     document.getElementById('winRate').innerText = `${((portData.winRate || 0) * 100).toFixed(1)}%`;
                     document.getElementById('profitFactor').innerText = (portData.profitFactor || 0).toFixed(2);
 
-                    // 4. Total PnL = Total profit/loss since initial deposit
+                    // 4. Tile: Total PnL -> Net Growth since Deposit
                     const totalPnLEl = document.getElementById('totalPnL');
                     totalPnLEl.innerText = `${netPnL >= 0 ? '+' : '-'}$${Math.abs(netPnL).toFixed(2)}`;
                     totalPnLEl.classList.toggle('text-success', netPnL >= 0);
@@ -422,14 +419,14 @@
                     pnlPercentageEl.classList.toggle('text-success', netPnLPercentage >= 0);
                     pnlPercentageEl.classList.toggle('text-error', netPnLPercentage < 0);
 
-                    // 5. Open positions stats - Show margin here to clarify Balance vs Equity
+                    // 5. Tile: Open Positions -> Show Margin & Settled Cash
                     const openTrades = portData.openTrades || [];
                     document.getElementById('openPositions').innerText = openTrades.length.toString();
                     const openPositionsValueEl = document.getElementById('openPositionsValue');
-                    openPositionsValueEl.innerText = `$${totalMarginUsed.toFixed(2)} locked in margin`;
-                    openPositionsValueEl.className = 'stat-desc mt-1 opacity-70';
+                    openPositionsValueEl.innerHTML = `<span class="opacity-70">Cash:</span> $${cashBalance.toLocaleString()} <span class="mx-1 opacity-40">|</span> <span class="opacity-70">Margin:</span> $${totalMarginUsed.toLocaleString()}`;
+                    openPositionsValueEl.className = 'stat-desc mt-1 font-mono text-[10px] leading-tight';
 
-                    // 6. Closed trades
+                    // 6. Tile: Closed Trades
                     const winningTrades = portData.winningTrades || 0;
                     const losingTrades = portData.losingTrades || 0;
                     document.getElementById('closedTrades').innerText = (winningTrades + losingTrades).toString();
