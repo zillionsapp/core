@@ -108,8 +108,8 @@ export class PortfolioManager {
             return sum + this.calculateUnrealizedPnL(trade, currentPrice);
         }, 0);
 
-        // 6. Current Equity = Current Balance + Unrealized PnL (User requirement)
-        const currentEquity = currentBalance + unrealizedPnLTotal;
+        // 6. Current Equity = Wallet Balance + Unrealized PnL (User requirement)
+        const currentEquity = walletBalance + unrealizedPnLTotal;
 
         const snapshot: PortfolioSnapshot = {
             timestamp,

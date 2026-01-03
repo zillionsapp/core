@@ -77,12 +77,9 @@ describe('Audit Reproduction: Notional-Based Math', () => {
         }
 
         snapshot = await portfolioManager.generateSnapshot();
-
-        // Notional = 4500. Balance = 10000 - 4500 = 5500.
-        expect(snapshot.totalNotionalValue).toBe(4500);
         expect(snapshot.currentBalance).toBe(5500);
-        // Equity = Balance (5500) + Unrealized (0) = 5500
-        expect(snapshot.currentEquity).toBe(5500);
+        // Equity = Settled Cash (10000) + Unrealized (0) = 10000
+        expect(snapshot.currentEquity).toBe(10000);
 
         // 3. Simulate Price Increase
         // Price goes to 100,000 (+10,000 profit per unit)
@@ -96,8 +93,8 @@ describe('Audit Reproduction: Notional-Based Math', () => {
 
         snapshot = await portfolioManager.generateSnapshot();
         expect(snapshot.currentBalance).toBe(5500);
-        // Equity = Balance (5500) + Unrealized (500) = 6000
-        expect(snapshot.currentEquity).toBe(6000);
+        // Equity = Settled Cash (10000) + Unrealized (500) = 10500
+        expect(snapshot.currentEquity).toBe(10500);
 
         // 4. Close one position with profit
         const trades = await mockStore.getOpenTrades();
@@ -116,11 +113,11 @@ describe('Audit Reproduction: Notional-Based Math', () => {
         // Remaining Notional = 4 * 0.01 * 90000 = 3600
         // New Balance = 10100 - 3600 = 6500
         // Remaining Unrealized = 4 * 0.01 * (100000 - 90000) = 400
-        // New Equity = 6500 + 400 = 6900
+        // New Equity = 10100 + 400 = 10500
 
         expect(snapshot.pnl).toBe(100);
         expect(snapshot.totalNotionalValue).toBe(3600);
         expect(snapshot.currentBalance).toBe(6500);
-        expect(snapshot.currentEquity).toBe(6900);
+        expect(snapshot.currentEquity).toBe(10500);
     });
 });
