@@ -1,14 +1,19 @@
 import { BaseLibraryStrategy } from '../base_strategy';
 import { StrategyConfig } from '../../interfaces/strategy.interface';
 import { cmfStrategy, Action } from 'indicatorts';
+import { config as envConfig } from '../../config/env';
+import { STRATEGY_DEFAULTS } from '../../config/strategy_defaults';
 
 export class CmfStrategy extends BaseLibraryStrategy {
     name = 'CMF';
     private config: any = {};
 
     protected onInit(config: StrategyConfig): void {
+        const interval = envConfig.STRATEGY_INTERVAL;
+        const defaults = STRATEGY_DEFAULTS[this.name]?.[interval] || {};
+
         this.config = {
-            period: config.period || 20
+            period: config.period || defaults.period || 20
         };
     }
 

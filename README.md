@@ -196,6 +196,52 @@ await bot.tick('BTC/USDT', '15m', {
 - **Strategy Agnostic**: Works with any strategy that accepts configuration
 - **Serverless Compatible**: Full configuration support in stateless deployments
 
+### Strategy Auto-Configuration
+
+Zillion Core includes **dynamic, research-backed default parameters** for all standard strategies. These defaults are automatically applied based on your configured timeframe (`STRATEGY_INTERVAL`) if no custom parameters are provided.
+
+**How It Works:**
+1.  **Check Config**: The bot first checks for explicitly provided parameters (e.g., in `src/index.ts` or via API).
+2.  **Load Dynamic Default**: If no custom config is found, it loads optimal defaults for the current `STRATEGY_INTERVAL` (e.g., "Scalping" settings for `1m`/`5m`, "Trend" settings for `1h`/`4h`).
+3.  **Fallback**: If no timeframe match is found, it falls back to a hardcoded safe default.
+
+**Supported Strategies:**
+All standard strategies (`MACD`, `RSI`, `BB`, `STOCH`, etc.) support this dynamic loading. You can view and edit these defaults in:
+`src/config/strategy_defaults.ts`
+
+**Example Precedence:**
+`User Config` > `Timeframe Default (1m, 1h, etc.)` > `Hardcoded Fallback`
+
+**Supported Timeframes:**
+- `1m`, `5m` (Scalping)
+- `15m`, `1h`, `4h` (Intraday/Swing)
+- `1d` (Long-term)
+
+### Custom Configuration Examples
+
+You can easily override these defaults by passing your own values during bot initialization.
+
+**Long-Running Bot (`src/index.ts`):**
+```typescript
+// Override defaults for MACD on 15m timeframe
+await bot.start('BTC/USDT', '15m', {
+  fast: 14,   // Custom Fast EMA
+  slow: 28,   // Custom Slow EMA
+  signal: 9   // Standard Signal
+});
+```
+
+**Serverless Cron (`api/cron.ts`):**
+```typescript
+// Override defaults for RSI on 1h timeframe
+await bot.tick('ETH/USDT', '1h', {
+  rPeriod: 21,    // Custom RSI Period
+  kPeriod: 3,
+  dPeriod: 3
+});
+```
+
+
 ---
 
 ## 🐳 Deployment
