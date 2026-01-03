@@ -486,6 +486,8 @@
         }
 
         function calculatePnL(trade, currentPrices = {}) {
+            const leverage = trade.leverage || 1;
+            
             if (trade.status === 'CLOSED' && trade.exitPrice) {
                 // Realized PnL for closed trades
                 const entryPrice = trade.price;
@@ -498,9 +500,10 @@
                     ? (exitPrice - entryPrice) * quantity
                     : (entryPrice - exitPrice) * quantity;
 
-                // Percentage: (PnL / entry value) * 100
+                // Percentage: (PnL / Margin) * 100
                 const entryValue = entryPrice * quantity;
-                const percentagePnL = entryValue !== 0 ? (dollarPnL / entryValue) * 100 : 0;
+                const margin = entryValue / leverage;
+                const percentagePnL = margin !== 0 ? (dollarPnL / margin) * 100 : 0;
 
                 return { dollar: dollarPnL, percentage: percentagePnL, isRealized: true };
             } else if (trade.status === 'OPEN' && currentPrices[trade.symbol]) {
@@ -515,9 +518,10 @@
                     ? (currentPrice - entryPrice) * quantity
                     : (entryPrice - currentPrice) * quantity;
 
-                // Percentage: (PnL / entry value) * 100
+                // Percentage: (PnL / Margin) * 100
                 const entryValue = entryPrice * quantity;
-                const percentagePnL = entryValue !== 0 ? (dollarPnL / entryValue) * 100 : 0;
+                const margin = entryValue / leverage;
+                const percentagePnL = margin !== 0 ? (dollarPnL / margin) * 100 : 0;
 
                 return { dollar: dollarPnL, percentage: percentagePnL, isRealized: false };
             }
