@@ -430,8 +430,8 @@
                     const losingTrades = portData.losingTrades || 0;
                     document.getElementById('closedTrades').innerText = (winningTrades + losingTrades).toString();
 
-                    // Update chart colors based on net performance
-                    updateChartColors(netPnL >= 0);
+                    // Update chart colors based on total performance
+                    updateChartColors((currentEquity - initialCapital) >= 0);
                 }
 
                 // Fetch Portfolio History for Chart
