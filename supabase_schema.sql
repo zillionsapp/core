@@ -49,6 +49,7 @@ create table public.portfolio_snapshots (
   "initialBalance" numeric,
   created_at timestamp with time zone default timezone('utc'::text, now())
 );
+create index if not exists idx_portfolio_snapshots_timestamp on public.portfolio_snapshots (timestamp desc);
 
 -- Backtest Results
 create table public.backtest_results (

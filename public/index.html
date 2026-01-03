@@ -437,7 +437,9 @@
 
                 // Fetch Portfolio History for Chart
                 // Backend now handles consolidation and limits for longer periods
-                const historyRes = await fetch(`${API_BASE}/portfolio-history?limit=50&period=${period}`);
+                // Fetch Portfolio History for Chart
+                // Backend now handles consolidation and limits for longer periods
+                const historyRes = await fetch(`${API_BASE}/portfolio-history?period=${period}`);
                 const history = await historyRes.json();
 
                 if (history && history.length > 0) {
@@ -451,6 +453,11 @@
                     chart.data.labels = labels;
                     chart.data.datasets[0].data = data;
                     chart.update('none'); // Update without animation for performance
+                } else {
+                    // Clear chart if no history found
+                    chart.data.labels = [];
+                    chart.data.datasets[0].data = [];
+                    chart.update('none');
                 }
 
                 // Fetch Recent Trades for the table with pagination

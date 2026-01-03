@@ -36,6 +36,7 @@ router.get('/portfolio-history', async (req, res) => {
         const snapshots = await db.getPortfolioSnapshots(limit, period);
         res.json(snapshots);
     } catch (error: any) {
+        console.error('[API] Error fetching portfolio history:', error.message);
         res.status(500).json({ error: error.message });
     }
 });

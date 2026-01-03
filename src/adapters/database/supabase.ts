@@ -150,7 +150,7 @@ export class SupabaseDataStore implements IDataStore {
         // and let the consolidation logic (or natural size) handle the density.
         let queryLimit = limit;
         if (period) {
-            queryLimit = 50000; // Fetch almost-unlimited for any chart view
+            queryLimit = 1000; // Fetch enough for consolidation but stay within safe timeout limits
         }
 
         const { data, error } = await query
