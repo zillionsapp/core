@@ -382,6 +382,7 @@
                 const portData = await portRes.json();
 
                 if (portData && !portData.error) {
+                    console.log('[Dashboard] Received Portfolio Data:', portData);
                     // Mapping to Industry Standards
                     const initialCapital = portData.initialBalance !== undefined ? portData.initialBalance : 0;
                     const walletBalance = portData.walletBalance !== undefined ? portData.walletBalance : 0;

@@ -87,16 +87,20 @@ export class SupabaseDataStore implements IDataStore {
             .from('portfolio_snapshots')
             .select('*')
             .order('timestamp', { ascending: false })
+            .order('id', { ascending: false })
             .limit(1)
             .single();
 
         if (error) {
-            console.error('Error fetching snapshot:', error);
+            if (error.code === 'PGRST116') {
+                return null; // No rows found is not an error
+            }
+            console.error('[SupabaseDataStore] Error fetching snapshot:', error);
             return null;
         }
 
         const snapshot = data as any;
-        return {
+        const result = {
             timestamp: snapshot.timestamp,
             totalValue: snapshot.totalValue,
             holdings: snapshot.holdings || {},
@@ -114,6 +118,9 @@ export class SupabaseDataStore implements IDataStore {
             totalMarginUsed: snapshot.totalMarginUsed ?? 0,
             initialBalance: snapshot.initialBalance ?? 0
         } as PortfolioSnapshot;
+
+        console.log(`[SupabaseDataStore] Latest Snapshot (ID: ${snapshot.id}): Balance=${result.currentBalance}, Equity=${result.currentEquity}`);
+        return result;
     }
 
     async getPortfolioSnapshots(limit: number = 50, period?: string): Promise<PortfolioSnapshot[]> {
