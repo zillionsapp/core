@@ -397,7 +397,10 @@
                     // 2. Tile: Current Equity & Unrealized PnL (Recalculated from trades)
                     const totalUnrealizedPnL = tradesData.totalUnrealizedPnL || 0;
                     const realTimeEquity = walletBalance + totalUnrealizedPnL;
-                    const unrealizedPnLPercentage = initialCapital > 0 ? (totalUnrealizedPnL / initialCapital) * 100 : 0;
+
+                    // Use Total Margin as the base for the Unrealized ROI (matches the table perspective)
+                    const totalMarginUsed = tradesData.totalMarginUsed || 0;
+                    const unrealizedPnLPercentage = totalMarginUsed > 0 ? (totalUnrealizedPnL / totalMarginUsed) * 100 : 0;
 
                     document.getElementById('currentEquity').innerText = `$${realTimeEquity.toLocaleString()}`;
                     const equityChangeEl = document.getElementById('equityChange');
@@ -537,31 +540,36 @@
                 const trades = data.trades || [];
                 totalTrades = data.total || 0;
 
-                // Get symbols for REAL-TIME pricing
-                const symbols = new Set(trades.map(t => t.symbol));
+                // 2. Fetch ALL Open Trades for accurate top stats (exposure, etc)
+                const allOpenRes = await fetch(`${API_BASE}/trades?status=OPEN`);
+                const allOpenData = await allOpenRes.json();
+                const allOpenTrades = (allOpenData.trades || []).filter(t => t.status === 'OPEN');
+
+                // 3. Get pricing for current page + all open trades
+                const symbols = new Set([...trades.map(t => t.symbol), ...allOpenTrades.map(t => t.symbol)]);
                 const currentPrices = await getCurrentPrices(symbols);
 
                 const tradeBody = document.getElementById('tradeBody');
                 const noTrades = document.getElementById('noTrades');
                 const paginationControls = document.getElementById('paginationControls');
 
-                // Recalculate Real-time Stats from all FETCHED trades
+                // Recalculate stats from ALL OPEN trades
                 let totalUnrealizedPnL = 0;
                 let totalNotionalValue = 0;
                 let totalMarginUsed = 0;
-                let openTradesCount = 0;
+                let openTradesCount = allOpenTrades.length;
+
+                allOpenTrades.forEach(t => {
+                    const pnl = calculatePnL(t, currentPrices);
+                    totalUnrealizedPnL += pnl.dollar;
+                    totalNotionalValue += (t.quantity * t.price);
+                    totalMarginUsed += (t.margin || (t.quantity * t.price / (t.leverage || 1)));
+                });
 
                 if (trades.length > 0) {
                     noTrades.classList.add('hidden');
                     tradeBody.innerHTML = trades.map(t => {
                         const pnl = calculatePnL(t, currentPrices);
-
-                        if (t.status === 'OPEN') {
-                            totalUnrealizedPnL += pnl.dollar;
-                            totalNotionalValue += (t.quantity * t.price);
-                            totalMarginUsed += (t.margin || (t.quantity * t.price / (t.leverage || 1)));
-                            openTradesCount++;
-                        }
 
                         const isProfit = pnl.dollar >= 0;
                         const pnlClass = isProfit ? 'text-success' : 'text-error';
