@@ -108,11 +108,11 @@ export class SupabaseDataStore implements IDataStore {
             losingTrades: snapshot.losingTrades || 0,
             openTradesCount: snapshot.openTradesCount || 0,
             totalNotionalValue: snapshot.totalNotionalValue || 0,
-            currentEquity: snapshot.currentEquity || snapshot.totalValue,
-            currentBalance: snapshot.currentBalance || snapshot.totalValue,
-            walletBalance: snapshot.walletBalance || snapshot.currentBalance || snapshot.totalValue,
-            totalMarginUsed: snapshot.totalMarginUsed || 0,
-            initialBalance: snapshot.initialBalance || 10000
+            currentEquity: snapshot.currentEquity ?? snapshot.totalValue ?? 0,
+            currentBalance: snapshot.currentBalance ?? snapshot.totalValue ?? 0,
+            walletBalance: snapshot.walletBalance ?? snapshot.currentBalance ?? snapshot.totalValue ?? 0,
+            totalMarginUsed: snapshot.totalMarginUsed ?? 0,
+            initialBalance: snapshot.initialBalance ?? 10000
         } as PortfolioSnapshot;
     }
 
@@ -175,11 +175,11 @@ export class SupabaseDataStore implements IDataStore {
             losingTrades: snapshot.losingTrades || 0,
             openTradesCount: snapshot.openTradesCount || 0,
             totalNotionalValue: snapshot.totalNotionalValue || 0,
-            currentEquity: snapshot.currentEquity || snapshot.totalValue,
-            currentBalance: snapshot.currentBalance || snapshot.totalValue,
-            walletBalance: snapshot.walletBalance || snapshot.currentBalance || snapshot.totalValue,
-            totalMarginUsed: snapshot.totalMarginUsed || 0,
-            initialBalance: snapshot.initialBalance || 10000
+            currentEquity: snapshot.currentEquity ?? snapshot.totalValue ?? 0,
+            currentBalance: snapshot.currentBalance ?? snapshot.totalValue ?? 0,
+            walletBalance: snapshot.walletBalance ?? snapshot.currentBalance ?? snapshot.totalValue ?? 0,
+            totalMarginUsed: snapshot.totalMarginUsed ?? 0,
+            initialBalance: snapshot.initialBalance ?? 10000
         })) as PortfolioSnapshot[];
 
         // Reverse to get chronological order (oldest to newest) for chart display

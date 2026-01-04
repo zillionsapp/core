@@ -66,6 +66,10 @@ export class BotEngine {
         await this.riskManager.init();
         this.strategy.init(config || {}); // Pass config here if needed
 
+        // Save initial snapshot to ensure dashboard is accurate from the start
+        await this.portfolioManager.saveSnapshot();
+        this.lastSnapshotTime = this.timeProvider.now();
+
         this.isRunning = true;
         this.runLoop(symbol, interval);
     }
