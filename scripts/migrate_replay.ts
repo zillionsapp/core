@@ -115,6 +115,13 @@ async function runMigrateReplay() {
 
         // Update simulation time to the CLOSE of the candle
         const candleTime = currentCandle.closeTime || (currentCandle.startTime + intervalMs);
+
+        // Guard: Do not process candles that close in the future
+        if (candleTime > Date.now()) {
+            logger.info(`[MigrateReplay] Stopping at candle index ${i} because close time ${new Date(candleTime).toLocaleString()} is in the future.`);
+            break;
+        }
+
         timeProvider.setTime(candleTime);
 
         // Update memory data with ALL candles up to this point (for indicators)

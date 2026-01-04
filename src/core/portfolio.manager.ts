@@ -117,8 +117,8 @@ export class PortfolioManager {
             }
         }
 
-        // 4. Current Balance = Settled Cash - Total Notional Value (User requirement)
-        let currentBalance = walletBalance - totalNotionalValue;
+        // 4. Current Balance = Settled Cash - Margin Used (Available for new trades)
+        let currentBalance = walletBalance - totalMarginUsed;
 
         // CRITICAL: Available balance cannot be negative
         currentBalance = Math.max(0, currentBalance);
