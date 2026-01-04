@@ -398,9 +398,10 @@
                     const totalUnrealizedPnL = tradesData.totalUnrealizedPnL || 0;
                     const realTimeEquity = walletBalance + totalUnrealizedPnL;
 
-                    // Use Total Margin as the base for the Unrealized ROI (matches the table perspective)
+                    // Use Wallet Balance (equity) as the base for the Unrealized PnL percentage
+                    // Since unrealized PnL is a sum of individual trade PnLs, it should be compared to total capital
                     const totalMarginUsed = tradesData.totalMarginUsed || 0;
-                    const unrealizedPnLPercentage = totalMarginUsed > 0 ? (totalUnrealizedPnL / totalMarginUsed) * 100 : 0;
+                    const unrealizedPnLPercentage = walletBalance > 0 ? (totalUnrealizedPnL / walletBalance) * 100 : 0;
 
                     document.getElementById('currentEquity').innerText = `$${realTimeEquity.toLocaleString()}`;
                     const equityChangeEl = document.getElementById('equityChange');
