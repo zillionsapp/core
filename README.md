@@ -169,7 +169,7 @@ npm test
 ### Strategy Configuration
 Zillion Core supports runtime strategy configuration for both long-running and serverless deployments:
 
-#### Long-Running Bots (`src/index.ts`)
+#### Long-Running Bots (`src/main.ts`)
 ```typescript
 const bot = new BotEngine('MACD');
 await bot.start('BTC/USDT', '15m', {
