@@ -77,7 +77,7 @@ describe('Vault Trading Integration', () => {
 
         // Also need some mock transactions if getTotalDepositedBalance uses them
         jest.spyOn(mockStore, 'getVaultTransactions').mockResolvedValue([
-            { amount: 5000, type: 'DEPOSIT', email: 'test@example.com' }
+            { amount: 5000, type: 'DEPOSIT', email: 'test@example.com', timestamp: Date.now() - 1000 } as any
         ]);
 
         // 1. Start exchange
@@ -88,10 +88,11 @@ describe('Vault Trading Integration', () => {
         expect(balance).toBe(5000);
 
         // 3. Risk check should return valid quantity
-        // Default position size is 10% = 500 USDT. At 50k, qty = 0.01
+        // Balance 5000. Risk 1% = 50. SL 2%.
+        // Qty = 50 / (50000 * 0.02) = 50 / 1000 = 0.05
         const quantity = await riskManager.calculateQuantity('BTC/USDT', 50000);
         expect(quantity).toBeGreaterThan(0);
-        expect(quantity).toBeCloseTo(0.01);
+        expect(quantity).toBeCloseTo(0.05);
 
         // 4. Order placement should succeed
         dataProvider.setTicker('BTC/USDT', { symbol: 'BTC/USDT', price: 50000, timestamp: Date.now() });
@@ -99,7 +100,7 @@ describe('Vault Trading Integration', () => {
             symbol: 'BTC/USDT',
             side: 'BUY',
             type: 'MARKET',
-            quantity: 0.01
+            quantity: 0.05
         });
         expect(order.status).toBe('FILLED');
 

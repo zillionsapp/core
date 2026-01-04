@@ -308,9 +308,9 @@ describe('PortfolioManager', () => {
             // New Logic: 
             // Wallet Balance = 10000
             // Notional = 10000
-            // Balance = 10000 - 10000 = 0
+            // Balance = 10000 - Margin (10,000 / 5 = 2,000) = 8,000
             // Equity = Wallet Balance (10000) + Unrealized (0) = 10000
-            expect(snapshot.currentBalance).toBe(0);
+            expect(snapshot.currentBalance).toBe(8000);
             expect(snapshot.currentEquity).toBe(10000);
 
             // Clean up
@@ -356,9 +356,9 @@ describe('PortfolioManager', () => {
 
             const snapshot = await portfolioManager.generateSnapshot();
 
-            // Total Notional = 5000 + 15000 = 20,000
-            // Balance should be: settled_balance - total_notional = 20,000 - 20,000 = 0
-            expect(snapshot.currentBalance).toBe(0);
+            // Total Margin = 500 + 1500 = 2,000
+            // Balance should be: settled_balance - total_margin = 20,000 - 2,000 = 18,000
+            expect(snapshot.currentBalance).toBe(18000);
 
             // Clean up
             delete process.env.LEVERAGE_VALUE;
@@ -440,9 +440,9 @@ describe('PortfolioManager', () => {
 
             const snapshot = await portfolioManager.generateSnapshot();
 
-            // New Logic (Notional Deduction):
-            // Balance = Settled (10000) - Notional (10000) = 0
-            expect(snapshot.currentBalance).toBe(0);
+            // New Logic (Margin Deduction):
+            // Balance = Settled (10000) - Margin (10000 / 5 = 2000) = 8000
+            expect(snapshot.currentBalance).toBe(8000);
 
             // Clean up
             delete process.env.LEVERAGE_VALUE;

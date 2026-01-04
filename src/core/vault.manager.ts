@@ -54,6 +54,8 @@ export class VaultManager implements IVaultManager {
         const transactions = await this.db.getVaultTransactions();
         const now = this.timeProvider.now();
 
+        if (!transactions || transactions.length === 0) return 0;
+
         const filtered = transactions.filter(t => t.timestamp <= now);
         return filtered.reduce((sum, t) => {
             return t.type === 'DEPOSIT' ? sum + Number(t.shares) : sum - Number(t.shares);

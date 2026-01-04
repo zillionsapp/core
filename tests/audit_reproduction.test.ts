@@ -76,8 +76,12 @@ describe('Audit Reproduction: Notional-Based Math', () => {
             });
         }
 
+        // Total Notional: 900 * 5 = 4500
+        // Leverage 5x => Margin per pos = 900 / 5 = 180
+        // Total Margin = 180 * 5 = 900
+        // Available Balance = 10000 - 900 = 9100
         snapshot = await portfolioManager.generateSnapshot();
-        expect(snapshot.currentBalance).toBe(5500);
+        expect(snapshot.currentBalance).toBe(9100);
         // Equity = Settled Cash (10000) + Unrealized (0) = 10000
         expect(snapshot.currentEquity).toBe(10000);
 
@@ -92,7 +96,7 @@ describe('Audit Reproduction: Notional-Based Math', () => {
         }));
 
         snapshot = await portfolioManager.generateSnapshot();
-        expect(snapshot.currentBalance).toBe(5500);
+        expect(snapshot.currentBalance).toBe(9100);
         // Equity = Settled Cash (10000) + Unrealized (500) = 10500
         expect(snapshot.currentEquity).toBe(10500);
 
@@ -110,14 +114,14 @@ describe('Audit Reproduction: Notional-Based Math', () => {
 
         // Realized PnL = (100000 - 90000) * 0.01 = 100
         // Settled Cash = 10100
-        // Remaining Notional = 4 * 0.01 * 90000 = 3600
-        // New Balance = 10100 - 3600 = 6500
+        // Remaining Margin = 4 * 180 = 720
+        // New Available Balance = 10100 - 720 = 9380
         // Remaining Unrealized = 4 * 0.01 * (100000 - 90000) = 400
         // New Equity = 10100 + 400 = 10500
 
         expect(snapshot.pnl).toBe(100);
         expect(snapshot.totalNotionalValue).toBe(3600);
-        expect(snapshot.currentBalance).toBe(6500);
+        expect(snapshot.currentBalance).toBe(9380);
         expect(snapshot.currentEquity).toBe(10500);
     });
 });

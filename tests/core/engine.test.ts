@@ -56,7 +56,8 @@ describe('BotEngine Integration', () => {
         mockTime.setNow(now);
 
         const buyCandle = { symbol: 'BTC/USDT', interval: '1m', open: 100, high: 100, low: 100, close: 100, volume: 100, startTime: now };
-        const slCandle = { symbol: 'BTC/USDT', interval: '1m', open: 90, high: 90, low: 90, close: 90, volume: 100, startTime: now + 60000 };
+        // Drop to 97 triggers SL (98)
+        const slCandle = { symbol: 'BTC/USDT', interval: '1m', open: 97, high: 97, low: 97, close: 97, volume: 100, startTime: now + 60000 };
 
         const placeOrderSpy = jest.spyOn(mockExchange, 'placeOrder');
 
@@ -65,9 +66,10 @@ describe('BotEngine Integration', () => {
         await engine.tick('BTC/USDT', '1m');
 
         expect(engine['activeTrade']).toBeDefined();
-        expect(engine['activeTrade']?.stopLossPrice).toBe(95);
+        // Default SL is 2%. Entry 100 -> SL 98.
+        expect(engine['activeTrade']?.stopLossPrice).toBe(98);
 
-        // Tick 2: Price drops to 90
+        // Tick 2: Price drops to 97 (below SL 98)
         mockTime.setNow(now + 60000);
         (mockExchange['dataProvider'] as MemoryDataProvider).setCandles([buyCandle, slCandle]);
         await engine.tick('BTC/USDT', '1m');
@@ -104,6 +106,7 @@ describe('BotEngine Integration', () => {
 
     it('should allow multiple positions when enabled', async () => {
         config.ALLOW_MULTIPLE_POSITIONS = true;
+        config.MAX_OPEN_TRADES = 5;
         const engine = createEngine();
 
         jest.spyOn(engine['strategy'], 'update').mockResolvedValue({ action: 'BUY', symbol: 'BTC/USDT' });

@@ -21,8 +21,8 @@ export class RiskManager {
         this.timeProvider = timeProvider;
     }
 
-    async init() {
-        const currentBalance = await this.exchange.getBalance(config.PAPER_BALANCE_ASSET);
+    async init(currentEquity?: number) {
+        const currentBalance = currentEquity ?? await this.exchange.getBalance(config.PAPER_BALANCE_ASSET);
         this.initialBalance = currentBalance;
 
         // Try to recover state
@@ -44,13 +44,13 @@ export class RiskManager {
         }
 
         this.isInitialized = true;
-        logger.info(`[RiskManager] Initialized. Balance: ${this.initialBalance} ${config.PAPER_BALANCE_ASSET}`);
+        logger.info(`[RiskManager] Initialized. Balance/Equity: ${this.initialBalance} ${config.PAPER_BALANCE_ASSET}`);
     }
 
-    async validateOrder(order: OrderRequest): Promise<boolean> {
-        if (!this.isInitialized) await this.init();
+    async validateOrder(order: OrderRequest, currentEquity?: number): Promise<boolean> {
+        if (!this.isInitialized) await this.init(currentEquity);
 
-        const currentBalance = await this.exchange.getBalance(config.PAPER_BALANCE_ASSET);
+        const currentBalance = currentEquity ?? await this.exchange.getBalance(config.PAPER_BALANCE_ASSET);
         const today = this.timeProvider.getUTCDate();
 
         // Check for Daily Reset (UTC)

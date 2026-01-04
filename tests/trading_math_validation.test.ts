@@ -121,18 +121,28 @@ describe('Trading Math Validation Against Real Data', () => {
     describe('Quantity Calculations', () => {
         test('should calculate quantities correctly with different balances', async () => {
             // Test with different balances to see how quantity scales
-            // Current Logic: Position Size = Balance * POSITION_SIZE_PERCENT (Default 10%)
-            // quantity = (balance * 0.10) / price
+            // Current Logic: Professional Risk Sizing
+            // Risk = 1% of Balance (RISK_PER_TRADE_PERCENT = 1)
+            // SL Distance = 5% of Price (DEFAULT_STOP_LOSS_PERCENT = 5 in this test setup)
+            // Quantity = Risk / SL_Distance = (Balance * 0.01) / (Price * 0.05)
+            // Quantity = (Balance * 0.01) / (Price * 0.05) = Balance / (Price * 5) = 0.2 * (Balance / Price)
+
             const testCases = [
-                { balance: 10000, price: 88000, expectedQty: 0.011363 }, // (10000 * 0.10) / 88000 = 1000 / 88000
-                { balance: 10989.87, price: 88000, expectedQty: 0.012488 }, // (10989.87 * 0.10) / 88000
-                { balance: 12104.99, price: 88000, expectedQty: 0.013756 }, // (12104.99 * 0.10) / 88000
+                // Qty = 10000 * 0.2 / 88000 = 2000 / 88000 = 0.022727...
+                { balance: 10000, price: 88000, expectedQty: 0.022727 },
+                // Qty = 10989.87 * 0.2 / 88000 = 2197.974 / 88000 = 0.024977
+                { balance: 10989.87, price: 88000, expectedQty: 0.024977 },
+                // Qty = 12104.99 * 0.2 / 88000 = 2420.998 / 88000 = 0.027511
+                { balance: 12104.99, price: 88000, expectedQty: 0.027511 },
             ];
 
             for (const testCase of testCases) {
                 // Temporarily set balance
                 exchange['balances'].set('USDT', testCase.balance);
 
+                // calculateQuantity no longer takes balance as arg, it gets it from exchange
+                // but wait, calculateQuantity signature is (symbol, price, slPercent?)
+                // Actually in RiskManager it fetches balance internally.
                 const calculatedQuantity = await riskManager.calculateQuantity(
                     'BTC/USDT',
                     testCase.price

@@ -10,7 +10,7 @@ describe('VaultManager', () => {
             getVaultState: jest.fn(),
             saveVaultState: jest.fn(),
             saveVaultTransaction: jest.fn(),
-            getVaultTransactions: jest.fn(),
+            getVaultTransactions: jest.fn().mockResolvedValue([]),
             getLatestPortfolioSnapshot: jest.fn(),
         } as any;
 
@@ -27,8 +27,12 @@ describe('VaultManager', () => {
 
     it('should calculate share price based on total assets and shares', async () => {
         mockDb.getVaultState.mockResolvedValue({ total_shares: 1000 } as any);
+        // Mock getTotalShares via transactions
+        mockDb.getVaultTransactions.mockResolvedValue([
+            { type: 'DEPOSIT', shares: 1000, timestamp: Date.now() - 1000 }
+        ] as any);
         // Mock getTotalAssets via getLatestPortfolioSnapshot fallback
-        mockDb.getLatestPortfolioSnapshot.mockResolvedValue({ currentEquity: 1200 } as any);
+        mockDb.getLatestPortfolioSnapshot.mockResolvedValue({ currentEquity: 1200, timestamp: Date.now() - 500 } as any);
 
         const price = await vaultManager.getSharePrice();
         expect(price).toBe(1.2);
@@ -36,7 +40,10 @@ describe('VaultManager', () => {
 
     it('should handle deposit and issue correct shares', async () => {
         mockDb.getVaultState.mockResolvedValue({ total_assets: 0, total_shares: 1000 } as any);
-        mockDb.getLatestPortfolioSnapshot.mockResolvedValue({ currentEquity: 1200 } as any);
+        mockDb.getVaultTransactions.mockResolvedValue([
+            { type: 'DEPOSIT', shares: 1000, timestamp: Date.now() - 1000 }
+        ] as any);
+        mockDb.getLatestPortfolioSnapshot.mockResolvedValue({ currentEquity: 1200, timestamp: Date.now() - 500 } as any);
 
         const tx = await vaultManager.deposit('test@example.com', 120);
 
@@ -55,7 +62,10 @@ describe('VaultManager', () => {
 
     it('should handle withdrawal and return correct amount', async () => {
         mockDb.getVaultState.mockResolvedValue({ total_assets: 1320, total_shares: 1100 } as any);
-        mockDb.getLatestPortfolioSnapshot.mockResolvedValue({ currentEquity: 1320 } as any); // Price = 1.2
+        mockDb.getVaultTransactions.mockResolvedValue([
+            { type: 'DEPOSIT', shares: 1100, timestamp: Date.now() - 1000 }
+        ] as any);
+        mockDb.getLatestPortfolioSnapshot.mockResolvedValue({ currentEquity: 1320, timestamp: Date.now() - 500 } as any); // Price = 1.2
 
         const tx = await vaultManager.withdraw('test@example.com', 100);
 

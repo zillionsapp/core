@@ -64,7 +64,8 @@ export class BotEngine {
     async start(symbol: string, interval: string, config?: StrategyConfig) {
         logger.info(`[BotEngine] Starting... Symbol: ${symbol}, Interval: ${interval}, Strategy: ${this.strategy.name}`);
         await this.exchange.start();
-        await this.riskManager.init();
+        const initialEquity = await this.portfolioManager.getCurrentEquity();
+        await this.riskManager.init(initialEquity);
         this.strategy.init(config || {}); // Pass config here if needed
 
         // Save initial snapshot to ensure dashboard is accurate from the start
@@ -182,7 +183,8 @@ export class BotEngine {
                         quantity: quantity,
                     };
 
-                    const isSafe = await this.riskManager.validateOrder(orderRequest);
+                    const currentEquity = await this.portfolioManager.getCurrentEquity();
+                    const isSafe = await this.riskManager.validateOrder(orderRequest, currentEquity);
                     if (!isSafe) {
                         logger.warn(`[BotEngine] Order validation failed for ${signal.symbol}`);
                         return;

@@ -120,7 +120,8 @@ describe('PortfolioManager Audit Tests', () => {
 
         // Wallet Balance = 10000
         // Total Notional = 10000
-        // Current Balance = 0 (10000 - 10000)
-        expect(snapshot.currentBalance).toBe(0);
+        // Leverage = 10x => Margin = 1000
+        // Current Balance = 10000 - 1000 = 9000
+        expect(snapshot.currentBalance).toBe(9000);
     });
 });
