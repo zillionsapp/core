@@ -112,6 +112,7 @@ export class BotEngine {
 
             // 2. Check and manage all open positions (SL/TP)
             await this.tradeManager.checkAndManagePositions(lastCandle);
+            await this.portfolioManager.saveSnapshot();
 
             // Refresh active trade status after position management
             if (this.activeTrade) {
@@ -137,6 +138,7 @@ export class BotEngine {
                     logger.info(`[BotEngine] Force closing ${conflictingTrades.length} conflicting positions`);
                     for (const trade of conflictingTrades) {
                         await this.tradeManager.forceClosePosition(trade, 'FORCE_CLOSE');
+                        await this.portfolioManager.saveSnapshot();
                     }
                 }
                 // Handle close on opposite signal configuration
@@ -144,6 +146,7 @@ export class BotEngine {
                     logger.info(`[BotEngine] Closing ${conflictingTrades.length} positions due to opposite signal`);
                     for (const trade of conflictingTrades) {
                         await this.tradeManager.forceClosePosition(trade, 'OPPOSITE_SIGNAL');
+                        await this.portfolioManager.saveSnapshot();
                     }
                 }
                 // Check if we should skip opening new position due to existing positions
@@ -197,6 +200,7 @@ export class BotEngine {
                 };
 
                 await this.db.saveTrade(trade);
+                await this.portfolioManager.saveSnapshot();
 
                 // Notify strategy that position was opened
                 if (this.strategy.onPositionOpened) {
@@ -227,31 +231,13 @@ export class BotEngine {
     private async logPortfolioState(symbol: string, currentPrice: number) {
         if (process.env.NODE_ENV === 'test') return;
         try {
+            const snapshot = await this.portfolioManager.generateSnapshot();
             const asset = config.PAPER_BALANCE_ASSET;
-            const balance = await this.exchange.getBalance(asset);
-            let equity = balance;
-            let pnl = 0;
-            let pnlPercent = 0;
 
-            if (this.activeTrade) {
-                const entryValue = this.activeTrade.price * this.activeTrade.quantity;
-                const currentValue = currentPrice * this.activeTrade.quantity;
+            const unrealizedPnL = snapshot.currentEquity - snapshot.walletBalance;
+            const pnlPercent = snapshot.initialBalance > 0 ? (unrealizedPnL / snapshot.initialBalance) * 100 : 0;
 
-                if (this.activeTrade.side === 'BUY') {
-                    pnl = currentValue - entryValue;
-                } else {
-                    pnl = entryValue - currentValue;
-                }
-
-                pnlPercent = (pnl / entryValue) * 100;
-
-                // For equity calculation: balance (available) + margin + unrealized PnL
-                const leverage = config.LEVERAGE_ENABLED ? config.LEVERAGE_VALUE : 1;
-                const margin = entryValue / leverage;
-                equity = balance + margin + pnl;
-            }
-
-            logger.info(`[Portfolio] ${symbol} | Balance: ${balance.toFixed(2)} ${asset} | Equity: ${equity.toFixed(2)} ${asset} | Unrealized PnL: ${pnl.toFixed(2)} ${asset} (${pnlPercent.toFixed(2)}%)`);
+            logger.info(`[Portfolio] ${symbol} | Balance: ${snapshot.currentBalance.toFixed(2)} ${asset} | Equity: ${snapshot.currentEquity.toFixed(2)} ${asset} | Unrealized PnL: ${unrealizedPnL.toFixed(2)} ${asset} (${pnlPercent.toFixed(2)}%)`);
         } catch (error) {
             logger.error('[BotEngine] Error logging portfolio state:', error);
         }
