@@ -42,7 +42,7 @@ export class PaperExchange implements IExchange {
         // Internal Vault Initialization
         if (!this.vaultManager && config.VAULT_ENABLED && this.db) {
             const { VaultManager } = require('../../core/vault.manager');
-            this.vaultManager = new VaultManager(this.db);
+            this.vaultManager = new VaultManager(this.db, this.timeProvider);
             console.log(`[PaperExchange] Internal VaultManager initialized.`);
         }
 

@@ -31,6 +31,3 @@ npm-debug.log*
 # OS
 .DS_Store
 Thumbs.db
-
-# Misc
-*migrate_vault.*

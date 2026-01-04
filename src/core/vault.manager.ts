@@ -1,6 +1,7 @@
 import { IVaultManager, VaultTransaction, VaultState } from '../interfaces/vault.interface';
 import { IDataStore } from '../interfaces/repository.interface';
 import { logger } from './logger';
+import { ITimeProvider, RealTimeProvider } from './time.provider';
 
 export interface EquityProvider {
     getCurrentEquity(): Promise<number>;
@@ -8,8 +9,11 @@ export interface EquityProvider {
 
 export class VaultManager implements IVaultManager {
     private equityProvider?: EquityProvider;
+    private timeProvider: ITimeProvider;
 
-    constructor(private db: IDataStore) { }
+    constructor(private db: IDataStore, timeProvider: ITimeProvider = new RealTimeProvider()) {
+        this.timeProvider = timeProvider;
+    }
 
     /**
      * Set the equity provider to avoid circular dependencies
@@ -19,23 +23,25 @@ export class VaultManager implements IVaultManager {
     }
 
     async getSharePrice(): Promise<number> {
-        const state = await this.db.getVaultState();
-        if (!state || state.total_shares === 0) {
+        const totalShares = await this.getTotalShares();
+        if (totalShares === 0) {
             return 1.0; // Initial share price
         }
 
         const totalAssets = await this.getTotalAssets();
-        return totalAssets / state.total_shares;
+        return totalAssets / totalShares;
     }
 
     async getTotalAssets(): Promise<number> {
+        // If we have an equity provider (active trading), use its live equity
         if (this.equityProvider) {
             return await this.equityProvider.getCurrentEquity();
         }
 
-        // Fallback: If no equity provider (e.g. at startup), use last snapshot or initial deposits
+        // Fallback: If no equity provider (e.g. at startup or simulation), 
+        // use last snapshot or initial deposits
         const snapshot = await this.db.getLatestPortfolioSnapshot();
-        if (snapshot) {
+        if (snapshot && snapshot.timestamp <= this.timeProvider.now()) {
             return snapshot.currentEquity;
         }
 
@@ -43,14 +49,27 @@ export class VaultManager implements IVaultManager {
     }
 
     async getTotalShares(): Promise<number> {
-        const state = await this.db.getVaultState();
-        return state?.total_shares || 0;
+        // In simulation or time-aware mode, we MUST calculate shares from transactions
+        // to respect the timing of deposits.
+        const transactions = await this.db.getVaultTransactions();
+        const now = this.timeProvider.now();
+
+        const filtered = transactions.filter(t => t.timestamp <= now);
+        return filtered.reduce((sum, t) => {
+            return t.type === 'DEPOSIT' ? sum + Number(t.shares) : sum - Number(t.shares);
+        }, 0);
     }
 
     async getTotalDepositedBalance(): Promise<number> {
         const transactions = await this.db.getVaultTransactions();
+        const now = this.timeProvider.now();
+
         if (!transactions || transactions.length === 0) return 0;
-        return transactions.reduce((sum, t) => {
+
+        // Filter transactions to only include those that happened at or before "now"
+        const filtered = transactions.filter(t => t.timestamp <= now);
+
+        return filtered.reduce((sum, t) => {
             return t.type === 'DEPOSIT' ? sum + Number(t.amount) : sum - Number(t.amount);
         }, 0);
     }
