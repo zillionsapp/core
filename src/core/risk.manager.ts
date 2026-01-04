@@ -89,64 +89,72 @@ export class RiskManager {
 
     async calculateQuantity(symbol: string, price: number, slPercent?: number): Promise<number> {
         const balance = await this.exchange.getBalance(config.PAPER_BALANCE_ASSET);
-
-        // Calculate position size based on position size percentage
-        const positionSize = balance * (config.POSITION_SIZE_PERCENT / 100);
-
-        // Leverage affects position sizing
         const leverage = config.LEVERAGE_ENABLED ? config.LEVERAGE_VALUE : 1;
 
-        // SL Distance = entry price * SL percentage
+        // 1. Determine Stop Loss Distance
         const effectiveSLPercent = slPercent ?? config.DEFAULT_STOP_LOSS_PERCENT;
         const slDistance = price * (effectiveSLPercent / 100);
 
-        let quantity = positionSize / price;
+        // 2. Risk Amount Calculation
+        // Risk a fixed percentage of TOTAL ACCOUNT BALANCE per trade (e.g., 1%)
+        // This is the "Professional" approach requested.
+        const riskAmount = balance * (config.RISK_PER_TRADE_PERCENT / 100);
+
+        // 3. Calculate Quantity based on Risk
+        // Loss = Quantity * SL_Distance
+        // Therefore: Quantity = Risk / SL_Distance
+        let quantity = riskAmount / slDistance;
 
         // Apply precision (round down to 6 decimals safe for crypto)
         quantity = PrecisionUtils.normalizeQuantity(quantity);
 
-        // BULLETPROOF SAFETY CHECKS
+        // 4. Calculate Constraints
         let positionValue = quantity * price;
         const requiredMargin = positionValue / leverage;
 
-        // 1. Prevent margin exceeding available balance (with 10% buffer)
-        const maxAllowedMargin = balance * 0.9; // Never use more than 90% of balance
+        // Constraint A: Available Margin Check (Buffer 10%)
+        const maxAllowedMargin = balance * 0.9;
         if (requiredMargin > maxAllowedMargin) {
             const adjustmentFactor = maxAllowedMargin / requiredMargin;
             quantity *= adjustmentFactor;
-            quantity = PrecisionUtils.normalizeQuantity(quantity); // Re-normalize after adjustment
+            quantity = PrecisionUtils.normalizeQuantity(quantity);
             positionValue = quantity * price;
             logger.warn(`[RiskManager] Position size reduced by ${(adjustmentFactor * 100).toFixed(1)}% to fit available margin`);
         }
 
-        // 2. Prevent position value from exceeding reasonable limits
-        const maxUtilizationPercent = config.MAX_LEVERAGE_UTILIZATION / 100; // Convert from full number to decimal
+        // Constraint B: Maximum Leverage Utilization
+        // Ensure position value doesn't exceed X% of Max theoretical position
+        // Max theoretical = Balance * Leverage
+        const maxUtilizationPercent = config.MAX_LEVERAGE_UTILIZATION / 100;
         const maxPositionValue = balance * leverage * maxUtilizationPercent;
+
         if (positionValue > maxPositionValue) {
-            quantity = maxPositionValue / price;
-            quantity = PrecisionUtils.normalizeQuantity(quantity); // Re-normalize
+            const adjustmentFactor = maxPositionValue / positionValue;
+            quantity *= adjustmentFactor;
+            quantity = PrecisionUtils.normalizeQuantity(quantity);
             positionValue = quantity * price;
             logger.warn(`[RiskManager] Position size capped to prevent over-leveraging (max ${config.MAX_LEVERAGE_UTILIZATION}% utilization)`);
         }
 
-        // 3. Minimum position size check
-        const minPositionValue = balance * 0.001; // Minimum 0.1% of balance
+        // Constraint C: Minimum Size
+        const minPositionValue = 10; // Min $10 position (Hardcoded safe minimum)
         if (positionValue < minPositionValue) {
-            logger.warn(`[RiskManager] Position size too small: ${positionValue.toFixed(2)} < ${minPositionValue.toFixed(2)}`);
+            logger.warn(`[RiskManager] Position size too small: ${positionValue.toFixed(2)} < ${minPositionValue}`);
             return 0; // Skip trade
         }
 
-        // Recalculate final values
+        // Final Recalculations for logging
         const finalPositionValue = quantity * price;
         const finalMargin = finalPositionValue / leverage;
-        const riskAmount = finalPositionValue * (effectiveSLPercent / 100);
+        const actualRiskAmount = quantity * slDistance;
+        const actualRiskPercent = (actualRiskAmount / balance) * 100;
 
         logger.info(`[RiskManager] Professional position sizing for ${symbol}:`);
-        logger.info(`  Risk Amount: ${riskAmount.toFixed(2)} ${config.PAPER_BALANCE_ASSET} (${(riskAmount / balance * 100).toFixed(2)}% of equity)`);
+        logger.info(`  Risk Target: ${riskAmount.toFixed(2)} ${config.PAPER_BALANCE_ASSET} (${config.RISK_PER_TRADE_PERCENT}% of equity)`);
+        logger.info(`  Actual Risk: ${actualRiskAmount.toFixed(2)} ${config.PAPER_BALANCE_ASSET} (${actualRiskPercent.toFixed(2)}% of equity)`);
         logger.info(`  SL Distance: ${slDistance.toFixed(2)} (${effectiveSLPercent.toFixed(2)}% of entry)`);
         logger.info(`  Leverage: ${leverage}x`);
         logger.info(`  Quantity: ${quantity.toFixed(6)} (Position Value: ${finalPositionValue.toFixed(2)} ${config.PAPER_BALANCE_ASSET}, Margin: ${finalMargin.toFixed(2)} ${config.PAPER_BALANCE_ASSET})`);
-        logger.info(`  Safety: Margin ${((finalMargin / balance) * 100).toFixed(1)}% of balance, Position ${((finalPositionValue / balance) * 100).toFixed(1)}% of balance`);
 
         return quantity;
     }

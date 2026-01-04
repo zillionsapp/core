@@ -16,6 +16,8 @@ describe('RiskManager', () => {
         config.LEVERAGE_ENABLED = false;
         config.LEVERAGE_VALUE = 1;
         config.RISK_PER_TRADE_PERCENT = 1;
+        config.DEFAULT_STOP_LOSS_PERCENT = 5;
+        config.DEFAULT_TAKE_PROFIT_PERCENT = 10;
 
         // Mock Provider
         const mockProvider = {
@@ -82,27 +84,41 @@ describe('RiskManager', () => {
     });
 
     describe('calculateQuantity', () => {
-        it('should calculate quantity based on balance and risk percentage, capped at POSITION_SIZE_PERCENT', async () => {
+        it('should calculate quantity based on RISK_PER_TRADE_PERCENT and SL distance', async () => {
             // Balance 10000, RISK_PER_TRADE_PERCENT = 1% = 100 USDT risk
-            // SL distance = 1000 * 5% = 50
-            // Leverage = 1 (default), initial quantity = (100 * 1) / 50 = 2
-            // Position value = 2 * 1000 = 2000 (20% of balance)
-            // But POSITION_SIZE_PERCENT = 10%, max position value = 1000
-            // So quantity capped to 1000 / 1000 = 1
+            // SL distance determined by default 5% SL
+            // 5% of 1000 = 50.
+            // Expected Quantity = Risk / Distance = 100 / 50 = 2.
             const quantity = await riskManager.calculateQuantity('BTC/USDT', 1000);
-            expect(quantity).toBe(1);
+            expect(quantity).toBe(2);
         });
 
-        it('should respect custom RISK_PER_TRADE_PERCENT', async () => {
-            // Change config (we can override it directly for the test)
+        it('should adjust quantity when RISK_PER_TRADE_PERCENT is lower', async () => {
+            // Change config override
             const { config } = require('../../src/config/env');
             const originalValue = config.RISK_PER_TRADE_PERCENT;
             config.RISK_PER_TRADE_PERCENT = 0.5; // 0.5%
 
             // Balance 10000, 0.5% = 50 USDT risk
-            // SL distance = 1000 * 5% = 50
-            // Leverage = 1, quantity = (50 * 1) / 50 = 1
+            // SL distance (5% of 1000) = 50.
+            // Expected Quantity = 50 / 50 = 1.
             const quantity = await riskManager.calculateQuantity('BTC/USDT', 1000);
+            expect(quantity).toBe(1);
+
+            config.RISK_PER_TRADE_PERCENT = originalValue; // Restore
+        });
+
+        it('should adjust quantity when Stop Loss is tighter (allowing larger position)', async () => {
+            // Change config override to smaller risk
+            const { config } = require('../../src/config/env');
+            const originalValue = config.RISK_PER_TRADE_PERCENT;
+            config.RISK_PER_TRADE_PERCENT = 0.1; // 0.1% Risk
+
+            // Balance 10000, Risk 0.1% = 10.
+            // Tighter SL = 1% distance (of 1000) = 10.
+            // Expected Quantity = 10 / 10 = 1.
+            // Position Value = 1 * 1000 = 1,000 (10% of balance, safe)
+            const quantity = await riskManager.calculateQuantity('BTC/USDT', 1000, 1);
             expect(quantity).toBe(1);
 
             config.RISK_PER_TRADE_PERCENT = originalValue; // Restore

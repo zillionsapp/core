@@ -105,17 +105,35 @@ export class TradeManager {
 
             // Check static stop loss (if trailing not enabled or not activated)
             if (!exitReason && trade.stopLossPrice && (!trade.trailingStopEnabled || !trade.trailingStopActivated)) {
+                // Check if current price triggers SL
                 if ((trade.side === 'BUY' && currentPrice <= trade.stopLossPrice) ||
                     (trade.side === 'SELL' && currentPrice >= trade.stopLossPrice)) {
                     exitReason = 'STOP_LOSS';
+                }
+                // Check if Intra-Candle Low/High triggers SL (for Replay/Backtest accuracy)
+                else if (latestCandle) {
+                    if (trade.side === 'BUY' && latestCandle.low <= trade.stopLossPrice) {
+                        exitReason = 'STOP_LOSS';
+                    } else if (trade.side === 'SELL' && latestCandle.high >= trade.stopLossPrice) {
+                        exitReason = 'STOP_LOSS';
+                    }
                 }
             }
 
             // Check take profit
             if (!exitReason && trade.takeProfitPrice) {
+                // Check if current price triggers TP
                 if ((trade.side === 'BUY' && currentPrice >= trade.takeProfitPrice) ||
                     (trade.side === 'SELL' && currentPrice <= trade.takeProfitPrice)) {
                     exitReason = 'TAKE_PROFIT';
+                }
+                // Check if Intra-Candle High/Low triggers TP
+                else if (latestCandle) {
+                    if (trade.side === 'BUY' && latestCandle.high >= trade.takeProfitPrice) {
+                        exitReason = 'TAKE_PROFIT';
+                    } else if (trade.side === 'SELL' && latestCandle.low <= trade.takeProfitPrice) {
+                        exitReason = 'TAKE_PROFIT';
+                    }
                 }
             }
 

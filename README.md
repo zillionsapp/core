@@ -434,12 +434,24 @@ The `RiskManager` module (`src/core/risk.manager.ts`) implements **professional 
 2. **Technical SL Levels**: Stop Loss based on percentages of entry price (chart-based levels)
 3. **Position Sizing**: Calculated to match risk amount with technical SL distance
 
+**Key Concepts:**
+- **Risk Amount**: `Equity × RISK_PER_TRADE_PERCENT`
+- **SL Distance**: `EntryPrice × STOP_LOSS_PERCENT`
+- **Position Size**: `Risk Amount ÷ SL Distance`
+
+**Practical Example:**
+> "I want to risk max 1% of my $10,000 account on this trade."
+- **Scenario A (Tight Stop)**: SL at 1%.
+  - Risk: $100.
+  - Position Size: $10,000. (If price drops 1%, you lose $100).
+- **Scenario B (Wide Stop)**: SL at 5%.
+  - Risk: $100.
+  - Position Size: $2,000. (If price drops 5%, you lose $100).
+
 **Key Features:**
-- **Risk-Based Position Sizing**: Position size = (Risk % × Equity) ÷ SL Distance
-- **Consistent Risk**: Every trade risks the same percentage of your account
-- **Technical SL/TP**: Exit levels based on entry price percentages (professional standard)
-- **Daily Drawdown Protection**: Halts trading if equity drops by a specific percentage from the start-of-day balance. Resets daily at 00:00 UTC. (Default: 5%)
-- **Max Open Trades**: Limits the total number of concurrent open positions to prevent over-exposure. (Default: 10)
+- **Consistent Risk**: Every trade risks the same percentage of your account, regardless of volatility.
+- **Daily Drawdown Protection**: Halts trading if equity drops by a specific percentage from the start-of-day balance. Resets daily at 00:00 UTC. (Default: 3%)
+- **Max Open Trades**: Limits the total number of concurrent open positions to prevent over-exposure. (Default: 5)
 
 ### Leverage Support
 Zillion Core includes **professional leveraged trading** with built-in safety measures:
