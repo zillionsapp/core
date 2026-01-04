@@ -101,22 +101,22 @@ export class SupabaseDataStore implements IDataStore {
 
         const snapshot = data as any;
         const result = {
-            timestamp: snapshot.timestamp,
-            totalValue: snapshot.totalValue,
+            timestamp: snapshot.timestamp || Date.now(),
+            totalValue: snapshot.totalValue ?? snapshot.total_value ?? 0,
             holdings: snapshot.holdings || {},
-            pnl: snapshot.pnl || 0,
-            pnlPercentage: snapshot.pnlPercentage || 0,
-            winRate: snapshot.winRate || 0,
-            profitFactor: snapshot.profitFactor || 0,
-            winningTrades: snapshot.winningTrades || 0,
-            losingTrades: snapshot.losingTrades || 0,
-            openTradesCount: snapshot.openTradesCount || 0,
-            totalNotionalValue: snapshot.totalNotionalValue || 0,
-            currentEquity: snapshot.currentEquity ?? snapshot.totalValue ?? 0,
-            currentBalance: snapshot.currentBalance ?? snapshot.totalValue ?? 0,
-            walletBalance: snapshot.walletBalance ?? snapshot.currentBalance ?? snapshot.totalValue ?? 0,
-            totalMarginUsed: snapshot.totalMarginUsed ?? 0,
-            initialBalance: snapshot.initialBalance ?? 0
+            pnl: snapshot.pnl ?? snapshot.total_pnl ?? 0,
+            pnlPercentage: snapshot.pnlPercentage ?? snapshot.pnl_percentage ?? 0,
+            winRate: snapshot.winRate ?? snapshot.win_rate ?? 0,
+            profitFactor: snapshot.profitFactor ?? snapshot.profit_factor ?? 0,
+            winningTrades: snapshot.winningTrades ?? snapshot.winning_trades ?? 0,
+            losingTrades: snapshot.losingTrades ?? snapshot.losing_trades ?? 0,
+            openTradesCount: snapshot.openTradesCount ?? snapshot.open_trades_count ?? 0,
+            totalNotionalValue: snapshot.totalNotionalValue ?? snapshot.total_notional_value ?? 0,
+            currentEquity: snapshot.currentEquity ?? snapshot.current_equity ?? snapshot.totalValue ?? snapshot.total_value ?? 0,
+            currentBalance: snapshot.currentBalance ?? snapshot.current_balance ?? snapshot.totalValue ?? snapshot.total_value ?? 0,
+            walletBalance: snapshot.walletBalance ?? snapshot.wallet_balance ?? snapshot.currentBalance ?? snapshot.current_balance ?? snapshot.totalValue ?? snapshot.total_value ?? 0,
+            totalMarginUsed: snapshot.totalMarginUsed ?? snapshot.total_margin_used ?? 0,
+            initialBalance: snapshot.initialBalance ?? snapshot.initial_balance ?? 0
         } as PortfolioSnapshot;
 
         console.log(`[SupabaseDataStore] Latest Snapshot (ID: ${snapshot.id}): Balance=${result.currentBalance}, Equity=${result.currentEquity}`);
@@ -171,22 +171,22 @@ export class SupabaseDataStore implements IDataStore {
 
         // Transform the data to match our interface
         let snapshots = (data || []).map((snapshot: any) => ({
-            timestamp: snapshot.timestamp,
-            totalValue: snapshot.totalValue,
+            timestamp: snapshot.timestamp || Date.now(),
+            totalValue: snapshot.totalValue ?? snapshot.total_value ?? 0,
             holdings: snapshot.holdings || {},
-            pnl: snapshot.pnl || 0,
-            pnlPercentage: snapshot.pnlPercentage || 0,
-            winRate: snapshot.winRate || 0,
-            profitFactor: snapshot.profitFactor || 0,
-            winningTrades: snapshot.winningTrades || 0,
-            losingTrades: snapshot.losingTrades || 0,
-            openTradesCount: snapshot.openTradesCount || 0,
-            totalNotionalValue: snapshot.totalNotionalValue || 0,
-            currentEquity: snapshot.currentEquity ?? snapshot.totalValue ?? 0,
-            currentBalance: snapshot.currentBalance ?? snapshot.totalValue ?? 0,
-            walletBalance: snapshot.walletBalance ?? snapshot.currentBalance ?? snapshot.totalValue ?? 0,
-            totalMarginUsed: snapshot.totalMarginUsed ?? 0,
-            initialBalance: snapshot.initialBalance ?? 0
+            pnl: snapshot.pnl ?? snapshot.total_pnl ?? 0,
+            pnlPercentage: snapshot.pnlPercentage ?? snapshot.pnl_percentage ?? 0,
+            winRate: snapshot.winRate ?? snapshot.win_rate ?? 0,
+            profitFactor: snapshot.profitFactor ?? snapshot.profit_factor ?? 0,
+            winningTrades: snapshot.winningTrades ?? snapshot.winning_trades ?? 0,
+            losingTrades: snapshot.losingTrades ?? snapshot.losing_trades ?? 0,
+            openTradesCount: snapshot.openTradesCount ?? snapshot.open_trades_count ?? 0,
+            totalNotionalValue: snapshot.totalNotionalValue ?? snapshot.total_notional_value ?? 0,
+            currentEquity: snapshot.currentEquity ?? snapshot.current_equity ?? snapshot.totalValue ?? snapshot.total_value ?? 0,
+            currentBalance: snapshot.currentBalance ?? snapshot.current_balance ?? snapshot.totalValue ?? snapshot.total_value ?? 0,
+            walletBalance: snapshot.walletBalance ?? snapshot.wallet_balance ?? snapshot.currentBalance ?? snapshot.current_balance ?? snapshot.totalValue ?? snapshot.total_value ?? 0,
+            totalMarginUsed: snapshot.totalMarginUsed ?? snapshot.total_margin_used ?? 0,
+            initialBalance: snapshot.initialBalance ?? snapshot.initial_balance ?? 0
         })) as PortfolioSnapshot[];
 
         // Reverse to get chronological order (oldest to newest) for chart display
