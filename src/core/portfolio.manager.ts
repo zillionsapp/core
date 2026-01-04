@@ -48,13 +48,24 @@ export class PortfolioManager {
             this.db.getTrades()
         ]);
 
-        // Merge to ensure we don't miss anything due to query differences
-        const openTradesMap = new Map<string, Trade>();
-        openTradesRaw.forEach(t => openTradesMap.set(t.id, t));
-        recentTrades.filter(t => t.status === 'OPEN').forEach(t => openTradesMap.set(t.id, t));
+        // Merge to ensure we don't miss anything due to query differences, 
+        // but prioritize CLOSED status if a trade appears in both.
+        const allTradesMap = new Map<string, Trade>();
 
-        const openTrades = Array.from(openTradesMap.values());
-        const closedTrades = recentTrades.filter(t => t.status === 'CLOSED');
+        // 1. Process recent trades first
+        recentTrades.forEach(t => allTradesMap.set(t.id, t));
+
+        // 2. Add open trades only if they don't exist or are still OPEN
+        openTradesRaw.forEach(t => {
+            const existing = allTradesMap.get(t.id);
+            if (!existing || existing.status === 'OPEN') {
+                allTradesMap.set(t.id, t);
+            }
+        });
+
+        const allTrades = Array.from(allTradesMap.values());
+        const openTrades = allTrades.filter(t => t.status === 'OPEN');
+        const closedTrades = allTrades.filter(t => t.status === 'CLOSED');
 
         logger.info(`[PortfolioManager] Diagnostic: Fetch finished. OpenTrades=${openTrades.length}, RecentTotal=${recentTrades.length}, ClosedFiltered=${closedTrades.length}`);
         if (openTrades.length > 0) {

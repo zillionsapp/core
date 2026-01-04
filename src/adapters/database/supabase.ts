@@ -83,13 +83,15 @@ export class SupabaseDataStore implements IDataStore {
     async getLatestPortfolioSnapshot(): Promise<PortfolioSnapshot | null> {
         if (!this.supabase) return null;
 
+        const now = Date.now();
         const { data, error } = await this.supabase
             .from('portfolio_snapshots')
             .select('*')
+            .lte('timestamp', now) // Only fetch snapshots from the past or present
             .order('timestamp', { ascending: false })
             .order('id', { ascending: false })
             .limit(1)
-            .single();
+            .maybeSingle();
 
         if (error) {
             if (error.code === 'PGRST116') {
@@ -126,13 +128,13 @@ export class SupabaseDataStore implements IDataStore {
     async getPortfolioSnapshots(limit: number = 50, period?: string): Promise<PortfolioSnapshot[]> {
         if (!this.supabase) return [];
 
+        const now = Date.now();
         let query = this.supabase
             .from('portfolio_snapshots')
             .select('*');
 
         // Apply period filter if specified
         if (period && period !== 'all') {
-            const now = Date.now();
             let cutoffTime = now;
 
             switch (period) {
@@ -150,7 +152,10 @@ export class SupabaseDataStore implements IDataStore {
                     break;
             }
 
-            query = query.gte('timestamp', cutoffTime);
+            query = query.gte('timestamp', cutoffTime).lte('timestamp', now);
+        } else {
+            // Even if no period is specified, don't show future snapshots in live history
+            query = query.lte('timestamp', now);
         }
 
         // For any period filter (including 1d/1w), we want to fetch all relevant data

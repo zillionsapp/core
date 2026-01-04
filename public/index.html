@@ -377,31 +377,34 @@
 
         async function refreshData(period = currentPeriod) {
             try {
-                // Fetch Portfolio Snapshot
+                // 1. Fetch Portfolio Snapshot for basic stats
                 const portRes = await fetch(`${API_BASE}/portfolio`);
                 const portData = await portRes.json();
 
+                // 2. Load Trades (this will trigger price fetching and recalculate equity)
+                const tradesData = await loadTradesPage(currentPage);
+
                 if (portData && !portData.error) {
-                    console.log('[Dashboard] Received Portfolio Data:', portData);
-                    // Mapping to Industry Standards
-                    const initialCapital = portData.initialBalance !== undefined ? portData.initialBalance : 0;
                     const walletBalance = portData.walletBalance !== undefined ? portData.walletBalance : 0;
                     const currentBalance = portData.currentBalance !== undefined ? portData.currentBalance : 0;
-                    const currentEquity = portData.currentEquity !== undefined ? portData.currentEquity : 0;
+                    const initialCapital = portData.initialBalance !== undefined ? portData.initialBalance : 0;
                     const totalRealizedPnL = portData.pnl ?? 0;
                     const realizedPnLPercentage = portData.pnlPercentage ?? 0;
-                    const unrealizedPnL = currentEquity - walletBalance;
 
                     // 1. Tile: Current Balance -> (Initial + Realized) - Notional
                     document.getElementById('currentBalance').innerText = `$${currentBalance.toLocaleString()}`;
-                    document.querySelector('#currentBalance + .stat-desc').innerText = `Available Cash (Settled - Notional)`;
 
-                    // 2. Tile: Current Equity -> Settled Cash + Unrealized
-                    document.getElementById('currentEquity').innerText = `$${currentEquity.toLocaleString()}`;
+                    // 2. Tile: Current Equity & Unrealized PnL (Recalculated from trades)
+                    const totalUnrealizedPnL = tradesData.totalUnrealizedPnL || 0;
+                    const realTimeEquity = walletBalance + totalUnrealizedPnL;
+                    const unrealizedPnLPercentage = initialCapital > 0 ? (totalUnrealizedPnL / initialCapital) * 100 : 0;
+
+                    document.getElementById('currentEquity').innerText = `$${realTimeEquity.toLocaleString()}`;
                     const equityChangeEl = document.getElementById('equityChange');
-                    equityChangeEl.innerText = `${unrealizedPnL >= 0 ? '+' : '-'}$${Math.abs(unrealizedPnL).toFixed(2)} unrealized profit`;
-                    equityChangeEl.classList.toggle('text-success', unrealizedPnL >= 0);
-                    equityChangeEl.classList.toggle('text-error', unrealizedPnL < 0);
+                    const unrealizedLabel = totalUnrealizedPnL >= 0 ? 'profit' : 'loss';
+                    equityChangeEl.innerText = `${totalUnrealizedPnL >= 0 ? '+' : '-'}${Math.abs(unrealizedPnLPercentage).toFixed(2)}% ($${Math.abs(totalUnrealizedPnL).toFixed(2)}) unrealized ${unrealizedLabel}`;
+                    equityChangeEl.classList.toggle('text-success', totalUnrealizedPnL >= 0);
+                    equityChangeEl.classList.toggle('text-error', totalUnrealizedPnL < 0);
 
                     // 3. Win Rate & Profit Factor
                     document.getElementById('winRate').innerText = `${((portData.winRate || 0) * 100).toFixed(1)}%`;
@@ -414,18 +417,18 @@
                     totalPnLEl.classList.toggle('text-error', totalRealizedPnL < 0);
 
                     const pnlPercentageEl = document.getElementById('totalPnLPercentage');
-                    pnlPercentageEl.innerText = `${realizedPnLPercentage >= 0 ? '+' : '-'}${Math.abs(realizedPnLPercentage).toFixed(2)}% total realized profit`;
+                    const realizedLabel = realizedPnLPercentage >= 0 ? 'profit' : 'loss';
+                    pnlPercentageEl.innerText = `${realizedPnLPercentage >= 0 ? '+' : '-'}${Math.abs(realizedPnLPercentage).toFixed(2)}% total realized ${realizedLabel}`;
                     pnlPercentageEl.classList.toggle('text-success', realizedPnLPercentage >= 0);
                     pnlPercentageEl.classList.toggle('text-error', realizedPnLPercentage < 0);
 
-                    // 5. Tile: Open Positions -> Show Exposure & Margin
-                    const openTradesCount = portData.openTradesCount || 0;
-                    const totalNotionalValue = portData.totalNotionalValue || 0;
-                    const marginValue = portData.totalMarginUsed || 0;
+                    // 5. Tile: Open Positions
+                    const openTradesCount = tradesData.openTradesCount || 0;
+                    const totalNotionalValue = tradesData.totalNotionalValue || 0;
+                    const marginValue = tradesData.totalMarginUsed || 0;
                     document.getElementById('openPositions').innerText = openTradesCount.toString();
                     const openPositionsValueEl = document.getElementById('openPositionsValue');
                     openPositionsValueEl.innerHTML = `<span class="opacity-70">Exposure:</span> $${totalNotionalValue.toLocaleString()} <span class="mx-1 opacity-40">|</span> <span class="opacity-70">Margin:</span> $${marginValue.toLocaleString()}`;
-                    openPositionsValueEl.className = 'stat-desc mt-1 font-mono text-[10px] leading-tight';
 
                     // 6. Tile: Closed Trades
                     const winningTrades = portData.winningTrades || 0;
@@ -433,18 +436,14 @@
                     document.getElementById('closedTrades').innerText = (winningTrades + losingTrades).toString();
 
                     // Update chart colors based on total performance
-                    updateChartColors((currentEquity - initialCapital) >= 0);
+                    updateChartColors((realTimeEquity - initialCapital) >= 0);
                 }
 
-                // Fetch Portfolio History for Chart
-                // Backend now handles consolidation and limits for longer periods
-                // Fetch Portfolio History for Chart
-                // Backend now handles consolidation and limits for longer periods
+                // 3. Fetch Portfolio History for Chart
                 const historyRes = await fetch(`${API_BASE}/portfolio-history?period=${period}`);
                 const history = await historyRes.json();
 
                 if (history && history.length > 0) {
-                    // Update chart with real data
                     const labels = history.map(snapshot => {
                         const date = new Date(snapshot.timestamp);
                         return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -453,27 +452,11 @@
 
                     chart.data.labels = labels;
                     chart.data.datasets[0].data = data;
-                    chart.update('none'); // Update without animation for performance
-                } else {
-                    // Clear chart if no history found
-                    chart.data.labels = [];
-                    chart.data.datasets[0].data = [];
                     chart.update('none');
                 }
 
-                // Fetch Recent Trades for the table with pagination
-                await loadTradesPage(1);
-
             } catch (err) {
-                console.error('Failed to fetch data:', err);
-                // Set default values on error
-                document.getElementById('currentBalance').innerText = '-';
-                document.getElementById('currentEquity').innerText = '-';
-                document.getElementById('winRate').innerText = '-';
-                document.getElementById('profitFactor').innerText = '-';
-                document.getElementById('totalPnL').innerText = '-';
-                document.getElementById('openPositions').innerText = '-';
-                document.getElementById('closedTrades').innerText = '-';
+                console.error('Failed to refresh data:', err);
             }
         }
 
@@ -486,7 +469,7 @@
             if (symbols.length === 0) return {};
 
             try {
-                const symbolsParam = symbols.join(',');
+                const symbolsParam = Array.from(symbols).join(',');
                 const response = await fetch(`${API_BASE}/prices?symbols=${symbolsParam}`);
                 const prices = await response.json();
                 return prices;
@@ -500,36 +483,28 @@
             const leverage = trade.leverage || 1;
 
             if (trade.status === 'CLOSED' && trade.exitPrice) {
-                // Realized PnL for closed trades
                 const entryPrice = trade.price;
                 const exitPrice = trade.exitPrice;
                 const quantity = trade.quantity;
 
-                // For BUY trades: (exit - entry) * quantity
-                // For SELL trades: (entry - exit) * quantity
                 const dollarPnL = trade.side === 'BUY'
                     ? (exitPrice - entryPrice) * quantity
                     : (entryPrice - exitPrice) * quantity;
 
-                // Percentage: (PnL / Margin) * 100
                 const entryValue = entryPrice * quantity;
                 const margin = entryValue / leverage;
                 const percentagePnL = margin !== 0 ? (dollarPnL / margin) * 100 : 0;
 
                 return { dollar: dollarPnL, percentage: percentagePnL, isRealized: true };
             } else if (trade.status === 'OPEN' && currentPrices[trade.symbol]) {
-                // Unrealized PnL for open trades
                 const entryPrice = trade.price;
                 const currentPrice = currentPrices[trade.symbol];
                 const quantity = trade.quantity;
 
-                // For BUY trades: (current - entry) * quantity
-                // For SELL trades: (entry - current) * quantity
                 const dollarPnL = trade.side === 'BUY'
                     ? (currentPrice - entryPrice) * quantity
                     : (entryPrice - currentPrice) * quantity;
 
-                // Percentage: (PnL / Margin) * 100
                 const entryValue = entryPrice * quantity;
                 const margin = entryValue / leverage;
                 const percentagePnL = margin !== 0 ? (dollarPnL / margin) * 100 : 0;
@@ -562,22 +537,35 @@
                 const trades = data.trades || [];
                 totalTrades = data.total || 0;
 
-                // Get unique symbols for current prices
-                const symbols = [...new Set(trades.map(t => t.symbol))];
+                // Get symbols for REAL-TIME pricing
+                const symbols = new Set(trades.map(t => t.symbol));
                 const currentPrices = await getCurrentPrices(symbols);
 
                 const tradeBody = document.getElementById('tradeBody');
                 const noTrades = document.getElementById('noTrades');
                 const paginationControls = document.getElementById('paginationControls');
 
+                // Recalculate Real-time Stats from all FETCHED trades
+                let totalUnrealizedPnL = 0;
+                let totalNotionalValue = 0;
+                let totalMarginUsed = 0;
+                let openTradesCount = 0;
+
                 if (trades.length > 0) {
                     noTrades.classList.add('hidden');
                     tradeBody.innerHTML = trades.map(t => {
                         const pnl = calculatePnL(t, currentPrices);
+
+                        if (t.status === 'OPEN') {
+                            totalUnrealizedPnL += pnl.dollar;
+                            totalNotionalValue += (t.quantity * t.price);
+                            totalMarginUsed += (t.margin || (t.quantity * t.price / (t.leverage || 1)));
+                            openTradesCount++;
+                        }
+
                         const isProfit = pnl.dollar >= 0;
                         const pnlClass = isProfit ? 'text-success' : 'text-error';
 
-                        // For open trades, show current price in exit price column
                         let exitPriceDisplay = '-';
                         if (t.status === 'CLOSED' && t.exitPrice) {
                             exitPriceDisplay = `$${t.exitPrice.toLocaleString()}`;
@@ -599,7 +587,6 @@
                         const slDisplay = t.stopLossPrice ? `$${t.stopLossPrice.toLocaleString()}` : '-';
                         const tpDisplay = t.takeProfitPrice ? `$${t.takeProfitPrice.toLocaleString()}` : '-';
 
-                        // Format exit reason for display
                         const exitReasonDisplay = t.status === 'CLOSED' && t.exitReason
                             ? t.exitReason.replace(/_/g, ' ')
                             : '-';
@@ -636,7 +623,6 @@
                     `;
                     }).join('');
 
-                    // Show pagination if there are more trades than page size
                     if (totalTrades > pageSize) {
                         paginationControls.classList.remove('hidden');
                         updatePaginationControls(page);
@@ -650,8 +636,10 @@
                 }
 
                 currentPage = page;
+                return { totalUnrealizedPnL, totalNotionalValue, totalMarginUsed, openTradesCount };
             } catch (err) {
                 console.error('Failed to load trades page:', err);
+                return {};
             }
         }
 
