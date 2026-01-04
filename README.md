@@ -690,27 +690,278 @@ Vercel Hobby limited crons to **once per day**. To run your bot every minute for
 
 ## 🚀 REST API
 
-Zillion Core includes a built-in REST API to expose data and control the bot.
+Zillion Core includes a built-in REST API to expose portfolio data, trade history, market prices, and backtest functionality. The API is available in two deployment modes:
+
+- **Server Mode** (`/src/api/`): Full Express.js server for local development and VPS deployments
+- **Serverless Mode** (`/api/`): Vercel-compatible serverless functions for production deployments
+
+Both modes expose identical endpoints with the same request/response formats.
 
 ### Running the API & Dashboard
-The API and Dashboard now start automatically when you run the main bot. Simply open [http://localhost:3000](http://localhost:3000) while the bot is running.
 
-If you want to run **only** the API server:
+#### Local Development (Server Mode)
+The API and Dashboard start automatically when you run the main bot:
+```bash
+npm run dev  # or npm start
+```
+Access the dashboard at [http://localhost:3000](http://localhost:3000)
+
+To run **only** the API server:
 ```bash
 npm run api
 ```
 
-### Endpoints
+#### Serverless Deployment (Vercel)
+Deploy to Vercel and access endpoints at:
+```
+https://your-project.vercel.app/api/*
+```
 
-| Endpoint | Method | Description |
-| :--- | :--- | :--- |
-| `/health` | `GET` | System health check. |
-| `/api/portfolio` | `GET` | Get the latest portfolio snapshot (balance, equity). |
-| `/api/trades` | `GET` | Get recent trade execution history. |
-| `/api/backtests` | `GET` | Get previous backtest results. |
-| `/api/backtest/run` | `POST` | Trigger a new backtest. |
+---
 
-#### Triggering a Backtest
+### API Endpoints
+
+#### 1. Health Check
+**Endpoint:** `GET /health`  
+**Description:** System health check to verify the API is running.
+
+**Response:**
+```json
+{
+  "status": "ok",
+  "timestamp": 1704384000000
+}
+```
+
+**Example:**
+```bash
+curl http://localhost:3000/health
+```
+
+---
+
+#### 2. Portfolio Snapshot
+**Endpoint:** `GET /api/portfolio`  
+**Description:** Retrieves the most recent portfolio snapshot including balance, equity, PnL, and performance metrics.
+
+**Response:**
+```json
+{
+  "id": "uuid",
+  "timestamp": 1704384000000,
+  "currentBalance": 10500.50,
+  "currentEquity": 10750.25,
+  "totalPnL": 750.25,
+  "totalPnLPercent": 7.50,
+  "winRate": 65.5,
+  "profitFactor": 2.1,
+  "totalTrades": 42,
+  "openPositions": 2,
+  "closedPositions": 40
+}
+```
+
+**Error Responses:**
+- `404`: No portfolio snapshots found
+- `500`: Internal server error
+
+**Example:**
+```bash
+curl http://localhost:3000/api/portfolio
+```
+
+---
+
+#### 3. Portfolio History (Chart Data)
+**Endpoint:** `GET /api/portfolio-history`  
+**Description:** Retrieves historical portfolio snapshots for charting. Data is cached and optimized for performance.
+
+**Query Parameters:**
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `period` | string | `all` | Time period filter: `1d`, `1w`, `1m`, `1y`, `all` |
+
+**Response:**
+```json
+[
+  {
+    "timestamp": 1704384000000,
+    "currentEquity": 10750.25,
+    "currentBalance": 10500.50,
+    "totalPnL": 750.25
+  },
+  {
+    "timestamp": 1704297600000,
+    "currentEquity": 10600.00,
+    "currentBalance": 10400.00,
+    "totalPnL": 600.00
+  }
+]
+```
+
+**Example:**
+```bash
+# Get all historical data
+curl http://localhost:3000/api/portfolio-history
+
+# Get last 7 days
+curl http://localhost:3000/api/portfolio-history?period=1w
+
+# Get last 30 days
+curl http://localhost:3000/api/portfolio-history?period=1m
+```
+
+---
+
+#### 4. Trade History
+**Endpoint:** `GET /api/trades`  
+**Description:** Retrieves trade execution history including both open and closed positions with pagination support.
+
+**Query Parameters:**
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `symbol` | string | - | Filter trades by symbol (e.g., `BTC/USDT`) |
+| `limit` | number | `50` | Maximum number of trades to return |
+| `offset` | number | `0` | Number of trades to skip (for pagination) |
+
+**Response:**
+```json
+{
+  "trades": [
+    {
+      "id": "uuid",
+      "symbol": "BTC/USDT",
+      "side": "BUY",
+      "price": 45000.00,
+      "quantity": 0.1,
+      "timestamp": 1704384000000,
+      "status": "OPEN",
+      "stopLossPrice": 43000.00,
+      "takeProfitPrice": 48000.00,
+      "leverage": 5,
+      "strategy": "MACD",
+      "entryTime": 1704384000000,
+      "duration": null,
+      "exitPrice": null,
+      "pnl": null,
+      "pnlPercent": null
+    },
+    {
+      "id": "uuid",
+      "symbol": "ETH/USDT",
+      "side": "SELL",
+      "price": 2500.00,
+      "quantity": 2.0,
+      "timestamp": 1704297600000,
+      "status": "CLOSED",
+      "stopLossPrice": 2600.00,
+      "takeProfitPrice": 2300.00,
+      "leverage": 1,
+      "strategy": "RSI",
+      "entryTime": 1704297600000,
+      "duration": "2h 15m",
+      "exitPrice": 2350.00,
+      "exitReason": "TAKE_PROFIT",
+      "pnl": 300.00,
+      "pnlPercent": 6.0
+    }
+  ],
+  "total": 42
+}
+```
+
+**Example:**
+```bash
+# Get all trades (first 50)
+curl http://localhost:3000/api/trades
+
+# Filter by symbol
+curl http://localhost:3000/api/trades?symbol=BTC/USDT
+
+# Pagination (get next 50 trades)
+curl http://localhost:3000/api/trades?limit=50&offset=50
+
+# Custom limit
+curl http://localhost:3000/api/trades?limit=10
+```
+
+---
+
+#### 5. Current Market Prices
+**Endpoint:** `GET /api/prices`  
+**Description:** Fetches current market prices for specified symbols from Binance.
+
+**Query Parameters:**
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `symbols` | string | Yes | Comma-separated list of symbols (e.g., `BTC/USDT,ETH/USDT`) |
+
+**Response:**
+```json
+{
+  "BTC/USDT": 45123.50,
+  "ETH/USDT": 2456.75,
+  "SOL/USDT": 98.32
+}
+```
+
+**Error Handling:**
+- If a symbol fails to fetch, it returns `0` as fallback
+- Individual symbol errors are logged but don't fail the entire request
+
+**Example:**
+```bash
+# Single symbol
+curl "http://localhost:3000/api/prices?symbols=BTC/USDT"
+
+# Multiple symbols
+curl "http://localhost:3000/api/prices?symbols=BTC/USDT,ETH/USDT,SOL/USDT"
+```
+
+---
+
+#### 6. Backtest Results
+**Endpoint:** `GET /api/backtests`  
+**Description:** Retrieves historical backtest results.
+
+**Query Parameters:**
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `limit` | number | `10` | Maximum number of results to return |
+
+**Response:**
+```json
+[
+  {
+    "id": "uuid",
+    "strategyName": "MACD",
+    "symbol": "BTC/USDT",
+    "interval": "1h",
+    "timestamp": 1704384000000,
+    "totalTrades": 150,
+    "winRate": 58.5,
+    "profitFactor": 1.85,
+    "totalPnL": 1250.50,
+    "maxDrawdown": -8.5
+  }
+]
+```
+
+**Example:**
+```bash
+# Get last 10 backtest results
+curl http://localhost:3000/api/backtests
+
+# Get last 5 results
+curl http://localhost:3000/api/backtests?limit=5
+```
+
+---
+
+#### 7. Run Backtest
+**Endpoint:** `POST /api/backtest/run`  
+**Description:** Triggers a new backtest execution for a specified strategy, symbol, and timeframe.
+
 **Request Body:**
 ```json
 {
@@ -719,6 +970,162 @@ npm run api
   "interval": "1h"
 }
 ```
+
+**Required Fields:**
+- `strategyName`: Strategy to test (e.g., `MACD`, `RSI`, `BB`)
+- `symbol`: Trading pair (e.g., `BTC/USDT`, `ETH/USDT`)
+- `interval`: Timeframe (e.g., `1m`, `5m`, `15m`, `1h`, `4h`, `1d`)
+
+**Response:**
+```json
+{
+  "message": "Backtest completed successfully",
+  "result": {
+    "strategyName": "MACD",
+    "symbol": "BTC/USDT",
+    "interval": "1h",
+    "totalTrades": 150,
+    "winRate": 58.5,
+    "profitFactor": 1.85,
+    "totalPnL": 1250.50,
+    "maxDrawdown": -8.5,
+    "sharpeRatio": 1.42
+  }
+}
+```
+
+**Error Responses:**
+- `400`: Missing required parameters
+- `500`: Backtest execution failed
+
+**Example:**
+```bash
+curl -X POST http://localhost:3000/api/backtest/run \
+  -H "Content-Type: application/json" \
+  -d '{
+    "strategyName": "MACD",
+    "symbol": "BTC/USDT",
+    "interval": "1h"
+  }'
+```
+
+---
+
+#### 8. Cron Trigger (Serverless Only)
+**Endpoint:** `POST /api/cron`  
+**Description:** Serverless cron endpoint for scheduled bot execution. This endpoint is automatically called by Vercel Cron or external cron services.
+
+**Authentication:**
+Requires `Authorization` header with Bearer token in production:
+```
+Authorization: Bearer YOUR_CRON_SECRET
+```
+
+**Configuration:**
+Set `CRON_SECRET` environment variable in your Vercel project settings.
+
+**Response:**
+```json
+{
+  "status": "ok",
+  "timestamp": 1704384000000
+}
+```
+
+**Error Responses:**
+- `401`: Unauthorized (invalid or missing CRON_SECRET)
+- `500`: Internal error during bot execution
+
+**Example (with authentication):**
+```bash
+curl -X POST https://your-project.vercel.app/api/cron \
+  -H "Authorization: Bearer your_cron_secret_here"
+```
+
+**External Cron Setup (Vercel Hobby Plan):**
+Use [Cron-job.org](https://cron-job.org/) or similar service:
+- **URL:** `https://your-project.vercel.app/api/cron`
+- **Schedule:** Every 1 minute
+- **Method:** POST
+- **Headers:** `Authorization: Bearer your_cron_secret_here`
+
+---
+
+### API Usage Notes
+
+#### CORS
+The server mode API includes CORS support, allowing cross-origin requests from web applications.
+
+#### Caching
+- Portfolio and trade endpoints use `Cache-Control: no-cache, no-store, must-revalidate` headers to ensure fresh data
+- Portfolio history endpoint uses cached data for performance optimization
+
+#### Error Handling
+All endpoints return consistent error responses:
+```json
+{
+  "error": "Error message description"
+}
+```
+
+#### Rate Limiting
+No rate limiting is currently implemented. Consider adding rate limiting for production deployments.
+
+#### Authentication
+Currently, only the `/api/cron` endpoint requires authentication (in production). Other endpoints are publicly accessible. Consider implementing authentication for production use.
+
+---
+
+### Integration Examples
+
+#### JavaScript/TypeScript
+```typescript
+// Fetch portfolio data
+const portfolio = await fetch('http://localhost:3000/api/portfolio')
+  .then(res => res.json());
+
+// Fetch trades with pagination
+const trades = await fetch('http://localhost:3000/api/trades?limit=20&offset=0')
+  .then(res => res.json());
+
+// Get current prices
+const prices = await fetch('http://localhost:3000/api/prices?symbols=BTC/USDT,ETH/USDT')
+  .then(res => res.json());
+
+// Run backtest
+const backtest = await fetch('http://localhost:3000/api/backtest/run', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    strategyName: 'MACD',
+    symbol: 'BTC/USDT',
+    interval: '1h'
+  })
+}).then(res => res.json());
+```
+
+#### Python
+```python
+import requests
+
+# Fetch portfolio data
+portfolio = requests.get('http://localhost:3000/api/portfolio').json()
+
+# Fetch trades
+trades = requests.get('http://localhost:3000/api/trades', params={
+    'symbol': 'BTC/USDT',
+    'limit': 50
+}).json()
+
+# Run backtest
+backtest = requests.post('http://localhost:3000/api/backtest/run', json={
+    'strategyName': 'MACD',
+    'symbol': 'BTC/USDT',
+    'interval': '1h'
+}).json()
+```
+
+---
 
 
 ## 🤝 Contributing
