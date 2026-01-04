@@ -97,3 +97,247 @@ CREATE TABLE IF NOT EXISTS public.vault_state (
 -- Add vault-related comments
 COMMENT ON TABLE public.vault_transactions IS 'Logs all deposits and withdrawals from the paper trading vault';
 COMMENT ON TABLE public.vault_state IS 'Real-time summary of the vault total value and total issued shares';
+
+-- ============================================================================
+-- ROW LEVEL SECURITY (RLS) POLICIES
+-- ============================================================================
+
+-- Enable RLS on all tables
+ALTER TABLE public.trades ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.portfolio_snapshots ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.portfolio_chart_cache ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.backtest_results ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.kv_store ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.vault_transactions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.vault_state ENABLE ROW LEVEL SECURITY;
+
+-- ============================================================================
+-- TRADES TABLE POLICIES
+-- ============================================================================
+
+-- Allow authenticated users to read all trades
+CREATE POLICY "Allow authenticated read access to trades"
+  ON public.trades
+  FOR SELECT
+  TO authenticated
+  USING (true);
+
+-- Allow authenticated users to insert trades
+CREATE POLICY "Allow authenticated insert access to trades"
+  ON public.trades
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (true);
+
+-- Allow authenticated users to update trades
+CREATE POLICY "Allow authenticated update access to trades"
+  ON public.trades
+  FOR UPDATE
+  TO authenticated
+  USING (true)
+  WITH CHECK (true);
+
+-- Allow authenticated users to delete trades
+CREATE POLICY "Allow authenticated delete access to trades"
+  ON public.trades
+  FOR DELETE
+  TO authenticated
+  USING (true);
+
+-- ============================================================================
+-- PORTFOLIO SNAPSHOTS TABLE POLICIES
+-- ============================================================================
+
+-- Allow authenticated users to read all portfolio snapshots
+CREATE POLICY "Allow authenticated read access to portfolio_snapshots"
+  ON public.portfolio_snapshots
+  FOR SELECT
+  TO authenticated
+  USING (true);
+
+-- Allow authenticated users to insert portfolio snapshots
+CREATE POLICY "Allow authenticated insert access to portfolio_snapshots"
+  ON public.portfolio_snapshots
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (true);
+
+-- Allow authenticated users to update portfolio snapshots
+CREATE POLICY "Allow authenticated update access to portfolio_snapshots"
+  ON public.portfolio_snapshots
+  FOR UPDATE
+  TO authenticated
+  USING (true)
+  WITH CHECK (true);
+
+-- Allow authenticated users to delete portfolio snapshots
+CREATE POLICY "Allow authenticated delete access to portfolio_snapshots"
+  ON public.portfolio_snapshots
+  FOR DELETE
+  TO authenticated
+  USING (true);
+
+-- ============================================================================
+-- PORTFOLIO CHART CACHE TABLE POLICIES
+-- ============================================================================
+
+-- Allow authenticated users to read chart cache
+CREATE POLICY "Allow authenticated read access to portfolio_chart_cache"
+  ON public.portfolio_chart_cache
+  FOR SELECT
+  TO authenticated
+  USING (true);
+
+-- Allow authenticated users to insert chart cache
+CREATE POLICY "Allow authenticated insert access to portfolio_chart_cache"
+  ON public.portfolio_chart_cache
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (true);
+
+-- Allow authenticated users to update chart cache
+CREATE POLICY "Allow authenticated update access to portfolio_chart_cache"
+  ON public.portfolio_chart_cache
+  FOR UPDATE
+  TO authenticated
+  USING (true)
+  WITH CHECK (true);
+
+-- Allow authenticated users to delete chart cache
+CREATE POLICY "Allow authenticated delete access to portfolio_chart_cache"
+  ON public.portfolio_chart_cache
+  FOR DELETE
+  TO authenticated
+  USING (true);
+
+-- ============================================================================
+-- BACKTEST RESULTS TABLE POLICIES
+-- ============================================================================
+
+-- Allow authenticated users to read backtest results
+CREATE POLICY "Allow authenticated read access to backtest_results"
+  ON public.backtest_results
+  FOR SELECT
+  TO authenticated
+  USING (true);
+
+-- Allow authenticated users to insert backtest results
+CREATE POLICY "Allow authenticated insert access to backtest_results"
+  ON public.backtest_results
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (true);
+
+-- Allow authenticated users to update backtest results
+CREATE POLICY "Allow authenticated update access to backtest_results"
+  ON public.backtest_results
+  FOR UPDATE
+  TO authenticated
+  USING (true)
+  WITH CHECK (true);
+
+-- Allow authenticated users to delete backtest results
+CREATE POLICY "Allow authenticated delete access to backtest_results"
+  ON public.backtest_results
+  FOR DELETE
+  TO authenticated
+  USING (true);
+
+-- ============================================================================
+-- KV STORE TABLE POLICIES
+-- ============================================================================
+
+-- Allow authenticated users to read kv_store
+CREATE POLICY "Allow authenticated read access to kv_store"
+  ON public.kv_store
+  FOR SELECT
+  TO authenticated
+  USING (true);
+
+-- Allow authenticated users to insert kv_store
+CREATE POLICY "Allow authenticated insert access to kv_store"
+  ON public.kv_store
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (true);
+
+-- Allow authenticated users to update kv_store
+CREATE POLICY "Allow authenticated update access to kv_store"
+  ON public.kv_store
+  FOR UPDATE
+  TO authenticated
+  USING (true)
+  WITH CHECK (true);
+
+-- Allow authenticated users to delete kv_store
+CREATE POLICY "Allow authenticated delete access to kv_store"
+  ON public.kv_store
+  FOR DELETE
+  TO authenticated
+  USING (true);
+
+-- ============================================================================
+-- VAULT TRANSACTIONS TABLE POLICIES
+-- ============================================================================
+
+-- Allow authenticated users to read vault transactions
+CREATE POLICY "Allow authenticated read access to vault_transactions"
+  ON public.vault_transactions
+  FOR SELECT
+  TO authenticated
+  USING (true);
+
+-- Allow authenticated users to insert vault transactions
+CREATE POLICY "Allow authenticated insert access to vault_transactions"
+  ON public.vault_transactions
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (true);
+
+-- Allow authenticated users to update vault transactions
+CREATE POLICY "Allow authenticated update access to vault_transactions"
+  ON public.vault_transactions
+  FOR UPDATE
+  TO authenticated
+  USING (true)
+  WITH CHECK (true);
+
+-- Allow authenticated users to delete vault transactions
+CREATE POLICY "Allow authenticated delete access to vault_transactions"
+  ON public.vault_transactions
+  FOR DELETE
+  TO authenticated
+  USING (true);
+
+-- ============================================================================
+-- VAULT STATE TABLE POLICIES
+-- ============================================================================
+
+-- Allow authenticated users to read vault state
+CREATE POLICY "Allow authenticated read access to vault_state"
+  ON public.vault_state
+  FOR SELECT
+  TO authenticated
+  USING (true);
+
+-- Allow authenticated users to insert vault state
+CREATE POLICY "Allow authenticated insert access to vault_state"
+  ON public.vault_state
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (true);
+
+-- Allow authenticated users to update vault state
+CREATE POLICY "Allow authenticated update access to vault_state"
+  ON public.vault_state
+  FOR UPDATE
+  TO authenticated
+  USING (true)
+  WITH CHECK (true);
+
+-- Allow authenticated users to delete vault state
+CREATE POLICY "Allow authenticated delete access to vault_state"
+  ON public.vault_state
+  FOR DELETE
+  TO authenticated
+  USING (true);
