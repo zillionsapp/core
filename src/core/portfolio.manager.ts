@@ -253,8 +253,12 @@ export class PortfolioManager {
     private calculateTradePnL(trade: Trade): number {
         if (!trade.exitPrice) return 0;
 
-        const entryValue = trade.price * trade.quantity;
-        const exitValue = trade.exitPrice * trade.quantity;
+        const quantity = Number(trade.quantity);
+        const entryPrice = Number(trade.price);
+        const exitPrice = Number(trade.exitPrice);
+
+        const entryValue = entryPrice * quantity;
+        const exitValue = exitPrice * quantity;
 
         if (trade.side === 'BUY') {
             return exitValue - entryValue;
@@ -264,8 +268,12 @@ export class PortfolioManager {
     }
 
     private calculateUnrealizedPnL(trade: Trade, currentPrice: number): number {
-        const entryValue = trade.price * trade.quantity;
-        const currentValue = currentPrice * trade.quantity;
+        const quantity = Number(trade.quantity);
+        const entryPrice = Number(trade.price);
+        const currentPriceNum = Number(currentPrice);
+
+        const entryValue = entryPrice * quantity;
+        const currentValue = currentPriceNum * quantity;
 
         if (trade.side === 'BUY') {
             return currentValue - entryValue;

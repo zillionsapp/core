@@ -17,6 +17,7 @@ router.get('/portfolio', async (req, res) => {
         if (!snapshot) {
             return res.status(404).json({ error: 'No portfolio snapshots found' });
         }
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
         res.json(snapshot);
     } catch (error: any) {
         res.status(500).json({ error: error.message });
@@ -47,24 +48,36 @@ router.get('/trades', async (req, res) => {
         const offset = parseInt(req.query.offset as string) || 0;
 
         // Get both closed and open trades
-        const closedTrades = await db.getTrades(symbol); // Get all trades
-        const openTrades = await db.getOpenTrades(); // Get all open trades
+        const allTradesHistory = await db.getTrades(symbol);
+        const closedTrades = allTradesHistory.filter(t => t.status === 'CLOSED');
+        const openTrades = await db.getOpenTrades();
 
         // Filter open trades by symbol if specified
         const filteredOpenTrades = symbol ? openTrades.filter(t => t.symbol === symbol) : openTrades;
 
         // Combine and sort by timestamp (most recent first)
-        const allTrades = [...closedTrades, ...filteredOpenTrades.map(t => ({
+        const rawCombined = [...closedTrades, ...filteredOpenTrades.map(t => ({
             ...t,
             status: 'OPEN' as const,
-            exitPrice: undefined // Open trades don't have exit price
-        }))].sort((a, b) => b.timestamp - a.timestamp);
+            exitPrice: undefined
+        }))];
+
+        // Deduplicate by ID
+        const seenIds = new Set();
+        const allTrades = rawCombined.filter(t => {
+            if (seenIds.has(t.id)) return false;
+            seenIds.add(t.id);
+            return true;
+        }).sort((a, b) => b.timestamp - a.timestamp);
+
+        console.log(`[API] Trades: raw=${rawCombined.length}, deduped=${allTrades.length}, open=${filteredOpenTrades.length}`);
 
         const total = allTrades.length;
 
         // Apply pagination
         const trades = allTrades.slice(offset, offset + limit);
 
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
         res.json({ trades, total });
     } catch (error: any) {
         res.status(500).json({ error: error.message });
