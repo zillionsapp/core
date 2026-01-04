@@ -12,7 +12,7 @@ const envSchema = z.object({
     EXCHANGE_API_SECRET: z.string().optional(),
 
     // Paper Trading Defaults
-    PAPER_INITIAL_BALANCE: z.coerce.number().default(10000),
+    PAPER_INITIAL_BALANCE: z.coerce.number().default(0),
     PAPER_BALANCE_ASSET: z.string().default('USDT'),
 
     // Vault Configuration

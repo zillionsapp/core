@@ -112,7 +112,7 @@ export class SupabaseDataStore implements IDataStore {
             currentBalance: snapshot.currentBalance ?? snapshot.totalValue ?? 0,
             walletBalance: snapshot.walletBalance ?? snapshot.currentBalance ?? snapshot.totalValue ?? 0,
             totalMarginUsed: snapshot.totalMarginUsed ?? 0,
-            initialBalance: snapshot.initialBalance ?? 10000
+            initialBalance: snapshot.initialBalance ?? 0
         } as PortfolioSnapshot;
     }
 
@@ -179,7 +179,7 @@ export class SupabaseDataStore implements IDataStore {
             currentBalance: snapshot.currentBalance ?? snapshot.totalValue ?? 0,
             walletBalance: snapshot.walletBalance ?? snapshot.currentBalance ?? snapshot.totalValue ?? 0,
             totalMarginUsed: snapshot.totalMarginUsed ?? 0,
-            initialBalance: snapshot.initialBalance ?? 10000
+            initialBalance: snapshot.initialBalance ?? 0
         })) as PortfolioSnapshot[];
 
         // Reverse to get chronological order (oldest to newest) for chart display
