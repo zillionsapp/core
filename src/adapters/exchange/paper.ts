@@ -4,6 +4,8 @@ import { Candle, Order, OrderRequest, Ticker } from '../../core/types';
 import { config } from '../../config/env';
 import { ITimeProvider, RealTimeProvider } from '../../core/time.provider';
 
+import { IVaultManager } from '../../interfaces/vault.interface';
+
 // Helper for ID generation
 const generateId = () => Math.random().toString(36).substring(2, 15);
 
@@ -23,15 +25,46 @@ export class PaperExchange implements IExchange {
     private positions: Map<string, Position> = new Map();
     private dataProvider: IMarketDataProvider;
     private timeProvider: ITimeProvider;
+    private vaultManager?: IVaultManager;
+    private db?: any;
 
-    constructor(dataProvider: IMarketDataProvider, timeProvider: ITimeProvider = new RealTimeProvider()) {
+    constructor(
+        dataProvider: IMarketDataProvider,
+        timeProvider: ITimeProvider = new RealTimeProvider(),
+        vaultManager?: IVaultManager,
+        db?: any
+    ) {
         this.dataProvider = dataProvider;
         this.timeProvider = timeProvider;
-        this.balances.set(config.PAPER_BALANCE_ASSET, config.PAPER_INITIAL_BALANCE);
+        this.vaultManager = vaultManager;
+        this.db = db;
+
+        // Internal Vault Initialization
+        if (!this.vaultManager && config.VAULT_ENABLED && this.db) {
+            const { VaultManager } = require('../../core/vault.manager');
+            this.vaultManager = new VaultManager(this.db);
+            console.log(`[PaperExchange] Internal VaultManager initialized.`);
+        }
+
+        const initialBalance = config.VAULT_ENABLED && this.vaultManager
+            ? 0 // Will be loaded in start()
+            : config.PAPER_INITIAL_BALANCE;
+
+        this.balances.set(config.PAPER_BALANCE_ASSET, initialBalance);
+    }
+
+    getVaultManager(): IVaultManager | undefined {
+        return this.vaultManager;
     }
 
     async start(): Promise<void> {
-        // console.log(`[PaperExchange] Started with balance: ${config.PAPER_INITIAL_BALANCE} ${config.PAPER_BALANCE_ASSET}`);
+        if (config.VAULT_ENABLED && this.vaultManager) {
+            const vaultBalance = await this.vaultManager.getTotalDepositedBalance();
+            this.balances.set(config.PAPER_BALANCE_ASSET, vaultBalance);
+            console.log(`[PaperExchange] Started with Vault balance: ${vaultBalance.toFixed(2)} ${config.PAPER_BALANCE_ASSET}`);
+        } else {
+            // console.log(`[PaperExchange] Started with balance: ${config.PAPER_INITIAL_BALANCE} ${config.PAPER_BALANCE_ASSET}`);
+        }
     }
 
     async getCandles(symbol: string, interval: string, limit: number = 100): Promise<Candle[]> {

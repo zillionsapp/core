@@ -22,6 +22,10 @@ class MockStore implements IDataStore {
     async updateTrade() { }
     async updateChartCache() { }
     async getChartCache() { return []; }
+    async saveVaultTransaction() { }
+    async getVaultTransactions() { return []; }
+    async getVaultState() { return null; }
+    async saveVaultState() { }
 }
 
 class MockExchange implements IExchange {

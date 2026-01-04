@@ -7,13 +7,15 @@ import { CCXTExchange } from './ccxt';
 import { OKXExchange } from './okx';
 import { config } from '../../config/env';
 
+import { IVaultManager } from '../../interfaces/vault.interface';
+
 export class ExchangeFactory {
-    static getExchange(): IExchange {
+    static getExchange(db?: any): IExchange {
         switch (config.EXCHANGE_DRIVER) {
             case 'PAPER':
                 // Shared Data Provider
                 const publicData = new BinancePublicData();
-                return new PaperExchange(publicData);
+                return new PaperExchange(publicData, undefined, undefined, db);
             case 'HYPERLIQUID':
                 return new HyperliquidExchange();
             case 'DRIFT':

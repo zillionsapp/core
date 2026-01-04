@@ -376,4 +376,44 @@ export class SupabaseDataStore implements IDataStore {
         }
         return data?.data || [];
     }
+
+    async saveVaultTransaction(transaction: any): Promise<void> {
+        if (!this.supabase) return;
+        const { error } = await this.supabase.from('vault_transactions').insert(transaction);
+        if (error) console.error('Error saving vault transaction:', error);
+    }
+
+    async getVaultTransactions(email?: string): Promise<any[]> {
+        if (!this.supabase) return [];
+        let query = this.supabase.from('vault_transactions').select('*').order('timestamp', { ascending: false });
+        if (email) query = query.eq('email', email);
+        const { data, error } = await query;
+        if (error) {
+            console.error('Error fetching vault transactions:', error);
+            return [];
+        }
+        return data || [];
+    }
+
+    async getVaultState(): Promise<any | null> {
+        if (!this.supabase) return null;
+        const { data, error } = await this.supabase
+            .from('vault_state')
+            .select('*')
+            .eq('id', 1)
+            .maybeSingle();
+        if (error) {
+            console.error('Error fetching vault state:', error);
+            return null;
+        }
+        return data;
+    }
+
+    async saveVaultState(state: any): Promise<void> {
+        if (!this.supabase) return;
+        const { error } = await this.supabase
+            .from('vault_state')
+            .upsert({ id: 1, ...state });
+        if (error) console.error('Error saving vault state:', error);
+    }
 }

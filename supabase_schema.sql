@@ -73,3 +73,27 @@ create table public.kv_store (
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 comment on table public.kv_store is 'Generic key-value store for persisting application state (e.g. risk limits)';
+
+-- Vault Transactions Table
+CREATE TABLE IF NOT EXISTS public.vault_transactions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email TEXT NOT NULL,
+    amount NUMERIC NOT NULL,
+    shares NUMERIC NOT NULL,
+    type TEXT NOT NULL CHECK (type IN ('DEPOSIT', 'WITHDRAWAL')),
+    timestamp BIGINT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
+);
+
+-- Vault State Table (Singleton)
+CREATE TABLE IF NOT EXISTS public.vault_state (
+    id INT PRIMARY KEY DEFAULT 1,
+    total_assets NUMERIC DEFAULT 0,
+    total_shares NUMERIC DEFAULT 0,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()),
+    CONSTRAINT singleton CHECK (id = 1)
+);
+
+-- Add vault-related comments
+COMMENT ON TABLE public.vault_transactions IS 'Logs all deposits and withdrawals from the paper trading vault';
+COMMENT ON TABLE public.vault_state IS 'Real-time summary of the vault total value and total issued shares';

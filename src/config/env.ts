@@ -15,6 +15,10 @@ const envSchema = z.object({
     PAPER_INITIAL_BALANCE: z.coerce.number().default(10000),
     PAPER_BALANCE_ASSET: z.string().default('USDT'),
 
+    // Vault Configuration
+    VAULT_ENABLED: z.string().default('false').transform(v => v === 'true'),
+    VAULT_SHARE_ASSET: z.string().default('ZILLION-SHARES'),
+
     // Database
     SUPABASE_URL: z.string().optional(),
     SUPABASE_KEY: z.string().optional(),

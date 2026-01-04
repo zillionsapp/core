@@ -5,6 +5,8 @@ export class MemoryDataProvider implements IMarketDataProvider {
     name = 'MEMORY';
     private candles: Candle[] = [];
 
+    private tickers: Map<string, Ticker> = new Map();
+
     constructor(candles: Candle[]) {
         this.candles = candles;
     }
@@ -20,6 +22,10 @@ export class MemoryDataProvider implements IMarketDataProvider {
     }
 
     async getTicker(symbol: string): Promise<Ticker> {
+        // Check explicit tickers first
+        const mockTicker = this.tickers.get(symbol);
+        if (mockTicker) return mockTicker;
+
         const symbolCandles = this.candles.filter(c => c.symbol === symbol);
         if (symbolCandles.length === 0) {
             throw new Error(`No candles found for symbol ${symbol} in memory`);
@@ -41,5 +47,9 @@ export class MemoryDataProvider implements IMarketDataProvider {
      */
     setCandles(candles: Candle[]) {
         this.candles = candles;
+    }
+
+    setTicker(symbol: string, ticker: Ticker) {
+        this.tickers.set(symbol, ticker);
     }
 }

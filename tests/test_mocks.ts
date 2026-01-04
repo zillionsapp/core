@@ -61,6 +61,11 @@ export class MockStore implements IDataStore {
     async getChartCache(period: string) {
         return this.chartCache.get(period) || [];
     }
+
+    async saveVaultTransaction(transaction: any): Promise<void> { }
+    async getVaultTransactions(email?: string): Promise<any[]> { return []; }
+    async getVaultState(): Promise<any | null> { return null; }
+    async saveVaultState(state: any): Promise<void> { }
 }
 
 export class MockTimeProvider implements ITimeProvider {

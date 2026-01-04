@@ -13,10 +13,13 @@ import { TimeUtils } from './time.utils';
 import { config } from '../config/env';
 import { ITimeProvider, RealTimeProvider } from './time.provider';
 
+import { VaultManager } from './vault.manager';
+
 export class BotEngine {
     private exchange: IExchange;
     private strategy: IStrategy;
     private db: IDataStore;
+    private vaultManager?: VaultManager;
     private riskManager: RiskManager;
     private tradeManager: TradeManager;
     private portfolioManager: PortfolioManager;
@@ -32,7 +35,14 @@ export class BotEngine {
         db?: IDataStore
     ) {
         this.timeProvider = timeProvider;
-        this.exchange = exchange || ExchangeFactory.getExchange();
+        this.db = db || new SupabaseDataStore();
+
+        this.exchange = exchange || ExchangeFactory.getExchange(this.db);
+
+        // Get Vault Manager from exchange if it has one
+        if (this.exchange.getVaultManager) {
+            this.vaultManager = this.exchange.getVaultManager();
+        }
 
         if (typeof strategy === 'string') {
             this.strategy = StrategyManager.getStrategy(strategy);
@@ -40,10 +50,14 @@ export class BotEngine {
             this.strategy = strategy;
         }
 
-        this.db = db || new SupabaseDataStore();
         this.riskManager = new RiskManager(this.exchange, this.db, this.timeProvider);
         this.tradeManager = new TradeManager(this.exchange, this.db);
-        this.portfolioManager = new PortfolioManager(this.exchange, this.db, this.timeProvider);
+        this.portfolioManager = new PortfolioManager(this.exchange, this.db, this.timeProvider, this.vaultManager);
+
+        // Resolve circular dependency: Vault needs Equity from Portfolio
+        if (this.vaultManager) {
+            this.vaultManager.setEquityProvider(this.portfolioManager);
+        }
     }
 
     async start(symbol: string, interval: string, config?: StrategyConfig) {

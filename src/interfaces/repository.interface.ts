@@ -89,4 +89,12 @@ export interface IDataStore {
      * Get chart cache for a period
      */
     getChartCache(period: string): Promise<any[]>;
+
+    /**
+     * Vault persistence
+     */
+    saveVaultTransaction(transaction: any): Promise<void>;
+    getVaultTransactions(email?: string): Promise<any[]>;
+    getVaultState(): Promise<any | null>;
+    saveVaultState(state: any): Promise<void>;
 }

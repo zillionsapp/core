@@ -77,8 +77,9 @@ async function runReplay() {
     // 2. Setup Simulation Environment
     const timeProvider = new SimulationTimeProvider();
     const memoryData = new MemoryDataProvider([]);
-    const exchange = new PaperExchange(memoryData, timeProvider);
     const db = new SupabaseDataStore(); // Using production DB as requested
+
+    const exchange = new PaperExchange(memoryData, timeProvider, undefined, db);
 
     // We pass the exchange and db to BotEngine to override defaults
     const engine = new BotEngine(strategyName, timeProvider, exchange, db);

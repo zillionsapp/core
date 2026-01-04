@@ -383,12 +383,12 @@
 
                 if (portData && !portData.error) {
                     // Mapping to Industry Standards
-                    const initialCapital = portData.initialBalance || 10000;
-                    const walletBalance = portData.walletBalance || initialCapital;
-                    const currentBalance = portData.currentBalance || 0;
-                    const currentEquity = portData.currentEquity || 0;
-                    const totalRealizedPnL = portData.pnl || 0;
-                    const realizedPnLPercentage = portData.pnlPercentage || 0;
+                    const initialCapital = portData.initialBalance !== undefined ? portData.initialBalance : 0;
+                    const walletBalance = portData.walletBalance !== undefined ? portData.walletBalance : 0;
+                    const currentBalance = portData.currentBalance !== undefined ? portData.currentBalance : 0;
+                    const currentEquity = portData.currentEquity !== undefined ? portData.currentEquity : 0;
+                    const totalRealizedPnL = portData.pnl ?? 0;
+                    const realizedPnLPercentage = portData.pnlPercentage ?? 0;
                     const unrealizedPnL = currentEquity - walletBalance;
 
                     // 1. Tile: Current Balance -> (Initial + Realized) - Notional

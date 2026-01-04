@@ -28,12 +28,13 @@
     - [Strategy Control](#strategy-control)
     - [Default Behavior](#default-behavior)
   - [PortfolioManager](#portfoliomanager)
-- [� Deployment](#deployment)
+- [ Deployment](#deployment)
   - [Docker](#docker)
   - [PM2 (VPS/Bare Metal)](#pm2-vps-bare-metal)
   - [Vercel (Serverless / Production)](#vercel-serverless-production)
     - [💡 Vercel Hobby Plan (Free Tier)](#vercel-hobby-plan-free-tier)
-- [�🔮 Roadmap](#roadmap)
+- [🏦 Vault System](#vault-system)
+- [🔮 Roadmap](#roadmap)
 - [🚀 REST API](#rest-api)
   - [Running the API & Dashboard](#running-the-api--dashboard)
   - [Endpoints](#endpoints)
@@ -56,6 +57,7 @@
 *   **Live Historical Replay**: Simulate paper trading over historical periods using real engine logic and persist results to Supabase.
 *   **Strategy System**: Pluggable strategy interface. Simply add a new class to `src/strategies`.
 *   **Persistence**: Integration with **Supabase** (PostgreSQL) for trade history and portfolio snapshots.
+*   **Vault System**: Implementation of a decentralized-style vault for pooled funding. Automatically manages share prices (LPs) based on portfolio performance and handles dynamic deposits/withdrawals.
 *   **Production Ready**:
     *   **Smart Polling**: Interval-based execution loop to minimize API overhead and synchronize with candle boundaries.
     *   **Structured Logging**: JSON-formatted logs via `winston`.
@@ -117,6 +119,9 @@
     TRAILING_STOP_TRAIL_PERCENT=1
     ALLOW_MULTIPLE_POSITIONS=false  # Allow hedging/multiple positions
     CLOSE_ON_OPPOSITE_SIGNAL=false  # Close existing position on opposite signal
+    # Vault System
+    VAULT_ENABLED=true
+    VAULT_SHARE_ASSET=ZILLION-SHARES
     ```
 
 4.  **Database Setup (Supabase)**:
@@ -577,6 +582,35 @@ The `PortfolioManager` (`src/core/portfolio.manager.ts`) provides **comprehensiv
 
 > [!NOTE]
 > All risk management percentages are configured as full numbers in the `.env` file (e.g., `5` means `5%`).
+
+---
+
+## 🏦 Vault System
+
+Zillion Core includes a professional **Vault System** designed for pooled funding and decentralized-style asset management. When enabled, the bot ignores the static `PAPER_INITIAL_BALANCE` and instead derives its trading capital dynamically from deposited funds.
+
+### How it Works
+The vault uses a **Share Price (NAV)** model similar to modern DeFi protocols or Traditional Finance funds:
+1. **Initial State**: Vault starts at a Share Price of 1.00.
+2. **Deposits**: Users receive shares based on the current Share Price (`Amount / SharePrice`).
+3. **Performance**: As the bot generates profit/loss, the **Total Assets** (Equity) of the vault changes, causing the **Share Price** to move up or down (`TotalAssets / TotalShares`).
+4. **Withdrawals**: Users burn shares to receive assets back at the current Share Price.
+
+### Configuration
+Enable the vault in your `.env`:
+```env
+VAULT_ENABLED=true
+VAULT_SHARE_ASSET=ZILLION-SHARES  # The name of your LP token
+```
+
+### Integration
+- **Internal Initialization**: The `VaultManager` is managed internally by the exchange driver.
+- **Dynamic Balance**: The `PortfolioManager` automatically queries the vault for the total deposited balance to use as the starting capital.
+- **Persistence**: Transactions (`DEPOSIT`, `WITHDRAW`) and state snapshots are persisted to Supabase for full auditing.
+
+### Safety Measures
+- **Equity-Linked Valuation**: Share price is always calculated against real-time portfolio equity, ensuring accurate entry/exit for all participants.
+- **Withdrawal Verification**: (Planned) Verification of available cash vs. margin-locked funds before processing withdrawals.
 
 ---
 

@@ -4,12 +4,24 @@ import { Trade } from './types';
 import { logger } from './logger';
 import { ITimeProvider, RealTimeProvider } from './time.provider';
 
+import { IVaultManager } from '../interfaces/vault.interface';
+import { config } from '../config/env';
+
 export class PortfolioManager {
     constructor(
         private exchange: IExchange,
         private db: IDataStore,
-        private timeProvider: ITimeProvider = new RealTimeProvider()
+        private timeProvider: ITimeProvider = new RealTimeProvider(),
+        private vaultManager?: IVaultManager
     ) { }
+
+    /**
+     * Implementation of EquityProvider for VaultManager
+     */
+    async getCurrentEquity(): Promise<number> {
+        const snapshot = await this.generateSnapshot();
+        return snapshot.currentEquity;
+    }
 
     /**
      * Generate a comprehensive portfolio snapshot with all metrics.
@@ -50,8 +62,17 @@ export class PortfolioManager {
         }
 
         // Config values
-        const balanceAsset = process.env.PAPER_BALANCE_ASSET || 'USDT';
-        const initialBalance = parseFloat(process.env.PAPER_INITIAL_BALANCE || '10000');
+        const balanceAsset = config.PAPER_BALANCE_ASSET || 'USDT';
+        let initialBalance = config.PAPER_INITIAL_BALANCE;
+
+        // Support test overrides and Vault
+        if (process.env.NODE_ENV === 'test' && process.env.PAPER_INITIAL_BALANCE) {
+            initialBalance = parseFloat(process.env.PAPER_INITIAL_BALANCE);
+        }
+
+        if (config.VAULT_ENABLED && this.vaultManager) {
+            initialBalance = await this.vaultManager.getTotalDepositedBalance();
+        }
 
         // 1. Calculate realized PnL from closed trades
         const totalRealizedPnL = closedTrades.reduce((sum, t) => sum + this.calculateTradePnL(t), 0);
@@ -116,7 +137,7 @@ export class PortfolioManager {
             totalValue: currentEquity,
             holdings,
             pnl: totalRealizedPnL,
-            pnlPercentage: (totalRealizedPnL / initialBalance) * 100,
+            pnlPercentage: initialBalance > 0 ? (totalRealizedPnL / initialBalance) * 100 : 0,
             winRate: this.calculateWinRate(closedTrades),
             profitFactor: this.calculateProfitFactor(closedTrades),
             winningTrades: closedTrades.filter(t => this.calculateTradePnL(t) > 0).length,

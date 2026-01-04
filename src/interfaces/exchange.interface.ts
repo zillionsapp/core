@@ -37,4 +37,9 @@ export interface IExchange {
      * Get order details
      */
     getOrder(orderId: string, symbol: string): Promise<Order | null>;
+
+    /**
+     * Get the vault manager associated with this exchange, if any
+     */
+    getVaultManager?(): any;
 }
