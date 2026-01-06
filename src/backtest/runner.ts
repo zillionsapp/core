@@ -17,19 +17,22 @@ export class BacktestRunner {
     constructor() {
         // Shared Data Provider
         const publicData = new BinancePublicData();
-        this.exchange = new PaperExchange(publicData);
         this.db = new SupabaseDataStore();
+        this.exchange = new PaperExchange(publicData, undefined, undefined, this.db);
         this.timeProvider = new SimulationTimeProvider();
         this.riskManager = new RiskManager(this.exchange, this.db, this.timeProvider);
     }
     async run(strategyName: string, symbol: string, interval: string, verbose: boolean = process.env.NODE_ENV !== 'test') {
-        // 0. Capture Initial Balance
+        // 0. Start exchange (initializes vault balance if enabled)
+        await this.exchange.start();
+
+        // 1. Capture Initial Balance
         const asset = config.PAPER_BALANCE_ASSET;
         const initialBalance = await this.exchange.getBalance(asset);
 
         console.log(`[Backtest] Running ${strategyName} on ${symbol} ${interval}...`);
 
-        // 1. Get History (Mocking 1000 candles)
+        // 2. Get History (Mocking 1000 candles)
         const candles = await this.exchange.getCandles(symbol, interval, 1000);
         const strategy = StrategyManager.getStrategy(strategyName);
         strategy.init({});
@@ -39,7 +42,7 @@ export class BacktestRunner {
         let totalGrossProfit = 0;
         let totalGrossLoss = 0;
 
-        // 2. Iterate
+        // 3. Iterate
         for (let i = 50; i < candles.length; i++) {
             const currentCandle = candles[i];
 
@@ -149,7 +152,7 @@ export class BacktestRunner {
             }
         }
 
-        // 3. Report
+        // 4. Report
         const finalBalance = await this.exchange.getBalance(asset);
         const pnlUSDT = finalBalance - initialBalance;
         const pnlPercent = (pnlUSDT / initialBalance) * 100;
