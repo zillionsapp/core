@@ -150,6 +150,34 @@ Runs the simulation runner against historical data. Includes Winrate, Profit Fac
 npm run backtest
 ```
 
+### Strategy Comparison Backtesting
+Runs comprehensive backtests comparing all 24 built-in strategies against each other. Generates detailed reports with rankings, performance metrics, and Buy&Hold analysis.
+```bash
+npm run backtest:compare
+```
+
+**Features:**
+- **All Strategies**: Automatically tests all available strategies (24 total)
+- **Comprehensive Report**: Ranked performance table with trades, winrate, profit factor, PnL %, and Buy&Hold differences
+- **Best/Worst Analysis**: Highlights top performers and statistical summaries
+- **Configurable**: Uses `BACKTEST_CANDLE_COUNT` env var (default: 100 candles)
+- **Buy&Hold Comparison**: Shows which strategies outperform passive holding
+
+**Usage Examples:**
+```bash
+# Compare all strategies on BTC/USDT 1d with default settings
+npm run backtest:compare
+
+# Compare on different symbol/timeframe
+npm run backtest:compare ETH/USDT 4h
+
+# With verbose logging
+npm run backtest:compare BTC/USDT 1d verbose
+```
+
+**Configuration:**
+Set `BACKTEST_CANDLE_COUNT` in your `.env` to change the number of historical candles used for backtesting (default: 100).
+
 ### Live Historical Replay
 Simulates paper trading over a historical period (e.g., last 90 days) using the live engine logic. Results are stored in the main database alongside live trades for analysis in your dashboard.
 ```bash
