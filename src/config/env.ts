@@ -43,6 +43,9 @@ const envSchema = z.object({
     STRATEGY_SYMBOL: z.string().default('BTC/USDT'),
     STRATEGY_INTERVAL: z.string().default('1m'),
 
+    // Backtest Configuration
+    BACKTEST_CANDLE_COUNT: z.coerce.number().default(100),
+
     // Leverage Configuration
     LEVERAGE_ENABLED: z.string().transform(v => v === 'true').default(false as any),
     LEVERAGE_VALUE: z.coerce.number().default(1),

@@ -32,8 +32,8 @@ export class BacktestRunner {
 
         console.log(`[Backtest] Running ${strategyName} on ${symbol} ${interval}...`);
 
-        // 2. Get History (Mocking 100 candles)
-        const candles = await this.exchange.getCandles(symbol, interval, 100);
+        // 2. Get History
+        const candles = await this.exchange.getCandles(symbol, interval, config.BACKTEST_CANDLE_COUNT);
         const strategy = StrategyManager.getStrategy(strategyName);
         strategy.init({});
 
