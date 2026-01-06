@@ -60,7 +60,7 @@ async function runReplay() {
     const args = process.argv.slice(2);
     const symbol = args[0] || config.STRATEGY_SYMBOL;
     const interval = args[1] || config.STRATEGY_INTERVAL;
-    const days = parseInt(args[2] || '10');
+    const days = parseInt(args[2] || '120');
     const strategyName = config.STRATEGY_NAME;
 
     logger.info(`[Replay] Starting replay for ${strategyName} on ${symbol} ${interval} for the last ${days} days`);
