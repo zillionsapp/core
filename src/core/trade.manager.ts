@@ -4,12 +4,22 @@ import { IStrategy } from '../interfaces/strategy.interface';
 import { Trade, OrderRequest, Candle } from './types';
 import { logger } from './logger';
 import { StrategyManager } from './strategy.manager';
+import { CommissionManager } from './commission.manager';
 
 export class TradeManager {
+    private commissionManager?: CommissionManager;
+
     constructor(
         private exchange: IExchange,
         private db: IDataStore
     ) { }
+
+    /**
+     * Set the CommissionManager for commission calculations on trade close
+     */
+    setCommissionManager(commissionManager: CommissionManager): void {
+        this.commissionManager = commissionManager;
+    }
 
     /**
      * Check all open positions and manage them (check SL/TP, close if triggered)
@@ -157,13 +167,18 @@ export class TradeManager {
                 const order = await this.exchange.placeOrder(orderRequest);
 
                 // Update trade in database
-                await this.db.updateTrade(trade.id, {
+                const closedTrade: Trade = {
+                    ...trade,
                     status: 'CLOSED',
                     exitPrice: order.price,
                     exitTimestamp: order.timestamp,
                     duration: order.timestamp - trade.timestamp,
                     exitReason: exitReason
-                });
+                };
+                await this.db.updateTrade(trade.id, closedTrade);
+
+                // Process commission payment if profitable
+                await this.processCommissionPayment(closedTrade);
 
                 // Notify strategy that position was closed
                 if (trade.strategyName) {
@@ -286,9 +301,40 @@ export class TradeManager {
                 }
             }
 
-            logger.info(`[TradeManager] Position force closed: ${trade.id} | Exit Price: ${order.price} | Reason: ${reason}`);
+                logger.info(`[TradeManager] Position force closed: ${trade.id} | Exit Price: ${order.price} | Reason: ${reason}`);
         } catch (error) {
             logger.error(`[TradeManager] Error force closing position ${trade.id}:`, error);
+        }
+    }
+
+    /**
+     * Process commission payment for a closed trade
+     * Called when a trade closes with profit
+     */
+    private async processCommissionPayment(trade: Trade): Promise<void> {
+        if (!this.commissionManager) {
+            logger.debug('[TradeManager] No CommissionManager set, skipping commission');
+            return;
+        }
+
+        try {
+            // Get userId from the trade - this would typically be stored on the trade
+            // For now, we'll need to pass it through or derive it from the context
+            // The userId should be associated with the trade in a real implementation
+            const userId = (trade as any).userId || 'default-user';
+            const email = (trade as any).userEmail || '';
+
+            if (!userId || userId === 'default-user') {
+                logger.debug('[TradeManager] No userId on trade, skipping commission');
+                return;
+            }
+
+            const commission = await this.commissionManager.processCommissionPayment(trade, userId, email);
+            if (commission > 0) {
+                logger.info(`[TradeManager] Commission processed: ${commission.toFixed(4)} for trade ${trade.id}`);
+            }
+        } catch (error) {
+            logger.error(`[TradeManager] Error processing commission for trade ${trade.id}:`, error);
         }
     }
 }

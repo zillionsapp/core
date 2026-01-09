@@ -77,6 +77,10 @@ export class VaultManager implements IVaultManager {
         return filtered.reduce((sum, t) => {
             if (t.type === 'DEPOSIT') return sum + Number(t.amount);
             if (t.type === 'WITHDRAWAL') return sum - Number(t.amount);
+            // COMMISSION_EARNED: User earned commission from their invitee - this is real funds available for trading
+            if (t.type === 'COMMISSION_EARNED') return sum + Number(t.amount);
+            // COMMISSION_PAID: User paid commission to their inviter - reduces available balance
+            if (t.type === 'COMMISSION_PAID') return sum + Number(t.amount); // amount is negative in this case
             // SEND and RECEIVE are internal transfers - they don't affect total assets
             return sum;
         }, 0);

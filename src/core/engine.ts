@@ -9,6 +9,7 @@ import { logger } from './logger';
 import { RiskManager } from './risk.manager';
 import { TradeManager } from './trade.manager';
 import { PortfolioManager } from './portfolio.manager';
+import { CommissionManager } from './commission.manager';
 import { TimeUtils } from './time.utils';
 import { config } from '../config/env';
 import { ITimeProvider, RealTimeProvider } from './time.provider';
@@ -23,6 +24,7 @@ export class BotEngine {
     private riskManager: RiskManager;
     private tradeManager: TradeManager;
     private portfolioManager: PortfolioManager;
+    private commissionManager: CommissionManager;
     private isRunning: boolean = false;
     private activeTrade: Trade | null = null;
     private lastSnapshotTime: number = 0;
@@ -54,6 +56,10 @@ export class BotEngine {
         this.riskManager = new RiskManager(this.exchange, this.db, this.timeProvider);
         this.tradeManager = new TradeManager(this.exchange, this.db);
         this.portfolioManager = new PortfolioManager(this.exchange, this.db, this.timeProvider, this.vaultManager);
+        this.commissionManager = new CommissionManager(this.db);
+
+        // Connect CommissionManager to TradeManager
+        this.tradeManager.setCommissionManager(this.commissionManager);
 
         // Resolve circular dependency: Vault needs Equity from Portfolio
         if (this.vaultManager) {

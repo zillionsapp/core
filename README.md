@@ -127,6 +127,28 @@
 4.  **Database Setup (Supabase)**:
     Run the SQL methods found in `supabase_schema.sql` in your Supabase SQL Editor to create the necessary tables (`trades`, `portfolio_snapshots`, `backtest_results`).
 
+### 🎯 Want to Enable User Invitations & Commission System?
+
+The core bot runs standalone with basic Supabase tables. If you want to **offer your trading bot to other users** and enable a referral/commission system:
+
+👉 **Head over to the [Zillions App Repository](https://github.com/zillionsapp/zillion-app)**
+
+The app extends the core with:
+- **User Authentication** - Users can sign up and manage their accounts
+- **Invitation System** - Create referral links with custom commission rates (e.g., 10%)
+- **Commission Tracking** - Real-time commission payments to inviters when their referrals profit
+- **Dashboard UI** - User-friendly interface to view portfolios, trades, and earnings
+
+**How the Commission System Works:**
+1. Users create invite links with configurable commission rates (e.g., 5%, 10%, 15%)
+2. New users register using an invite code
+3. When a referred user closes a **profitable trade**, the inviter earns a commission
+4. Commissions are calculated per-trade in real-time by the bot
+5. Both inviter and invited user can view their commission history in the app
+
+**Database Setup for App+Bot:**
+If you deploy the app, run `app/frontend_schema.sql` instead of the basic `supabase_schema.sql` - it includes all tables for the commission system.
+
 ---
 
 ## 🏃‍♂️ Usage

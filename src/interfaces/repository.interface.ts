@@ -97,4 +97,13 @@ export interface IDataStore {
     getVaultTransactions(email?: string): Promise<any[]>;
     getVaultState(): Promise<any | null>;
     saveVaultState(state: any): Promise<void>;
+
+    /**
+     * Commission management
+     */
+    saveCommissionTransaction(transaction: any): Promise<void>;
+    getInviterRelationship(userId: string): Promise<{ inviterId: string; commissionRate: number; invitedEmail: string } | null>;
+    getTotalCommissionsEarned(userId: string): Promise<number>;
+    getTotalCommissionsPaid(userId: string): Promise<number>;
+    getInvitedUsersCount(inviterId: string): Promise<number>;
 }

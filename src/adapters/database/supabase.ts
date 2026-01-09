@@ -428,4 +428,129 @@ export class SupabaseDataStore implements IDataStore {
             .upsert({ id: 1, ...state });
         if (error) console.error('Error saving vault state:', error);
     }
+
+    // ========== Commission Management ==========
+
+    async saveCommissionTransaction(transaction: any): Promise<void> {
+        if (!this.supabase) {
+            console.log('[InMemoryDB] Saved commission transaction:', transaction);
+            return;
+        }
+        
+        // Try saving to commission_transactions table first
+        const { error } = await this.supabase.from('commission_transactions').insert({
+            inviter_id: transaction.inviter_id,
+            invited_user_id: transaction.invited_user_id,
+            transaction_date: new Date(transaction.timestamp).toISOString().split('T')[0],
+            invited_portfolio_value: transaction.invited_portfolio_value || 0,
+            invited_daily_pnl: transaction.pnl || 0,
+            commission_earned: Math.abs(transaction.amount)
+        });
+        
+        if (error) {
+            console.error('Error saving commission transaction:', error);
+            // Fallback: try saving to vault_transactions if commission_transactions fails
+            const { error: vaultError } = await this.supabase.from('vault_transactions').insert({
+                email: transaction.email || 'unknown',
+                amount: transaction.amount,
+                shares: 0,
+                type: transaction.type,
+                timestamp: transaction.timestamp,
+                inviter_id: transaction.inviter_id,
+                invited_user_id: transaction.invited_user_id,
+                commission_rate: transaction.commission_rate
+            });
+            if (vaultError) console.error('Error saving commission to vault_transactions:', vaultError);
+        }
+    }
+
+    async getInviterRelationship(userId: string): Promise<{ inviterId: string; commissionRate: number; invitedEmail: string } | null> {
+        if (!this.supabase) return null;
+
+        // Get the user's invite code usage to find who invited them
+        const { data: usageData, error: usageError } = await this.supabase
+            .from('invite_code_usages')
+            .select('invite_code_id')
+            .eq('used_by', userId)
+            .limit(1)
+            .maybeSingle();
+
+        if (usageError || !usageData) {
+            console.debug('[SupabaseDataStore] No inviter relationship found for user:', userId);
+            return null;
+        }
+
+        // Get the invite code details
+        const { data: inviteData, error: inviteError } = await this.supabase
+            .from('invite_codes')
+            .select('created_by, commission_rate')
+            .eq('id', usageData.invite_code_id)
+            .maybeSingle();
+
+        if (inviteError || !inviteData) {
+            console.debug('[SupabaseDataStore] Invite code not found:', usageData.invite_code_id);
+            return null;
+        }
+
+        return {
+            inviterId: inviteData.created_by,
+            commissionRate: inviteData.commission_rate || 0.10,
+            invitedEmail: ''
+        };
+    }
+
+    async getTotalCommissionsEarned(userId: string): Promise<number> {
+        if (!this.supabase) return 0;
+
+        const { data, error } = await this.supabase
+            .from('vault_transactions')
+            .select('amount')
+            .eq('inviter_id', userId)
+            .eq('type', 'COMMISSION_EARNED');
+
+        if (error) {
+            console.error('Error fetching total commissions earned:', error);
+            return 0;
+        }
+
+        return data.reduce((sum, row) => sum + Math.abs(row.amount || 0), 0);
+    }
+
+    async getTotalCommissionsPaid(userId: string): Promise<number> {
+        if (!this.supabase) return 0;
+
+        const { data, error } = await this.supabase
+            .from('vault_transactions')
+            .select('amount')
+            .eq('invited_user_id', userId)
+            .eq('type', 'COMMISSION_PAID');
+
+        if (error) {
+            console.error('Error fetching total commissions paid:', error);
+            return 0;
+        }
+
+        return data.reduce((sum, row) => sum + Math.abs(row.amount || 0), 0);
+    }
+
+    async getInvitedUsersCount(inviterId: string): Promise<number> {
+        if (!this.supabase) return 0;
+
+        const { count, error } = await this.supabase
+            .from('invite_code_usages')
+            .select('*', { count: 'exact', head: true })
+            .eq('invite_code_id', 
+                this.supabase
+                    .from('invite_codes')
+                    .select('id')
+                    .eq('created_by', inviterId)
+            );
+
+        if (error) {
+            console.error('Error counting invited users:', error);
+            return 0;
+        }
+
+        return count || 0;
+    }
 }
