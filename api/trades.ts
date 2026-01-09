@@ -34,8 +34,6 @@ export default async function handler(req: any, res: any) {
             return true;
         }).sort((a, b) => b.timestamp - a.timestamp);
 
-        console.log(`[API] Trades: raw=${rawCombined.length}, deduped=${allTrades.length}, open=${filteredOpenTrades.length}`);
-
         const total = allTrades.length;
 
         // Apply pagination

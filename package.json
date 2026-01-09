@@ -20,6 +20,7 @@
     "migrate:data": "ts-node scripts/migrate_data.ts",
     "migrate:replay": "ts-node scripts/migrate_replay.ts",
     "cleanup": "ts-node scripts/cleanup.ts",
+    "stresstest": "ts-node scripts/stresstest_calculations.ts",
     "build": "tsc",
     "test": "jest"
   },
