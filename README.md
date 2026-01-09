@@ -193,10 +193,12 @@ npm run replay
 npm run replay -- --symbol=ETH/USDT --interval=1h --days=30
 ```
 
-### Testing
-Runs the Jest test suite (Unit & Integration).
+### Database Cleanup
+**⚠️ DANGER: This will permanently delete ALL data from your database. Only use in development/testing environments.**
+
+Clears all data from the database tables while preserving table structures. Useful for resetting your development environment.
 ```bash
-npm test
+npm run cleanup
 ```
 
 ### Strategy Configuration
