@@ -201,19 +201,71 @@ npm run backtest:compare BTC/USDT 1d verbose
 Set `BACKTEST_CANDLE_COUNT` in your `.env` to change the number of historical candles used for backtesting (default: 100).
 
 ### Live Historical Replay
-Simulates paper trading over a historical period (e.g., last 90 days) using the live engine logic. Results are stored in the main database alongside live trades for analysis in your dashboard.
+
+The **Replay** feature simulates paper trading over a historical period using the **exact same engine logic as production**. Results are stored in the main database alongside live trades for analysis in your dashboard.
+
+**Key Benefits:**
+- **True Simulation**: Uses the same BotEngine, VaultManager, CommissionManager, and PortfolioManager as live trading
+- **Time-Aware Vault**: Vault transactions are filtered by simulation time (deposits only count after their timestamp)
+- **Commission Tracking**: Commission payments use trade timestamps
+- **Seamless Continuation**: After replay completes, run `npm start` to continue trading into real-time from where replay left off
+
 ```bash
 npm run replay
 ```
+
 **Options:**
-- `--symbol`: Trading pair (default: from .env)
-- `--interval`: Timeframe (default: from .env)
-- `--days`: Number of days to replay (default: 90)
+- `symbol`: Trading pair (default: from `.env`)
+- `interval`: Timeframe (default: from `.env`)
+- `days`: Number of days to replay (default: 120)
 
 **Example:**
 ```bash
-npm run replay -- --symbol=ETH/USDT --interval=1h --days=30
+# Replay 30 days of 1h candles for ETH/USDT
+npm run replay ETH/USDT 1h 30
+
+# Replay 7 days of 15m candles
+npm run replay BTC/USDT 15m 7
 ```
+
+#### How It Works
+
+The replay system advances simulation time through historical candles:
+
+1. **Candle Fetching**: Downloads historical candles from Binance Public API
+2. **Time Synchronization**: A shared `SimulationTimeProvider` coordinates all time-sensitive operations:
+   - `VaultManager.getTotalDepositedBalance()` only includes transactions where `timestamp <= simulationTime`
+   - `PortfolioManager` generates snapshots with simulation timestamps
+   - `CommissionManager` uses trade timestamps for commission tracking
+3. **Engine Tick Loop**: For each candle:
+   - Sets simulation time to candle's end time
+   - Updates market data buffer
+   - Runs `engine.tick()` which processes signals, manages positions, and executes trades
+
+#### Migrating Past Vault Transactions
+
+When migrating historical vault transactions, insert them with their original timestamps:
+
+```sql
+INSERT INTO vault_transactions (email, amount, shares, type, timestamp)
+VALUES 
+  ('user@example.com', 10000, 10000, 'DEPOSIT', 1700000000000),
+  ('user@example.com', 5000, 4852.46, 'DEPOSIT', 1702500000000);
+```
+
+During replay:
+- Before `1700000000000`: Balance = 0
+- Between `1700000000000` and `1702500000000`: Balance = 10,000
+- After `1702500000000`: Balance = 14,852.46
+
+#### After Replay: Continue to Real-Time
+
+When replay completes:
+1. The database contains all trades, vault transactions, and portfolio snapshots from the replay period
+2. Simply run `npm start` to begin live trading
+3. The bot will continue from real-time, seamlessly transitioning from where replay left off
+
+**Important**: Replay and live trading share the same database. Trades and vault transactions from replay are preserved and visible in the dashboard alongside future live activity.
 
 ### Database Cleanup
 **⚠️ DANGER: This will permanently delete ALL data from your database. Only use in development/testing environments.**

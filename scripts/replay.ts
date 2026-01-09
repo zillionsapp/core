@@ -7,6 +7,7 @@ import { config } from '../src/config/env';
 import { SupabaseDataStore } from '../src/adapters/database/supabase';
 import { Candle } from '../src/core/types';
 import { logger } from '../src/core/logger';
+import { TimeUtils } from '../src/core/time.utils';
 
 /**
  * Replay Script
@@ -14,7 +15,17 @@ import { logger } from '../src/core/logger';
  * Replays a historical period using the current trading configuration.
  * Results are stored in Supabase just like live trading.
  * 
- * Usage: ts-node scripts/replay.ts [symbol] [interval] [days]
+ * IMPORTANT: This replay script functions identically to the production bot:
+ * - Uses the same BotEngine, VaultManager, CommissionManager, and PortfolioManager
+ * - Vault transactions are filtered by simulation time (deposits only count after their timestamp)
+ * - Commission payments use trade timestamps
+ * - Portfolio snapshots use simulation time
+ * 
+ * After running `npm run replay`, you can run `npm start` and it will continue
+ * from the current real-time, seamlessly transitioning to live trading.
+ * 
+ * Usage: npm run replay [symbol] [interval] [days]
+ * Example: npm run replay BTC/USDT 1h 120
  */
 
 async function fetchHistoricalCandles(symbol: string, interval: string, days: number): Promise<Candle[]> {
@@ -63,7 +74,11 @@ async function runReplay() {
     const days = parseInt(args[2] || '120');
     const strategyName = config.STRATEGY_NAME;
 
-    logger.info(`[Replay] Starting replay for ${strategyName} on ${symbol} ${interval} for the last ${days} days`);
+    logger.info(`[Replay] =========================================`);
+    logger.info(`[Replay] Starting replay for ${strategyName} on ${symbol} ${interval}`);
+    logger.info(`[Replay] Replaying last ${days} days of historical data`);
+    logger.info(`[Replay] Vault mode: ${config.VAULT_ENABLED ? 'enabled' : 'disabled'}`);
+    logger.info(`[Replay] =========================================`);
 
     // 1. Fetch all candles for the period
     const allCandles = await fetchHistoricalCandles(symbol, interval, days);
@@ -73,57 +88,72 @@ async function runReplay() {
     }
 
     logger.info(`[Replay] Fetched ${allCandles.length} candles.`);
+    logger.info(`[Replay] From: ${new Date(allCandles[0].startTime).toISOString()}`);
+    logger.info(`[Replay] To: ${new Date(allCandles[allCandles.length - 1].startTime).toISOString()}`);
+    logger.info(`[Replay] =========================================`);
 
     // 2. Setup Simulation Environment
+    // CRITICAL: Use SimulationTimeProvider to ensure:
+    // - VaultManager filters transactions by simulation time
+    // - PortfolioManager uses simulation time for snapshots
+    // - CommissionManager uses trade timestamps
     const timeProvider = new SimulationTimeProvider();
     const memoryData = new MemoryDataProvider([]);
     const db = new SupabaseDataStore(); // Using production DB as requested
 
+    // Create PaperExchange with shared timeProvider
+    // This ensures the internal VaultManager uses the same time provider
     const exchange = new PaperExchange(memoryData, timeProvider, undefined, db);
 
-    // We pass the exchange and db to BotEngine to override defaults
+    // Create BotEngine with shared timeProvider
+    // BotEngine will use this timeProvider for all time-sensitive operations
     const engine = new BotEngine(strategyName, timeProvider, exchange, db);
 
+    // Initialize exchange (loads vault balance if VAULT_ENABLED)
+    await exchange.start();
+
     // 3. Replay Loop
-    // We need at least some lookback for indicators
-    const lookback = 100; // Typical lookback for indicators
+    // We need at least some lookback for indicators (typically 100+ candles)
+    const lookback = Math.max(100, config.BACKTEST_CANDLE_COUNT || 100);
+
+    logger.info(`[Replay] Starting replay loop with lookback: ${lookback} candles`);
 
     for (let i = lookback; i < allCandles.length; i++) {
         const currentCandle = allCandles[i];
 
-        // Update simulation time
-        timeProvider.setTime(currentCandle.closeTime || currentCandle.startTime + (TimeUtils.getIntervalMs(interval)));
+        // CRITICAL: Update simulation time BEFORE processing this candle
+        // This ensures all time-sensitive operations (vault filtering, commission timestamps)
+        // use the correct simulation time
+        const candleEndTime = currentCandle.closeTime || currentCandle.startTime + TimeUtils.parseIntervalToMs(interval);
+        timeProvider.setTime(candleEndTime);
 
         // Update memory data with candles up to now
+        // This ensures the engine sees historical data up to the simulation time
         memoryData.setCandles(allCandles.slice(0, i + 1));
 
-        // Run one tick
-        // Note: engine.tick normally fetches candles itself. 
-        // Our memoryData will return the candles up to our current simulation time.
+        // Run one tick - this will:
+        // 1. Recover active trade state (filtered by simulation time)
+        // 2. Fetch candles (already in memoryData, filtered by time)
+        // 3. Check and manage positions (SL/TP checks use simulation time)
+        // 4. Update strategy and process signals
+        // 5. Place orders if needed (order timestamps use simulation time)
         await engine.tick(symbol, interval);
 
-        if (i % 100 === 0) {
-            logger.info(`[Replay] Progress: ${((i / allCandles.length) * 100).toFixed(1)}%`);
+        if (i % 100 === 0 || i === lookback) {
+            const progress = ((i / allCandles.length) * 100).toFixed(1);
+            const simTime = new Date(timeProvider.now()).toISOString();
+            logger.info(`[Replay] Progress: ${progress}% | Sim Time: ${simTime} | Candle: ${i}/${allCandles.length}`);
         }
     }
 
-    logger.info('[Replay] Completed.');
-}
-
-// Minimal TimeUtils helper since we need getIntervalMs
-class TimeUtils {
-    static getIntervalMs(interval: string): number {
-        const unit = interval.slice(-1);
-        const value = parseInt(interval.slice(0, -1));
-        switch (unit) {
-            case 'm': return value * 60 * 1000;
-            case 'h': return value * 60 * 60 * 1000;
-            case 'd': return value * 24 * 60 * 60 * 1000;
-            default: return 60 * 1000;
-        }
-    }
+    logger.info(`[Replay] =========================================`);
+    logger.info(`[Replay] Replay completed!`);
+    logger.info(`[Replay] Final simulation time: ${new Date(timeProvider.now()).toISOString()}`);
+    logger.info(`[Replay] You can now run 'npm start' to continue into real-time`);
+    logger.info(`[Replay] =========================================`);
 }
 
 runReplay().catch(err => {
     logger.error('[Replay] Fatal error:', err);
+    process.exit(1);
 });
