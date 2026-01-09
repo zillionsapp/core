@@ -87,8 +87,9 @@ export class RiskManager {
         return true;
     }
 
-    async calculateQuantity(symbol: string, price: number, slPercent?: number): Promise<number> {
-        const balance = await this.exchange.getBalance(config.PAPER_BALANCE_ASSET);
+    async calculateQuantity(symbol: string, price: number, slPercent?: number, currentEquity?: number): Promise<number> {
+        const equity = currentEquity ?? await this.exchange.getBalance(config.PAPER_BALANCE_ASSET);
+        const availableBalance = await this.exchange.getBalance(config.PAPER_BALANCE_ASSET);
         const leverage = config.LEVERAGE_ENABLED ? config.LEVERAGE_VALUE : 1;
 
         // 1. Determine Stop Loss Distance
@@ -96,9 +97,10 @@ export class RiskManager {
         const slDistance = price * (effectiveSLPercent / 100);
 
         // 2. Risk Amount Calculation
-        // Risk a fixed percentage of TOTAL ACCOUNT BALANCE per trade (e.g., 1%)
-        // This is the "Professional" approach requested.
-        const riskAmount = balance * (config.RISK_PER_TRADE_PERCENT / 100);
+        // Use the minimum of equity and available balance to ensure we don't risk funds that aren't available
+        // This prevents over-leveraging on unrealized profits
+        const effectiveCapital = Math.min(equity, availableBalance);
+        const riskAmount = effectiveCapital * (config.RISK_PER_TRADE_PERCENT / 100);
 
         // 3. Calculate Quantity based on Risk
         // Loss = Quantity * SL_Distance
@@ -113,7 +115,7 @@ export class RiskManager {
         const requiredMargin = positionValue / leverage;
 
         // Constraint A: Available Margin Check (Buffer 10%)
-        const maxAllowedMargin = balance * 0.9;
+        const maxAllowedMargin = availableBalance * 0.9;
         if (requiredMargin > maxAllowedMargin) {
             const adjustmentFactor = maxAllowedMargin / requiredMargin;
             quantity *= adjustmentFactor;
@@ -124,9 +126,9 @@ export class RiskManager {
 
         // Constraint B: Maximum Leverage Utilization
         // Ensure position value doesn't exceed X% of Max theoretical position
-        // Max theoretical = Balance * Leverage
+        // Max theoretical = Available Balance * Leverage
         const maxUtilizationPercent = config.MAX_LEVERAGE_UTILIZATION / 100;
-        const maxPositionValue = balance * leverage * maxUtilizationPercent;
+        const maxPositionValue = availableBalance * leverage * maxUtilizationPercent;
 
         if (positionValue > maxPositionValue) {
             const adjustmentFactor = maxPositionValue / positionValue;
@@ -147,7 +149,7 @@ export class RiskManager {
         const finalPositionValue = quantity * price;
         const finalMargin = finalPositionValue / leverage;
         const actualRiskAmount = quantity * slDistance;
-        const actualRiskPercent = (actualRiskAmount / balance) * 100;
+        const actualRiskPercent = (actualRiskAmount / equity) * 100;
 
         logger.info(`[RiskManager] Professional position sizing for ${symbol}:`);
         logger.info(`  Risk Target: ${riskAmount.toFixed(2)} ${config.PAPER_BALANCE_ASSET} (${config.RISK_PER_TRADE_PERCENT}% of equity)`);

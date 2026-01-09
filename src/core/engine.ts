@@ -173,8 +173,25 @@ export class BotEngine {
                     }
 
                     // 4. Risk Check
-                    const quantity = await this.riskManager.calculateQuantity(signal.symbol, lastCandle.close, signal.stopLoss);
+                    const currentEquity = await this.portfolioManager.getCurrentEquity();
+                    const quantity = await this.riskManager.calculateQuantity(signal.symbol, lastCandle.close, signal.stopLoss, currentEquity);
                     if (quantity <= 0) return;
+
+                    // Check total portfolio risk
+                    const existingTrades = await this.db.getOpenTrades();
+                    let totalRisk = 0;
+                    for (const trade of existingTrades) {
+                        const risk = trade.quantity * Math.abs(trade.price - trade.stopLossPrice!);
+                        totalRisk += risk;
+                    }
+                    const newRisk = quantity * (lastCandle.close * (signal.stopLoss ?? config.DEFAULT_STOP_LOSS_PERCENT) / 100);
+                    const availableBalance = await this.exchange.getBalance(config.PAPER_BALANCE_ASSET);
+                    const totalRiskPercent = ((totalRisk + newRisk) / availableBalance) * 100;
+
+                    if (totalRiskPercent > config.MAX_TOTAL_RISK_PERCENT) {
+                        logger.warn(`[BotEngine] Total portfolio risk would exceed limit: ${totalRiskPercent.toFixed(2)}% > ${config.MAX_TOTAL_RISK_PERCENT}%`);
+                        return;
+                    }
 
                     const orderRequest: OrderRequest = {
                         symbol: signal.symbol,
@@ -183,7 +200,6 @@ export class BotEngine {
                         quantity: quantity,
                     };
 
-                    const currentEquity = await this.portfolioManager.getCurrentEquity();
                     const isSafe = await this.riskManager.validateOrder(orderRequest, currentEquity);
                     if (!isSafe) {
                         logger.warn(`[BotEngine] Order validation failed for ${signal.symbol}`);

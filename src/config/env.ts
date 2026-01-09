@@ -25,6 +25,7 @@ const envSchema = z.object({
 
     // Risk Management
     MAX_DAILY_DRAWDOWN_PERCENT: z.coerce.number().default(5), // 5%
+    MAX_TOTAL_RISK_PERCENT: z.coerce.number().default(10), // 10% max total risk across all positions
     DEFAULT_STOP_LOSS_PERCENT: z.coerce.number().default(5), // 5% of entry price (technical SL)
     DEFAULT_TAKE_PROFIT_PERCENT: z.coerce.number().default(10), // 10% of entry price (technical TP)
     RISK_PER_TRADE_PERCENT: z.coerce.number().default(1), // 1% of equity per trade (professional risk)
