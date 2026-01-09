@@ -139,7 +139,7 @@ export class BotEngine {
                     logger.info(`[Signal] ${signal.action} ${signal.symbol}`);
 
                     // Check for conflicting positions
-                    const openTrades = await this.db.getOpenTrades();
+                    let openTrades = await this.db.getOpenTrades();
 
                     // Re-enforce MAX_OPEN_TRADES strictly here (Double-check)
                     if (openTrades.length >= config.MAX_OPEN_TRADES) {
@@ -166,10 +166,15 @@ export class BotEngine {
                             await this.portfolioManager.saveSnapshot();
                         }
                     }
-                    // Check if we should skip opening new position due to existing positions
+                    // Handle single position mode: close all existing positions before opening new one
                     else if (!config.ALLOW_MULTIPLE_POSITIONS && openTrades.length > 0) {
-                        logger.info(`[BotEngine] Skipping signal - multiple positions not allowed and existing positions exist`);
-                        return;
+                        logger.info(`[BotEngine] Closing ${openTrades.length} existing positions for single position mode`);
+                        for (const trade of openTrades) {
+                            await this.tradeManager.forceClosePosition(trade, 'SINGLE_POSITION_MODE');
+                            await this.portfolioManager.saveSnapshot();
+                        }
+                        // Refresh open trades list after closing
+                        openTrades = await this.db.getOpenTrades();
                     }
 
                     // 4. Risk Check
