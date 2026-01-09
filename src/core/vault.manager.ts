@@ -58,7 +58,10 @@ export class VaultManager implements IVaultManager {
 
         const filtered = transactions.filter(t => t.timestamp <= now);
         return filtered.reduce((sum, t) => {
-            return t.type === 'DEPOSIT' ? sum + Number(t.shares) : sum - Number(t.shares);
+            if (t.type === 'DEPOSIT') return sum + Number(t.shares);
+            if (t.type === 'WITHDRAWAL') return sum - Number(t.shares);
+            // SEND and RECEIVE are internal transfers - they don't affect total shares
+            return sum;
         }, 0);
     }
 
@@ -72,7 +75,10 @@ export class VaultManager implements IVaultManager {
         const filtered = transactions.filter(t => t.timestamp <= now);
 
         return filtered.reduce((sum, t) => {
-            return t.type === 'DEPOSIT' ? sum + Number(t.amount) : sum - Number(t.amount);
+            if (t.type === 'DEPOSIT') return sum + Number(t.amount);
+            if (t.type === 'WITHDRAWAL') return sum - Number(t.amount);
+            // SEND and RECEIVE are internal transfers - they don't affect total assets
+            return sum;
         }, 0);
     }
 
@@ -139,6 +145,62 @@ export class VaultManager implements IVaultManager {
         });
 
         logger.info(`[VaultManager] Withdrawal: ${email} withdrew ${amount.toFixed(2)} for ${shares.toFixed(4)} shares (Price: ${sharePrice.toFixed(4)})`);
+        return transaction;
+    }
+
+    async send(fromEmail: string, toEmail: string, shares: number): Promise<[VaultTransaction, VaultTransaction]> {
+        const sharePrice = await this.getSharePrice();
+        const amount = shares * sharePrice;
+        const timestamp = Date.now();
+
+        // Create SEND transaction (from user)
+        const sendTransaction: VaultTransaction = {
+            email: fromEmail,
+            amount: -amount, // Negative amount for sender
+            shares: -shares, // Negative shares for sender
+            type: 'SEND',
+            timestamp
+        };
+
+        // Create RECEIVE transaction (to user)
+        const receiveTransaction: VaultTransaction = {
+            email: toEmail,
+            amount: amount, // Positive amount for receiver
+            shares: shares, // Positive shares for receiver
+            type: 'RECEIVE',
+            timestamp
+        };
+
+        // Save both transactions
+        await this.db.saveVaultTransaction(sendTransaction);
+        await this.db.saveVaultTransaction(receiveTransaction);
+
+        // SEND/RECEIVE are internal transfers - they don't affect total vault assets/shares
+        // So we don't update the vault state
+
+        logger.info(`[VaultManager] Transfer: ${fromEmail} sent ${shares.toFixed(4)} shares (${amount.toFixed(2)}) to ${toEmail}`);
+        return [sendTransaction, receiveTransaction];
+    }
+
+    async receive(email: string, shares: number): Promise<VaultTransaction> {
+        const sharePrice = await this.getSharePrice();
+        const amount = shares * sharePrice;
+        const timestamp = Date.now();
+
+        const transaction: VaultTransaction = {
+            email,
+            amount,
+            shares,
+            type: 'RECEIVE',
+            timestamp
+        };
+
+        await this.db.saveVaultTransaction(transaction);
+
+        // RECEIVE is an internal transfer - it doesn't affect total vault assets/shares
+        // So we don't update the vault state
+
+        logger.info(`[VaultManager] Receive: ${email} received ${shares.toFixed(4)} shares (${amount.toFixed(2)})`);
         return transaction;
     }
 }

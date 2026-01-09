@@ -1,4 +1,4 @@
-export type VaultTransactionType = 'DEPOSIT' | 'WITHDRAWAL';
+export type VaultTransactionType = 'DEPOSIT' | 'WITHDRAWAL' | 'SEND' | 'RECEIVE';
 
 export interface VaultTransaction {
     id?: string;
@@ -47,4 +47,16 @@ export interface IVaultManager {
      * This is useful for the "initial balance" logic
      */
     getTotalDepositedBalance(): Promise<number>;
+
+    /**
+     * Handle a send transaction: transfer shares from one user to another
+     * This is an internal transfer that doesn't affect total vault assets/shares
+     */
+    send(fromEmail: string, toEmail: string, shares: number): Promise<[VaultTransaction, VaultTransaction]>;
+
+    /**
+     * Handle a receive transaction: receive shares from another user
+     * This is an internal transfer that doesn't affect total vault assets/shares
+     */
+    receive(email: string, shares: number): Promise<VaultTransaction>;
 }
