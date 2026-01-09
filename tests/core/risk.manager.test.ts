@@ -86,11 +86,12 @@ describe('RiskManager', () => {
     describe('calculateQuantity', () => {
         it('should calculate quantity based on RISK_PER_TRADE_PERCENT and SL distance', async () => {
             // Balance 10000, RISK_PER_TRADE_PERCENT = 1% = 100 USDT risk
-            // SL distance determined by default 5% SL
-            // 5% of 1000 = 50.
-            // Expected Quantity = Risk / Distance = 100 / 50 = 2.
+            // SL distance determined by default 5% SL = 50
+            // Risk-based quantity = 100 / 50 = 2
+            // But MAX_POSITION_SIZE_PERCENT = 10% caps position to 1000
+            // So final quantity = 1000 / 1000 = 1
             const quantity = await riskManager.calculateQuantity('BTC/USDT', 1000);
-            expect(quantity).toBe(2);
+            expect(quantity).toBe(1);
         });
 
         it('should adjust quantity when RISK_PER_TRADE_PERCENT is lower', async () => {

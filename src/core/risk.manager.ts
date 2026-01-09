@@ -124,7 +124,20 @@ export class RiskManager {
             logger.warn(`[RiskManager] Position size reduced by ${(adjustmentFactor * 100).toFixed(1)}% to fit available margin`);
         }
 
-        // Constraint B: Maximum Leverage Utilization
+        // Constraint B: Maximum Position Size
+        // Ensure position value doesn't exceed configured percentage of available balance
+        const maxPositionSizePercent = config.MAX_POSITION_SIZE_PERCENT / 100;
+        const maxPositionValueBySize = availableBalance * maxPositionSizePercent;
+
+        if (positionValue > maxPositionValueBySize) {
+            const adjustmentFactor = maxPositionValueBySize / positionValue;
+            quantity *= adjustmentFactor;
+            quantity = PrecisionUtils.normalizeQuantity(quantity);
+            positionValue = quantity * price;
+            logger.warn(`[RiskManager] Position size capped to ${config.MAX_POSITION_SIZE_PERCENT}% of available balance`);
+        }
+
+        // Constraint C: Maximum Leverage Utilization
         // Ensure position value doesn't exceed X% of Max theoretical position
         // Max theoretical = Available Balance * Leverage
         const maxUtilizationPercent = config.MAX_LEVERAGE_UTILIZATION / 100;
@@ -138,7 +151,7 @@ export class RiskManager {
             logger.warn(`[RiskManager] Position size capped to prevent over-leveraging (max ${config.MAX_LEVERAGE_UTILIZATION}% utilization)`);
         }
 
-        // Constraint C: Minimum Size
+        // Constraint D: Minimum Size
         const minPositionValue = 10; // Min $10 position (Hardcoded safe minimum)
         if (positionValue < minPositionValue) {
             logger.warn(`[RiskManager] Position size too small: ${positionValue.toFixed(2)} < ${minPositionValue}`);
