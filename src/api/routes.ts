@@ -70,8 +70,6 @@ router.get('/trades', async (req, res) => {
             return true;
         }).sort((a, b) => b.timestamp - a.timestamp);
 
-        console.log(`[API] Trades: raw=${rawCombined.length}, deduped=${allTrades.length}, open=${filteredOpenTrades.length}`);
-
         const total = allTrades.length;
 
         // Apply pagination
@@ -87,7 +85,7 @@ router.get('/trades', async (req, res) => {
 // GET /api/prices - Current market prices for symbols
 router.get('/prices', async (req, res) => {
     try {
-        const symbols = (req.query.symbols as string)?.split(',') || [];
+        const symbols = (req.query.symbols as string)?.split(',').filter(s => s.trim()) || [];
         const marketData = new BinancePublicData();
 
         const prices: { [symbol: string]: number } = {};

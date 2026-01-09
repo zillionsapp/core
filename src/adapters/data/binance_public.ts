@@ -45,6 +45,10 @@ export class BinancePublicData implements IMarketDataProvider {
     }
 
     async getTicker(symbol: string): Promise<Ticker> {
+        if (!symbol || !symbol.trim()) {
+            throw new Error('Symbol parameter cannot be empty');
+        }
+
         try {
             const parsedSymbol = symbol.replace('/', '');
             const url = new URL(`${this.baseUrl}/ticker/price`);
@@ -57,7 +61,6 @@ export class BinancePublicData implements IMarketDataProvider {
             }
 
             const data = await response.json();
-            console.log(`[BinancePublicData] getTicker raw data:`, JSON.stringify(data));
             const price = parseFloat(data.price);
             if (isNaN(price)) {
                 console.error(`[BinancePublicData] Price format error. Price raw: '${data.price}'`);

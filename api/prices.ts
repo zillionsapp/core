@@ -6,7 +6,7 @@ export default async function handler(req: any, res: any) {
     }
 
     try {
-        const symbols = (req.query.symbols as string)?.split(',') || [];
+        const symbols = (req.query.symbols as string)?.split(',').filter(s => s.trim()) || [];
         const marketData = new BinancePublicData();
 
         const prices: { [symbol: string]: number } = {};
