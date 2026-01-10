@@ -33,4 +33,4 @@ npm-debug.log*
 Thumbs.db
 
 # Migration scripts
-scripts/migrate_*.ts
+*.migrate.ts
