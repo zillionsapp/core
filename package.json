@@ -17,7 +17,7 @@
     "backtest:compare": "ts-node src/backtest/comparison.runner.ts",
     "replay": "ts-node scripts/replay.ts",
     "api": "ts-node src/api/server.ts",
-    "migrate:data": "ts-node scripts/migrate_data.ts",
+    "migrate:data": "ts-node scripts/data.migrate.ts",
     "migrate:replay": "ts-node scripts/migrate_replay.ts",
     "cleanup": "ts-node scripts/cleanup.ts",
     "stresstest": "ts-node scripts/stresstest_calculations.ts",
