@@ -196,7 +196,7 @@ export class PaperExchange implements IExchange {
             quantity: orderRequest.quantity,
             filledQuantity: orderRequest.quantity,
             price: price,
-            timestamp: this.timeProvider.now(),
+            timestamp: ('setTime' in this.timeProvider) ? Date.now() : this.timeProvider.now(),
         };
 
         this.orders.set(order.id, order);

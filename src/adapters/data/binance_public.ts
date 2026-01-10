@@ -26,7 +26,7 @@ export class BinancePublicData implements IMarketDataProvider {
 
             const rawData = await response.json();
 
-            // Map Binance format [time, open, high, low, close, volume, ...] to Candle
+            // Map Binance format [time, open, high, low, close, volume, closeTime, ...] to Candle
             return rawData.map((d: any) => ({
                 symbol,
                 interval,
@@ -35,7 +35,8 @@ export class BinancePublicData implements IMarketDataProvider {
                 high: parseFloat(d[2]),
                 low: parseFloat(d[3]),
                 close: parseFloat(d[4]),
-                volume: parseFloat(d[5])
+                volume: parseFloat(d[5]),
+                closeTime: d[6]
             }));
 
         } catch (error) {
