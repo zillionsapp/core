@@ -71,7 +71,7 @@ async function runReplay() {
     const args = process.argv.slice(2);
     const symbol = args[0] || config.STRATEGY_SYMBOL;
     const interval = args[1] || config.STRATEGY_INTERVAL;
-    const days = parseInt(args[2] || '120');
+    const days = parseInt(args[2] || '200');
     const strategyName = config.STRATEGY_NAME;
 
     logger.info(`[Replay] =========================================`);
