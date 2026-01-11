@@ -155,44 +155,7 @@ export class TradeManager {
 
             if (exitReason) {
                 logger.info(`[TradeManager] ${exitReason} triggered for ${trade.symbol} at ${currentPrice} (Entry: ${trade.price})`);
-
-                // Place closing order
-                const orderRequest: OrderRequest = {
-                    symbol: trade.symbol,
-                    side: trade.side === 'BUY' ? 'SELL' : 'BUY',
-                    type: 'MARKET',
-                    quantity: trade.quantity
-                };
-
-                const order = await this.exchange.placeOrder(orderRequest);
-
-                // Update trade in database
-                const closedTrade: Trade = {
-                    ...trade,
-                    status: 'CLOSED',
-                    exitPrice: order.price,
-                    exitTimestamp: order.timestamp,
-                    duration: order.timestamp - trade.timestamp,
-                    exitReason: exitReason
-                };
-                await this.db.updateTrade(trade.id, closedTrade);
-
-                // Process commission payment if profitable
-                await this.processCommissionPayment(closedTrade);
-
-                // Notify strategy that position was closed
-                if (trade.strategyName) {
-                    try {
-                        const strategy = StrategyManager.getStrategy(trade.strategyName);
-                        if (strategy.onPositionClosed) {
-                            await strategy.onPositionClosed(trade);
-                        }
-                    } catch (error) {
-                        logger.error(`[TradeManager] Error in strategy onPositionClosed for ${trade.id}:`, error);
-                    }
-                }
-
-                logger.info(`[TradeManager] Position closed: ${trade.id} | Exit Price: ${order.price} | Reason: ${exitReason}`);
+                await this.closePosition(trade, exitReason);
             }
         } catch (error) {
             logger.error(`[TradeManager] Error checking position ${trade.id}:`, error);
@@ -269,47 +232,81 @@ export class TradeManager {
     async forceClosePosition(trade: Trade, reason: string): Promise<void> {
         try {
             logger.info(`[TradeManager] Force closing position ${trade.id} due to ${reason}`);
-
-            // Place closing order
-            const orderRequest: OrderRequest = {
-                symbol: trade.symbol,
-                side: trade.side === 'BUY' ? 'SELL' : 'BUY',
-                type: 'MARKET',
-                quantity: trade.quantity
-            };
-
-            const order = await this.exchange.placeOrder(orderRequest);
-
-            // Update trade in database
-            await this.db.updateTrade(trade.id, {
-                status: 'CLOSED',
-                exitPrice: order.price,
-                exitTimestamp: order.timestamp,
-                duration: order.timestamp - trade.timestamp,
-                exitReason: reason
-            });
-
-            // Notify strategy that position was closed
-            if (trade.strategyName) {
-                try {
-                    const strategy = StrategyManager.getStrategy(trade.strategyName);
-                    if (strategy.onPositionClosed) {
-                        await strategy.onPositionClosed(trade);
-                    }
-                } catch (error) {
-                    logger.error(`[TradeManager] Error in strategy onPositionClosed for ${trade.id}:`, error);
-                }
-            }
-
-                logger.info(`[TradeManager] Position force closed: ${trade.id} | Exit Price: ${order.price} | Reason: ${reason}`);
+            await this.closePosition(trade, reason);
         } catch (error) {
             logger.error(`[TradeManager] Error force closing position ${trade.id}:`, error);
         }
     }
 
     /**
+     * Close a position and handle commission distribution
+     */
+    private async closePosition(trade: Trade, reason: string): Promise<void> {
+        // Place closing order
+        const orderRequest: OrderRequest = {
+            symbol: trade.symbol,
+            side: trade.side === 'BUY' ? 'SELL' : 'BUY',
+            type: 'MARKET',
+            quantity: trade.quantity
+        };
+
+        const order = await this.exchange.placeOrder(orderRequest);
+
+        // Update trade in database
+        const closedTrade: Trade = {
+            ...trade,
+            status: 'CLOSED',
+            exitPrice: order.price,
+            exitTimestamp: order.timestamp,
+            duration: order.timestamp - trade.timestamp,
+            exitReason: reason
+        };
+        await this.db.updateTrade(trade.id, closedTrade);
+
+        // Process vault-wide commission payments if profitable
+        const tradePnL = this.calculateTradePnL(closedTrade);
+        logger.info(`[TradeManager] Trade closed: ${closedTrade.id}, P&L: ${tradePnL}, exitReason: ${closedTrade.exitReason}`);
+        if (tradePnL > 0 && this.commissionManager) {
+            logger.info(`[TradeManager] Processing commission for profitable trade ${closedTrade.id} with P&L ${tradePnL}`);
+            await this.commissionManager.processVaultCommissionPayment(closedTrade);
+        } else {
+            logger.info(`[TradeManager] Skipping commission for trade ${closedTrade.id} - P&L: ${tradePnL}, hasCommissionManager: ${!!this.commissionManager}`);
+        }
+
+        // Notify strategy that position was closed
+        if (trade.strategyName) {
+            try {
+                const strategy = StrategyManager.getStrategy(trade.strategyName);
+                if (strategy.onPositionClosed) {
+                    await strategy.onPositionClosed(trade);
+                }
+            } catch (error) {
+                logger.error(`[TradeManager] Error in strategy onPositionClosed for ${trade.id}:`, error);
+            }
+        }
+
+        logger.info(`[TradeManager] Position closed: ${trade.id} | Exit Price: ${order.price} | Reason: ${reason}`);
+    }
+
+    /**
+     * Calculate P&L for a closed trade
+     */
+    private calculateTradePnL(trade: Trade): number {
+        if (trade.status !== 'CLOSED' || !trade.exitPrice) {
+            return 0;
+        }
+
+        if (trade.side === 'BUY') {
+            return (trade.exitPrice - trade.price) * trade.quantity;
+        } else {
+            return (trade.price - trade.exitPrice) * trade.quantity;
+        }
+    }
+
+    /**
      * Process commission payment for a closed trade
      * Called when a trade closes with profit
+     * @deprecated Use processVaultCommissionPayment in CommissionManager instead
      */
     private async processCommissionPayment(trade: Trade): Promise<void> {
         if (!this.commissionManager) {
