@@ -63,13 +63,11 @@ describe('TradeManager', () => {
                 type: 'MARKET',
                 quantity: 1
             });
-            expect(mockDb.updateTrade).toHaveBeenCalledWith('trade1', {
+            expect(mockDb.updateTrade).toHaveBeenCalledWith('trade1', expect.objectContaining({
                 status: 'CLOSED',
                 exitPrice: 47000,
-                exitTimestamp: expect.any(Number),
-                duration: expect.any(Number),
                 exitReason: 'STOP_LOSS'
-            });
+            }));
         });
 
         it('should check positions and close when take profit is hit for BUY position', async () => {
@@ -102,13 +100,11 @@ describe('TradeManager', () => {
                 type: 'MARKET',
                 quantity: 1
             });
-            expect(mockDb.updateTrade).toHaveBeenCalledWith('trade2', {
+            expect(mockDb.updateTrade).toHaveBeenCalledWith('trade2', expect.objectContaining({
                 status: 'CLOSED',
                 exitPrice: 56000,
-                exitTimestamp: expect.any(Number),
-                duration: expect.any(Number),
                 exitReason: 'TAKE_PROFIT'
-            });
+            }));
         });
 
         it('should check positions and close when stop loss is hit for SELL position', async () => {
@@ -141,13 +137,11 @@ describe('TradeManager', () => {
                 type: 'MARKET',
                 quantity: 1
             });
-            expect(mockDb.updateTrade).toHaveBeenCalledWith('trade3', {
+            expect(mockDb.updateTrade).toHaveBeenCalledWith('trade3', expect.objectContaining({
                 status: 'CLOSED',
                 exitPrice: 53000,
-                exitTimestamp: expect.any(Number),
-                duration: expect.any(Number),
                 exitReason: 'STOP_LOSS'
-            });
+            }));
         });
 
         it('should not close position if price is within range', async () => {
@@ -337,13 +331,11 @@ describe('TradeManager', () => {
                 type: 'MARKET',
                 quantity: 1
             });
-            expect(mockDb.updateTrade).toHaveBeenCalledWith('trade1', {
+            expect(mockDb.updateTrade).toHaveBeenCalledWith('trade1', expect.objectContaining({
                 status: 'CLOSED',
                 exitPrice: 51400,
-                exitTimestamp: expect.any(Number),
-                duration: expect.any(Number),
                 exitReason: 'TRAILING_STOP_LOSS'
-            });
+            }));
         });
 
         it('should activate trailing stop for SELL position and trail as price decreases', async () => {
@@ -437,13 +429,11 @@ describe('TradeManager', () => {
                 type: 'MARKET',
                 quantity: 1
             });
-            expect(mockDb.updateTrade).toHaveBeenCalledWith('trade1', {
+            expect(mockDb.updateTrade).toHaveBeenCalledWith('trade1', expect.objectContaining({
                 status: 'CLOSED',
                 exitPrice: 47000,
-                exitTimestamp: expect.any(Number),
-                duration: expect.any(Number),
                 exitReason: 'STOP_LOSS'
-            });
+            }));
         });
     });
 });

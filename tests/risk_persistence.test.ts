@@ -26,6 +26,14 @@ class MockStore implements IDataStore {
     async getVaultTransactions() { return []; }
     async getVaultState() { return null; }
     async saveVaultState() { }
+    async saveCommissionTransaction() { }
+    async getInviterRelationship() { return null; }
+    async getAllInviterRelationships() { return []; }
+    async getTotalCommissionsEarned() { return 0; }
+    async getTotalCommissionsPaid() { return 0; }
+    async getInvitedUsersCount() { return 0; }
+    async getUserEmail() { return ''; }
+    async getTotalVaultAssets() { return 0; }
 }
 
 class MockExchange implements IExchange {

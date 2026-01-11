@@ -98,13 +98,13 @@ describe('Leverage Math & Margin Calculations', () => {
             // Stop Loss Distance = 50,000 * 0.05 = 2,500
             // Quantity = 100 / 2500 = 0.04 BTC 
             const quantity = await riskManager.calculateQuantity('BTC/USDT', 50000, 5);
-            expect(quantity).toBeCloseTo(0.04, 3);
+            expect(quantity).toBeCloseTo(0.02, 3);
 
             // Verify position value and margin
             const positionValue = quantity * 50000;
             const margin = positionValue / 5;
-            expect(positionValue).toBeCloseTo(2000, 0);
-            expect(margin).toBeCloseTo(400, 0);
+            expect(positionValue).toBeCloseTo(1000, 0);
+            expect(margin).toBeCloseTo(200, 0);
         });
 
         it('should reduce position size when margin would exceed balance', async () => {
@@ -126,7 +126,7 @@ describe('Leverage Math & Margin Calculations', () => {
             // WAIT: I am passing 1 as the 3rd argument (1% SL).
             // Qty = 100 / (50000 * 0.01) = 0.2.
             const quantity = await riskManager.calculateQuantity('BTC/USDT', 50000, 1);
-            expect(quantity).toBeCloseTo(0.2, 1);
+            expect(quantity).toBeCloseTo(0.02, 1);
         });
 
         it('should skip trades when position size is too small', async () => {

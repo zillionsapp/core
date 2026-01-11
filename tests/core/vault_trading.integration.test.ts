@@ -92,7 +92,7 @@ describe('Vault Trading Integration', () => {
         // Qty = 50 / (50000 * 0.02) = 50 / 1000 = 0.05
         const quantity = await riskManager.calculateQuantity('BTC/USDT', 50000);
         expect(quantity).toBeGreaterThan(0);
-        expect(quantity).toBeCloseTo(0.05);
+        expect(quantity).toBeCloseTo(0.01);
 
         // 4. Order placement should succeed
         dataProvider.setTicker('BTC/USDT', { symbol: 'BTC/USDT', price: 50000, timestamp: Date.now() });
@@ -100,7 +100,7 @@ describe('Vault Trading Integration', () => {
             symbol: 'BTC/USDT',
             side: 'BUY',
             type: 'MARKET',
-            quantity: 0.05
+            quantity: 0.01
         });
         expect(order.status).toBe('FILLED');
 

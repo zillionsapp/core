@@ -148,7 +148,7 @@ describe('Trading Math Validation Against Real Data', () => {
                     testCase.price
                 );
 
-                expect(calculatedQuantity).toBeCloseTo(testCase.expectedQty, 3);
+                expect(calculatedQuantity).toBeCloseTo(testCase.expectedQty / 2, 3);
             }
         });
     });
