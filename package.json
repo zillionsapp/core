@@ -22,6 +22,7 @@
     "cleanup": "ts-node scripts/cleanup.ts",
     "stresstest": "ts-node scripts/stresstest_calculations.ts",
     "build": "tsc",
+    "build:sdk": "tsc --project tsconfig.sdk.json",
     "test": "jest"
   },
   "keywords": [],
