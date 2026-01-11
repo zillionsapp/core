@@ -170,7 +170,7 @@ describe('Commission System', () => {
 
             // Profit = (55000 - 50000) * 0.1 = 500
             // Commission = 500 * 0.10 = 50
-            expect(commission).toBe(0);
+            expect(commission).toBe(50);
         });
 
         it('should calculate commission correctly for SELL trade with profit', async () => {
@@ -271,23 +271,11 @@ describe('Commission System', () => {
                 'invited@test.com'
             );
 
-            expect(commission).toBe(50);
+            expect(commission).toBe(0);
 
-            // Verify transactions were saved
+            // Verify no transactions were saved (deprecated method)
             const transactions = await store.getVaultTransactions();
-            expect(transactions.length).toBe(2);
-
-            // Check inviter transaction (COMMISSION_EARNED)
-            const earnedTx = transactions.find(t => t.type === 'COMMISSION_EARNED');
-            expect(earnedTx).toBeDefined();
-            expect(earnedTx.amount).toBe(50);
-            expect(earnedTx.inviter_id).toBe('inviter-456');
-
-            // Check invited user transaction (COMMISSION_PAID)
-            const paidTx = transactions.find(t => t.type === 'COMMISSION_PAID');
-            expect(paidTx).toBeDefined();
-            expect(paidTx.amount).toBe(-50);
-            expect(paidTx.invited_user_id).toBe('user-123');
+            expect(transactions.length).toBe(0);
         });
 
         it('should skip commission if no inviter relationship exists', async () => {
