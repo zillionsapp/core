@@ -2,8 +2,8 @@
   "name": "zillions",
   "version": "1.0.0",
   "description": "Professional-grade, scalable, and modular trading bot engine SDK.",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "dist/index.sdk.js",
+  "types": "dist/index.sdk.d.ts",
   "files": [
     "dist",
     "README.md",
