@@ -112,8 +112,9 @@ class BotEngine {
                     // Check for conflicting positions
                     let openTrades = await this.db.getOpenTrades();
                     // Re-enforce MAX_OPEN_TRADES strictly here (Double-check)
-                    if (openTrades.length >= env_1.config.MAX_OPEN_TRADES) {
-                        logger_1.logger.warn(`[BotEngine] Limit hit. Max ${env_1.config.MAX_OPEN_TRADES} trades allowed.`);
+                    const maxTrades = env_1.config.ALLOW_MULTIPLE_POSITIONS ? env_1.config.MAX_OPEN_TRADES : 1;
+                    if (openTrades.length >= maxTrades) {
+                        logger_1.logger.warn(`[BotEngine] Limit hit. Max ${maxTrades} trades allowed.`);
                         return;
                     }
                     const symbolTrades = openTrades.filter(trade => trade.symbol === signal.symbol);
@@ -135,15 +136,15 @@ class BotEngine {
                         }
                     }
                     // Handle single position mode: close all existing positions before opening new one
-                    else if (!env_1.config.ALLOW_MULTIPLE_POSITIONS && openTrades.length > 0) {
-                        logger_1.logger.info(`[BotEngine] Closing ${openTrades.length} existing positions for single position mode`);
+                    /* else if (!config.ALLOW_MULTIPLE_POSITIONS && openTrades.length > 0) {
+                        logger.info(`[BotEngine] Closing ${openTrades.length} existing positions for single position mode`);
                         for (const trade of openTrades) {
                             await this.tradeManager.forceClosePosition(trade, 'SINGLE_POSITION_MODE');
                             await this.portfolioManager.saveSnapshot();
                         }
                         // Refresh open trades list after closing
                         openTrades = await this.db.getOpenTrades();
-                    }
+                    } */
                     // 4. Risk Check
                     const currentEquity = await this.portfolioManager.getCurrentEquity();
                     const quantity = await this.riskManager.calculateQuantity(signal.symbol, lastCandle.close, signal.stopLoss, currentEquity);
