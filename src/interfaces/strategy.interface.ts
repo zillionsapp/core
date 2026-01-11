@@ -14,8 +14,10 @@ export interface IStrategy {
 
     /**
      * Called on every new candle update
+     * @param candle The latest completed candle
+     * @param currentPrice Optional current market price for real-time monitoring
      */
-    update(candle: Candle): Promise<Signal | null>;
+    update(candle: Candle, currentPrice?: number): Promise<Signal | null>;
 
     /**
      * Optional: Called for each open position managed by this strategy

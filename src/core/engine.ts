@@ -104,8 +104,12 @@ export class BotEngine {
             const candles = await this.exchange.getCandles(symbol, interval, 200);
             if (candles.length === 0) return;
 
+            // Get current price for real-time monitoring
+            const currentTicker = await this.exchange.getTicker(symbol);
+            const currentPrice = currentTicker.price;
+
             const lastCandle = candles[candles.length - 1];
-            await this.logPortfolioState(symbol, lastCandle.close);
+            await this.logPortfolioState(symbol, currentPrice);
 
             // Save portfolio snapshot periodically (every 5 minutes)
             const now = this.timeProvider.now();
@@ -118,7 +122,7 @@ export class BotEngine {
                 }
             }
 
-            // 2. Check and manage all open positions (SL/TP)
+            // 2. Check and manage all open positions (SL/TP) using LIVE PRICE
             await this.tradeManager.checkAndManagePositions(lastCandle);
             await this.portfolioManager.saveSnapshot();
 
@@ -131,7 +135,7 @@ export class BotEngine {
             }
 
             // 3. Strategy Update - Always check for signals
-            const signal = await this.strategy.update(lastCandle);
+            const signal = await this.strategy.update(lastCandle, currentPrice);
 
             if (signal && signal.action !== 'HOLD') {
                 // RACE CONDITION PREVENTER: Atomic Lock
@@ -302,8 +306,9 @@ export class BotEngine {
         while (this.isRunning) {
             await this.tick(symbol, interval);
 
-            const sleepTime = TimeUtils.getSleepDuration(interval);
-            logger.info(`[BotEngine] Sleeping for ${(sleepTime / 1000).toFixed(1)}s until next candle boundary...`);
+            // Run tick at configured interval for real-time monitoring, regardless of candle INTERVAL
+            const sleepTime = config.TICK_INTERVAL_SECONDS * 1000;
+            logger.debug(`[BotEngine] Sleeping for ${(sleepTime / 1000).toFixed(1)}s until next check...`);
             await new Promise(resolve => setTimeout(resolve, sleepTime));
         }
     }

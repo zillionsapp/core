@@ -124,6 +124,9 @@
     STRATEGY_SYMBOL=BTC/USDT
     STRATEGY_INTERVAL=1d
 
+    # Real-time Monitoring (seconds between checks)
+    TICK_INTERVAL_SECONDS=30
+
     # Leverage Settings
     LEVERAGE_ENABLED=true
     LEVERAGE_VALUE=5

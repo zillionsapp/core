@@ -45,6 +45,9 @@ const envSchema = z.object({
     STRATEGY_SYMBOL: z.string().default('BTC/USDT'),
     STRATEGY_INTERVAL: z.string().default('1m'),
 
+    // Real-time Monitoring
+    TICK_INTERVAL_SECONDS: z.coerce.number().default(30), // How often to check for signals and manage positions (seconds)
+
     // Backtest Configuration
     BACKTEST_CANDLE_COUNT: z.coerce.number().default(100),
 

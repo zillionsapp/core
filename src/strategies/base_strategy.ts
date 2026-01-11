@@ -14,7 +14,7 @@ export abstract class BaseLibraryStrategy implements IStrategy {
 
     protected abstract onInit(config: StrategyConfig): void;
 
-    async update(candle: Candle): Promise<Signal | null> {
+    async update(candle: Candle, currentPrice?: number): Promise<Signal | null> {
         this.history.push(candle);
         if (this.history.length > this.maxHistory) {
             this.history.shift();
@@ -65,7 +65,7 @@ export abstract class BaseCustomStrategy implements IStrategy {
         // Initialize custom strategy
     }
 
-    async update(candle: Candle): Promise<Signal | null> {
+    async update(candle: Candle, currentPrice?: number): Promise<Signal | null> {
         // Implement your entry logic here
         // Return signals with custom SL/TP or use checkExit for dynamic exits
         return null;
