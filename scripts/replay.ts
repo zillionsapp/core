@@ -37,7 +37,7 @@ async function fetchHistoricalCandles(symbol: string, interval: string, days: nu
     // Binance limit is 1000
     const msInDay = 24 * 60 * 60 * 1000;
     const startTime = Date.now() - (days * msInDay);
-    let currentEndTime = Date.now();
+    let currentEndTime = Date.now() - msInDay;;
 
     logger.info(`Fetching historical candles for ${symbol} ${interval} from ${new Date(startTime).toISOString()}...`);
 
@@ -149,7 +149,7 @@ async function runReplay() {
     // 4. Close all remaining open positions at the end of replay
     // This ensures a clean transition to real-time trading without leaving
     // historical positions open
-    const openTrades = await db.getOpenTrades();
+    /* const openTrades = await db.getOpenTrades();
     if (openTrades.length > 0) {
         logger.info(`[Replay] Closing ${openTrades.length} remaining open positions at end of replay`);
 
@@ -161,7 +161,7 @@ async function runReplay() {
 
         // Save final portfolio snapshot after closing positions
         await engine['portfolioManager'].saveSnapshot();
-    }
+    } */
 
     logger.info(`[Replay] =========================================`);
     logger.info(`[Replay] Replay completed!`);

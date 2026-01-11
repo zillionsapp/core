@@ -152,8 +152,9 @@ export class BotEngine {
                     let openTrades = await this.db.getOpenTrades();
 
                     // Re-enforce MAX_OPEN_TRADES strictly here (Double-check)
-                    if (openTrades.length >= config.MAX_OPEN_TRADES) {
-                        logger.warn(`[BotEngine] Limit hit. Max ${config.MAX_OPEN_TRADES} trades allowed.`);
+                    const maxTrades = config.ALLOW_MULTIPLE_POSITIONS ? config.MAX_OPEN_TRADES : 1;
+                    if (openTrades.length >= maxTrades) {
+                        logger.warn(`[BotEngine] Limit hit. Max ${maxTrades} trades allowed.`);
                         return;
                     }
 
@@ -177,7 +178,7 @@ export class BotEngine {
                         }
                     }
                     // Handle single position mode: close all existing positions before opening new one
-                    else if (!config.ALLOW_MULTIPLE_POSITIONS && openTrades.length > 0) {
+                    /* else if (!config.ALLOW_MULTIPLE_POSITIONS && openTrades.length > 0) {
                         logger.info(`[BotEngine] Closing ${openTrades.length} existing positions for single position mode`);
                         for (const trade of openTrades) {
                             await this.tradeManager.forceClosePosition(trade, 'SINGLE_POSITION_MODE');
@@ -185,7 +186,7 @@ export class BotEngine {
                         }
                         // Refresh open trades list after closing
                         openTrades = await this.db.getOpenTrades();
-                    }
+                    } */
 
                     // 4. Risk Check
                     const currentEquity = await this.portfolioManager.getCurrentEquity();
