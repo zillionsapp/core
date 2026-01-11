@@ -397,6 +397,12 @@ After completing the **Installation** steps above, run the following in your **n
 npm link zillions
 ```
 
+> [!IMPORTANT]
+> The `zillions` package only exists after running `npm link` in the Zillions Core project directory. If you haven't run `npm link`, use relative imports from the built `dist` directory instead:
+> ```typescript
+> import { BotEngine, startApi } from '../path/to/zillions-core/dist/index.js';
+> ```
+
 ### 2. Basic Usage
 Import the `BotEngine` and start the bot with a built-in strategy:
 ```typescript
