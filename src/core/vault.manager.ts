@@ -89,7 +89,7 @@ export class VaultManager implements IVaultManager {
     async deposit(email: string, amount: number): Promise<VaultTransaction> {
         const sharePrice = await this.getSharePrice();
         const shares = amount / sharePrice;
-        const timestamp = Date.now();
+        const timestamp = this.timeProvider.now();
 
         const transaction: VaultTransaction = {
             email,
@@ -118,7 +118,7 @@ export class VaultManager implements IVaultManager {
     async withdraw(email: string, shares: number): Promise<VaultTransaction> {
         const sharePrice = await this.getSharePrice();
         const amount = shares * sharePrice;
-        const timestamp = Date.now();
+        const timestamp = this.timeProvider.now();
 
         // Safety check: Don't allow withdrawing more shares than the user has 
         // (In this simple version we don't track per-user shares yet, but we check total)

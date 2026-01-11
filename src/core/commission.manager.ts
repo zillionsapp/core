@@ -159,7 +159,8 @@ export class CommissionManager {
                         relationship.invitedUserId,
                         commissionAmount,
                         trade.id,
-                        tradePnL
+                        tradePnL,
+                        trade.exitTimestamp!
                     );
 
                     totalCommissionDistributed += commissionAmount;
@@ -250,11 +251,11 @@ export class CommissionManager {
         invitedUserId: string,
         amount: number,
         tradeId: string,
-        tradePnL: number
+        tradePnL: number,
+        timestamp: number
     ): Promise<void> {
         const inviterEmail = await this.getUserEmail(inviterId);
         const invitedEmail = await this.getUserEmail(invitedUserId);
-        const timestamp = Date.now();
 
         // Get the commission rate for this relationship
         const relationship = await this.getInviterRelationship(invitedUserId);

@@ -146,6 +146,23 @@ async function runReplay() {
         }
     }
 
+    // 4. Close all remaining open positions at the end of replay
+    // This ensures a clean transition to real-time trading without leaving
+    // historical positions open
+    const openTrades = await db.getOpenTrades();
+    if (openTrades.length > 0) {
+        logger.info(`[Replay] Closing ${openTrades.length} remaining open positions at end of replay`);
+
+        for (const trade of openTrades) {
+            // Force close at current market price
+            await engine['tradeManager'].forceClosePosition(trade, 'REPLAY_END');
+            logger.info(`[Replay] Closed position ${trade.id} (${trade.side}) at replay end`);
+        }
+
+        // Save final portfolio snapshot after closing positions
+        await engine['portfolioManager'].saveSnapshot();
+    }
+
     logger.info(`[Replay] =========================================`);
     logger.info(`[Replay] Replay completed!`);
     logger.info(`[Replay] Final simulation time: ${new Date(timeProvider.now()).toISOString()}`);
