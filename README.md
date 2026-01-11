@@ -101,27 +101,54 @@
     Edit `.env` to configure your exchange and database credentials:
     ```env
     NODE_ENV=development
-    EXCHANGE_DRIVER=PAPER  # Options: PAPER, BINANCE, HYPERLIQUID, DRIFT, CCXT, OKX
+
+    # Exchange Selection
+    EXCHANGE_DRIVER=PAPER
+
+    # Paper Trading Settings
     PAPER_INITIAL_BALANCE=10000
-    SUPABASE_URL=your-supabase-url
-    SUPABASE_KEY=your-supabase-key
+    PAPER_BALANCE_ASSET=USDT
+
+    # Vault Settings
+    VAULT_ENABLED=false
+    VAULT_SHARE_ASSET=ZILLIONS
+
+    # Supabase (Service role key required for vault access)
+    # IMPORTANT: Use the SERVICE ROLE key (not anon key) to bypass RLS and keep data private
+    # Find this in: Supabase Dashboard → Settings → API → service_role key
+    SUPABASE_URL=
+    SUPABASE_KEY=
+
+    # Strategy Settings
     STRATEGY_NAME=MACD
     STRATEGY_SYMBOL=BTC/USDT
-    STRATEGY_INTERVAL=1m
-    POSITION_SIZE_PERCENT=10
-    MAX_DAILY_DRAWDOWN_PERCENT=5
-    DEFAULT_STOP_LOSS_PERCENT=5
-    DEFAULT_TAKE_PROFIT_PERCENT=10
-    LEVERAGE_ENABLED=false
+    STRATEGY_INTERVAL=1d
+
+    # Leverage Settings
+    LEVERAGE_ENABLED=true
     LEVERAGE_VALUE=5
+    MAX_LEVERAGE_UTILIZATION=50
+
+    # Vercel / Cron Configuration
+    CRON_SECRET=your_random_secret_string_here
+
+    # Risk Management (All percentages as full numbers, e.g. 5 = 5%)
+    MAX_DAILY_DRAWDOWN_PERCENT=3
+    MAX_TOTAL_RISK_PERCENT=10
+    MAX_POSITION_SIZE_PERCENT=10
+    DEFAULT_STOP_LOSS_PERCENT=2
+    DEFAULT_TAKE_PROFIT_PERCENT=6
+    RISK_PER_TRADE_PERCENT=1
+
+    # Trailing Stop Loss
     TRAILING_STOP_ENABLED=true
-    TRAILING_STOP_ACTIVATION_PERCENT=2
+    TRAILING_STOP_ACTIVATION_PERCENT=1
     TRAILING_STOP_TRAIL_PERCENT=1
-    ALLOW_MULTIPLE_POSITIONS=false  # Allow hedging/multiple positions
-    CLOSE_ON_OPPOSITE_SIGNAL=false  # Close existing position on opposite signal
-    # Vault System
-    VAULT_ENABLED=true
-    VAULT_SHARE_ASSET=ZILLION-SHARES
+
+    # Position Management
+    ALLOW_MULTIPLE_POSITIONS=false
+    CLOSE_ON_OPPOSITE_SIGNAL=true
+    MAX_OPEN_TRADES=5
     ```
 
 4.  **Database Setup (Supabase)**:
