@@ -154,6 +154,7 @@ describe('Commission System', () => {
 
             const trade: Trade = {
                 id: 'trade-123',
+                orderId: 'order-123',
                 symbol: 'BTC/USDT',
                 side: 'BUY',
                 quantity: 0.1,
@@ -179,6 +180,7 @@ describe('Commission System', () => {
 
             const trade: Trade = {
                 id: 'trade-456',
+                orderId: 'order-456',
                 symbol: 'BTC/USDT',
                 side: 'SELL',
                 quantity: 0.1,
@@ -204,6 +206,7 @@ describe('Commission System', () => {
 
             const trade: Trade = {
                 id: 'trade-789',
+                orderId: 'order-789',
                 symbol: 'BTC/USDT',
                 side: 'BUY',
                 quantity: 0.1,
@@ -225,6 +228,7 @@ describe('Commission System', () => {
 
             const trade: Trade = {
                 id: 'trade-open',
+                orderId: 'order-open',
                 symbol: 'BTC/USDT',
                 side: 'BUY',
                 quantity: 0.1,
@@ -250,6 +254,7 @@ describe('Commission System', () => {
 
             const trade: Trade = {
                 id: 'trade-commission',
+                orderId: 'order-commission',
                 symbol: 'BTC/USDT',
                 side: 'BUY',
                 quantity: 0.1,
@@ -292,6 +297,7 @@ describe('Commission System', () => {
 
             const trade: Trade = {
                 id: 'trade-no-rel',
+                orderId: 'order-no-rel',
                 symbol: 'BTC/USDT',
                 side: 'BUY',
                 quantity: 0.1,

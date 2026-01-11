@@ -103,6 +103,29 @@ export class MockStore implements IDataStore {
         return inviteCodes.size;
     }
 
+    async getAllInviterRelationships(): Promise<Array<{ inviterId: string; invitedUserId: string; commissionRate: number; invitedEmail: string }>> {
+        const relationships: Array<{ inviterId: string; invitedUserId: string; commissionRate: number; invitedEmail: string }> = [];
+        for (const [userId, relationship] of this.inviterRelationships.entries()) {
+            relationships.push({
+                inviterId: relationship.inviterId,
+                invitedUserId: userId,
+                commissionRate: relationship.commissionRate,
+                invitedEmail: relationship.invitedEmail
+            });
+        }
+        return relationships;
+    }
+
+    async getUserEmail(userId: string): Promise<string> {
+        // Mock email generation
+        return `${userId}@test.com`;
+    }
+
+    async getTotalVaultAssets(): Promise<number> {
+        // Mock total vault assets
+        return 100000;
+    }
+
     // Helper for tests
     addVaultTransaction(transaction: any) {
         this.vaultTransactions.push(transaction);

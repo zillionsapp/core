@@ -103,7 +103,10 @@ export interface IDataStore {
      */
     saveCommissionTransaction(transaction: any): Promise<void>;
     getInviterRelationship(userId: string): Promise<{ inviterId: string; commissionRate: number; invitedEmail: string } | null>;
+    getAllInviterRelationships(): Promise<Array<{ inviterId: string; invitedUserId: string; commissionRate: number; invitedEmail: string }>>;
     getTotalCommissionsEarned(userId: string): Promise<number>;
     getTotalCommissionsPaid(userId: string): Promise<number>;
     getInvitedUsersCount(inviterId: string): Promise<number>;
+    getUserEmail(userId: string): Promise<string>;
+    getTotalVaultAssets(): Promise<number>;
 }

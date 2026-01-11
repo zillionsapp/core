@@ -539,7 +539,7 @@ export class SupabaseDataStore implements IDataStore {
         const { count, error } = await this.supabase
             .from('invite_code_usages')
             .select('*', { count: 'exact', head: true })
-            .eq('invite_code_id', 
+            .eq('invite_code_id',
                 this.supabase
                     .from('invite_codes')
                     .select('id')
@@ -552,5 +552,94 @@ export class SupabaseDataStore implements IDataStore {
         }
 
         return count || 0;
+    }
+
+    async getAllInviterRelationships(): Promise<Array<{ inviterId: string; invitedUserId: string; commissionRate: number; invitedEmail: string }>> {
+        if (!this.supabase) return [];
+
+        // First get all invite code usages with their codes
+        const { data: usages, error: usagesError } = await this.supabase
+            .from('invite_code_usages')
+            .select(`
+                used_by,
+                invite_codes!inner (
+                    created_by,
+                    commission_rate
+                )
+            `);
+
+        if (usagesError) {
+            console.error('Error fetching invite code usages:', usagesError);
+            return [];
+        }
+
+        const relationships: Array<{ inviterId: string; invitedUserId: string; commissionRate: number; invitedEmail: string }> = [];
+
+        for (const usage of (usages || [])) {
+            const userEmail = await this.getUserEmail(usage.used_by);
+            const inviteCode = Array.isArray(usage.invite_codes) ? usage.invite_codes[0] : usage.invite_codes;
+            relationships.push({
+                inviterId: inviteCode.created_by,
+                invitedUserId: usage.used_by,
+                commissionRate: inviteCode.commission_rate || 0.10,
+                invitedEmail: userEmail
+            });
+        }
+
+        return relationships;
+    }
+
+    async getUserEmail(userId: string): Promise<string> {
+        if (!this.supabase) {
+            console.error(`[SupabaseDataStore] No Supabase client available`);
+            return '';
+        }
+
+        try {
+            console.log(`[SupabaseDataStore] Fetching email for user ${userId}`);
+            // Use admin API to access auth.users
+            const { data: userData, error: adminError } = await this.supabase.auth.admin.getUserById(userId);
+
+            if (adminError) {
+                console.error(`[SupabaseDataStore] Admin API error for user ${userId}:`, adminError);
+                return '';
+            }
+
+            const email = userData.user?.email || '';
+            console.log(`[SupabaseDataStore] Found email for user ${userId}: ${email}`);
+            if (!email) {
+                console.warn(`[SupabaseDataStore] User ${userId} has no email in auth.users`);
+            }
+
+            return email;
+        } catch (error) {
+            console.error(`[SupabaseDataStore] Exception accessing admin API for user ${userId}:`, error);
+            return '';
+        }
+    }
+
+    async getTotalVaultAssets(): Promise<number> {
+        if (!this.supabase) return 0;
+
+        // Get latest portfolio snapshot for current equity
+        const snapshot = await this.getLatestPortfolioSnapshot();
+        if (snapshot) {
+            return snapshot.currentEquity;
+        }
+
+        // Fallback: calculate from vault transactions
+        const transactions = await this.getVaultTransactions();
+        const now = Date.now();
+
+        const filtered = transactions.filter(t => t.timestamp <= now);
+        return filtered.reduce((sum, t) => {
+            if (t.type === 'DEPOSIT') return sum + Number(t.amount);
+            if (t.type === 'WITHDRAWAL') return sum - Number(t.amount);
+            if (t.type === 'RECEIVE') return sum + Number(t.amount);
+            if (t.type === 'SEND') return sum - Number(t.amount);
+            if (t.type === 'COMMISSION_EARNED') return sum + Number(t.amount);
+            if (t.type === 'COMMISSION_PAID') return sum + Number(t.amount); // amount is negative
+            return sum;
+        }, 0);
     }
 }
