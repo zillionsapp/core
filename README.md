@@ -529,7 +529,30 @@ function calculatePnL(trade: Trade): number {
 }
 ```
 
-### 4. Serverless / Vercel Usage
+### 4. Runtime Usage
+For long-running processes, use the `start()` method with your custom strategy:
+
+```typescript
+import { BotEngine, startApi } from 'zillions';
+
+async function main() {
+    // Optional: Start the dashboard on port 3000
+    startApi(3000);
+
+    // Use your custom strategy in a long-running bot
+    const bot = new BotEngine(new AdvancedStrategy());
+    await bot.start('BTC/USDT', '15m', {
+        // Optional: Strategy-specific configuration
+        rsiPeriod: 14,
+        rsiOverbought: 70,
+        rsiOversold: 30
+    });
+}
+
+main().catch(console.error);
+```
+
+### 5. Serverless / Vercel Usage
 For serverless environments, use the `tick()` method for stateless execution:
 
 ```typescript
@@ -543,7 +566,6 @@ export default async function handler(req, res) {
 ```
 
 ---
----
  
  ##  Available Strategies
  
@@ -556,7 +578,6 @@ export default async function handler(req, res) {
  | **Volatility** | `BB`, `AB`, `PO` |
  | **Volume** | `CMF`, `EMV`, `FI`, `MFI`, `NVI`, `VWAP` |
  
- ---
 ---
 
 ## 🛡 Risk Management
