@@ -389,11 +389,27 @@ await bot.tick('ETH/USDT', '1h', {
 
 ## 📦 Zillions SDK
 
-You can use Zillions Core as an SDK in your own projects by referencing the local build.
+You can use Zillions Core as an SDK in your own projects by installing it directly from the GitHub repository.
 
-### 1. Usage Hint
-After completing the **Installation** steps above, run the following in your **new project**:
+### 1. Installation
+Install the SDK directly from GitHub in your project:
 ```bash
+npm install https://github.com/zillionsapp/core.git
+```
+
+> [!TIP]
+> This installs the built package directly from the repository, so you don't need to clone or build the project locally.
+
+### 2. Alternative: Local Development
+If you want to contribute or modify the SDK, you can clone and link locally:
+
+```bash
+# In the Zillions Core project directory
+npm install
+npm run build
+npm link
+
+# In your project directory
 npm link zillions
 ```
 
