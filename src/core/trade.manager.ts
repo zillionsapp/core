@@ -177,11 +177,13 @@ export class TradeManager {
 
         const activationPercent = trade.trailingStopActivationPercent || 0;
         const trailPercent = trade.trailingStopTrailPercent || 0;
+        const leverage = trade.leverage || 1;
 
-        // Calculate current profit percentage
-        const profitPercent = trade.side === 'BUY'
+        // Calculate current profit percentage (leveraged)
+        const priceChangePercent = trade.side === 'BUY'
             ? ((currentPrice - trade.price) / trade.price) * 100
             : ((trade.price - currentPrice) / trade.price) * 100;
+        const profitPercent = priceChangePercent * leverage;
 
         // Check if trailing should be activated
         if (!trade.trailingStopActivated && profitPercent >= activationPercent) {
@@ -197,8 +199,8 @@ export class TradeManager {
 
                 if (newHigh > currentHigh || !trade.trailingStopActivated) {
                     updatedFields.trailingStopHighPrice = newHigh;
-                    // Move stop loss up: trail distance below the new high
-                    newStopLoss = newHigh * (1 - trailPercent / 100);
+                    // Move stop loss up: trail distance below the new high (adjusted for leverage)
+                    newStopLoss = newHigh * (1 - (trailPercent / leverage) / 100);
                 }
 
                 // Check if price dropped to trailing stop
@@ -212,8 +214,8 @@ export class TradeManager {
 
                 if (newLow < currentLow || !trade.trailingStopActivated) {
                     updatedFields.trailingStopLowPrice = newLow;
-                    // Move stop loss down: trail distance above the new low
-                    newStopLoss = newLow * (1 + trailPercent / 100);
+                    // Move stop loss down: trail distance above the new low (adjusted for leverage)
+                    newStopLoss = newLow * (1 + (trailPercent / leverage) / 100);
                 }
 
                 // Check if price rose to trailing stop
