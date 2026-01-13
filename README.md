@@ -784,6 +784,39 @@ VAULT_SHARE_ASSET=ZILLION-SHARES  # The name of your LP token
 
 ---
 
+## 🌊 Drift Protocol Integration
+
+Zillions Core natively supports the **Drift Protocol**, allowing you to trade decentralized perpetuals on Solana. The bot supports two distinct modes of operation:
+
+### 1. Wallet Mode (Standard)
+The bot connects to a Solana wallet and places trades directly on the Drift exchange. This is ideal for personal trading bots using your own capital.
+
+**Setup:**
+1.  Set `EXCHANGE_DRIVER=DRIFT` in `.env`.
+2.  Provide your wallet credentials (`WALLET_PRIVATE_KEY` or `WALLET_PATH`).
+3.  Configure `DRIFT_ENV` (devnet/mainnet-beta).
+
+### 2. Vault Mode (Community/Manager)
+The bot acts as a **Vault Manager**, placing trades on behalf of a Drift Vault. Users deposit funds into the vault, and the bot manages the pooled capital.
+
+**Key Features:**
+-   **Non-Custodial**: You manage positions, not user funds.
+-   **Performance Fees**: Earn management and profit-sharing fees (configured on-chain).
+-   **Verified Track Record**: All trades are verifiable on-chain.
+
+**Setup:**
+1.  Deploy a new Vault using the helper script: `npx ts-node scripts/vault/deploy_vault.ts`
+2.  Add the resulting Vault Address to `.env` as `DRIFT_VAULT_ADDRESS`.
+3.  Set `VAULT_ENABLED=true` in `.env`.
+
+**Verification:**
+Run the verification script to test your connection:
+```bash
+npx ts-node scripts/verify_drift.ts
+```
+
+---
+
 ## 🐳 Deployment
 
 ### Docker
@@ -838,8 +871,7 @@ Vercel Hobby limited crons to **once per day**. To run your bot every minute for
 
 ## 🔮 Roadmap
 
-- [ ] **Exchange Support**: Implement Drift.trade adapter.
-- [ ] **Exchange Support**: Implement Hyperliquid adapter.
+- [x] **Exchange Support**: Implement Drift.trade adapter (Beta/Testing).
 - [x] **Strategies**: Implement standard strategy library (RSI, MACD, etc.).
 - [x] **Connectivity**: REST APIs for custom dashboards.
 - [ ] **Connectivity**: WebSocket for custom dashboards.

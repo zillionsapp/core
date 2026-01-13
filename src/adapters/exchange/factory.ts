@@ -19,7 +19,9 @@ export class ExchangeFactory {
             case 'HYPERLIQUID':
                 return new HyperliquidExchange();
             case 'DRIFT':
-                return new DriftExchange();
+                // Drift needs Market Data for technicals (candles) since it doesn't provide them efficiently
+                const driftData = new BinancePublicData();
+                return new DriftExchange(undefined, driftData);
             case 'CCXT':
                 return new CCXTExchange();
             case 'OKX':

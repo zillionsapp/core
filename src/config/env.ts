@@ -48,6 +48,15 @@ const envSchema = z.object({
     // Real-time Monitoring
     TICK_INTERVAL_SECONDS: z.coerce.number().default(30), // How often to check for signals and manage positions (seconds)
 
+    // Drift Configuration
+    DRIFT_ENV: z.enum(['devnet', 'mainnet-beta']).default('devnet'),
+    SOLANA_RPC_URL: z.string().default('https://api.devnet.solana.com'),
+    WALLET_PRIVATE_KEY: z.string().optional(),
+    WALLET_PATH: z.string().optional(),
+    DRIFT_VAULT_ADDRESS: z.string().optional(),
+    DRIFT_MAX_PRIORITY_FEE: z.coerce.number().default(10000), // Micro-lamports (default 0.01 SOL would be huge, 10000 is reasonable start)
+    DRIFT_ENABLE_AUTO_SETTLEMENT: z.string().default('true').transform(v => v === 'true'),
+
     // Backtest Configuration
     BACKTEST_CANDLE_COUNT: z.coerce.number().default(100),
 
