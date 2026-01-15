@@ -439,6 +439,10 @@ export class CommissionManager {
             if (commissionAmount <= 0) return;
 
             // 3. Get Share Price for Conversion
+            if (!this.vaultManager) {
+                logger.warn('[CommissionManager] Vault manager not available for share calculation');
+                return;
+            }
             const sharePrice = await this.vaultManager.getSharePrice();
             if (sharePrice <= 0) {
                 logger.error('[CommissionManager] Invalid share price during trade close, skipping commission');
