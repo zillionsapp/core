@@ -736,10 +736,17 @@ Zillions Core natively supports the **Drift Protocol**, allowing you to trade de
 ### 1. Wallet Mode (Standard)
 The bot connects to a Solana wallet and places trades directly on the Drift exchange. This is ideal for personal trading bots using your own capital.
 
+**Configuration (Devnet vs Mainnet):**
+
+| Environment | Variables in `.env` | Requirements |
+|:--- |:--- |:--- |
+| **Devnet** | `DRIFT_ENV=devnet`<br>`SOLANA_RPC_URL=https://api.devnet.solana.com` | No real funds needed. Use `deploy_vault.ts` to get airdropped SOL/USDC. |
+| **Mainnet** | `DRIFT_ENV=mainnet-beta`<br>`SOLANA_RPC_URL=https://mainnet.helius-rpc.com/...` | **Real Funds Required.** Wallet must hold SOL (for gas) and USDC (collateral). Use a Private RPC (Helius/Triton) for reliability. |
+
 **Setup:**
 1.  Set `EXCHANGE_DRIVER=DRIFT` in `.env`.
 2.  Provide your wallet credentials (`WALLET_PRIVATE_KEY` or `WALLET_PATH`).
-3.  Configure `DRIFT_ENV` (devnet/mainnet-beta).
+3.  Configure `DRIFT_ENV` and `SOLANA_RPC_URL` as above.
 
 ### 2. Vault Mode (Community/Manager)
 The bot acts as a **Vault Manager**, placing trades on behalf of a Drift Vault. Users deposit funds into the vault, and the bot manages the pooled capital.
