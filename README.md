@@ -731,6 +731,12 @@ VAULT_SHARE_ASSET=ZILLION-SHARES  # The name of your LP token
 
 ## 🌊 Drift Protocol Integration
 
+> [!WARNING]
+> **Beta Feature**: The Drift Protocol integration is currently in **Testing Phase**. 
+> - Use on **Devnet** first.
+> - Verify all logic before using real funds on Mainnet.
+> - The adapters are subject to updates.
+
 Zillions Core natively supports the **Drift Protocol**, allowing you to trade decentralized perpetuals on Solana. The bot supports two distinct modes of operation:
 
 ### 1. Wallet Mode (Standard)
