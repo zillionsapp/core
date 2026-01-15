@@ -1,6 +1,7 @@
 import { IStrategy, StrategyConfig } from '../interfaces/strategy.interface';
 import { Candle, Signal, Trade } from '../core/types';
 import { Action } from 'indicatorts';
+import { config } from '../config/env';
 
 export abstract class BaseLibraryStrategy implements IStrategy {
     abstract name: string;
@@ -29,14 +30,61 @@ export abstract class BaseLibraryStrategy implements IStrategy {
         if (lastAction === Action.SELL) actionStr = 'SELL';
 
         if (actionStr !== 'HOLD') {
-            return {
+            const signal: Signal = {
                 action: actionStr,
                 symbol: candle.symbol,
                 metadata: { strategy: this.name, price: candle.close }
             };
+
+            // Dynamic ATR-based Stops
+            if (config.USE_ATR_BASED_STOPS) {
+                const atr = this.calculateATR(this.history, config.ATR_PERIOD);
+                if (atr > 0) {
+                    const price = candle.close;
+
+                    // Convert ATR value to Percentage of Price (e.g., 100 ATR on 50000 Price = 0.2%)
+                    const atrPercent = (atr / price) * 100;
+
+                    const slPercent = atrPercent * config.ATR_MULTIPLIER_SL;
+                    const tpPercent = atrPercent * config.ATR_MULTIPLIER_TP;
+
+                    signal.stopLoss = slPercent;
+                    signal.takeProfit = tpPercent;
+
+                    signal.metadata.atr = atr;
+                    signal.metadata.dynamicSL = slPercent;
+                    signal.metadata.dynamicTP = tpPercent;
+                }
+            }
+
+            return signal;
         }
 
         return null;
+    }
+
+    protected calculateATR(history: Candle[], period: number = 14): number {
+        if (history.length < period + 1) return 0;
+
+        const effectivePeriod = Math.min(period, history.length - 1);
+        let trSum = 0;
+
+        // Simple TR calculation for the last N periods
+        // TR = Max(High - Low, |High - Prior Close|, |Low - Prior Close|)
+        for (let i = 0; i < effectivePeriod; i++) {
+            const current = history[history.length - 1 - i];
+            const prev = history[history.length - 2 - i];
+
+            const hl = current.high - current.low;
+            const hpc = Math.abs(current.high - prev.close);
+            const lpc = Math.abs(current.low - prev.close);
+
+            const tr = Math.max(hl, hpc, lpc);
+            trSum += tr;
+        }
+
+        // Simple Average (SMA of TR) for robustness
+        return trSum / effectivePeriod;
     }
 
     protected abstract getActions(asset: any): Action[];
@@ -103,7 +151,7 @@ export abstract class BaseCustomStrategy implements IStrategy {
             // Only update if the new SL is better than current
             if (trade.stopLossPrice &&
                 ((trade.side === 'BUY' && newStopLoss > trade.stopLossPrice) ||
-                 (trade.side === 'SELL' && newStopLoss < trade.stopLossPrice))) {
+                    (trade.side === 'SELL' && newStopLoss < trade.stopLossPrice))) {
                 return { action: 'UPDATE_SL', newPrice: newStopLoss };
             }
         }

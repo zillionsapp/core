@@ -5,6 +5,7 @@ import { Trade, OrderRequest, Candle } from './types';
 import { logger } from './logger';
 import { StrategyManager } from './strategy.manager';
 import { CommissionManager } from './commission.manager';
+import { config } from '../config/env';
 
 export class TradeManager {
     private commissionManager?: CommissionManager;
@@ -98,6 +99,42 @@ export class TradeManager {
                     }
                 } catch (error) {
                     logger.error(`[TradeManager] Error in strategy checkExit for ${trade.id}:`, error);
+                }
+            }
+
+            // --- Breakeven Logic (NEW) ---
+            // Activates BEFORE Trailing Stop to secure the entry early
+            const breakevenTriggerPercent = config.BREAKEVEN_TRIGGER_PERCENT;
+            const leverage = trade.leverage || 1;
+
+            if (!trade.breakevenActivated && breakevenTriggerPercent > 0) {
+                const priceChangePercent = trade.side === 'BUY'
+                    ? ((currentPrice - trade.price) / trade.price) * 100
+                    : ((trade.price - currentPrice) / trade.price) * 100;
+                const profitPercent = priceChangePercent * leverage;
+
+                if (profitPercent >= breakevenTriggerPercent) {
+                    // Move SL to Entry Price
+                    let newStopLoss = trade.price;
+
+                    // Optimization: Add a tiny buffer (0.1%) to cover fees
+                    const feeBuffer = trade.price * 0.001;
+                    if (trade.side === 'BUY') {
+                        newStopLoss += feeBuffer;
+                    } else {
+                        newStopLoss -= feeBuffer;
+                    }
+
+                    // Only update if it improves the position
+                    const isImprovement = trade.side === 'BUY'
+                        ? newStopLoss > (trade.stopLossPrice || 0)
+                        : newStopLoss < (trade.stopLossPrice || Infinity);
+
+                    if (isImprovement) {
+                        updatedTrade.stopLossPrice = newStopLoss;
+                        updatedTrade.breakevenActivated = true;
+                        logger.info(`[TradeManager] Breakeven triggered for ${trade.symbol} at ${profitPercent.toFixed(2)}% profit. SL moved to ${newStopLoss}`);
+                    }
                 }
             }
 
