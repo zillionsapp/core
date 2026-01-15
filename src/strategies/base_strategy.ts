@@ -15,6 +15,8 @@ export abstract class BaseLibraryStrategy implements IStrategy {
 
     protected abstract onInit(config: StrategyConfig): void;
 
+    protected lastActionStr: string = 'HOLD';
+
     async update(candle: Candle, currentPrice?: number): Promise<Signal | null> {
         this.history.push(candle);
         if (this.history.length > this.maxHistory) {
@@ -29,7 +31,10 @@ export abstract class BaseLibraryStrategy implements IStrategy {
         if (lastAction === Action.BUY) actionStr = 'BUY';
         if (lastAction === Action.SELL) actionStr = 'SELL';
 
-        if (actionStr !== 'HOLD') {
+        // Signal Change Detection (Prevent machine-gunning)
+        if (actionStr !== 'HOLD' && actionStr !== this.lastActionStr) {
+            this.lastActionStr = actionStr;
+
             const signal: Signal = {
                 action: actionStr,
                 symbol: candle.symbol,
@@ -60,6 +65,7 @@ export abstract class BaseLibraryStrategy implements IStrategy {
             return signal;
         }
 
+        this.lastActionStr = actionStr;
         return null;
     }
 

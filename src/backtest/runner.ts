@@ -43,6 +43,11 @@ export class BacktestRunner {
         let totalGrossLoss = 0;
 
         // 3. Iterate
+        // Warm up strategy history
+        for (let i = 0; i < 50; i++) {
+            await strategy.update(candles[i]);
+        }
+
         for (let i = 50; i < candles.length; i++) {
             const currentCandle = candles[i];
 
