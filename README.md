@@ -387,34 +387,7 @@ await bot.tick('ETH/USDT', '1h', {
 
 ---
 
-## 📦 Zillions SDK
-
-You can use Zillions Core as an SDK in your own projects by installing it directly from the GitHub repository.
-
-### Installation
-Install the SDK directly from GitHub in your project:
-```bash
-npm install https://github.com/zillionsapp/core.git
-```
-
-> [!TIP]
-> This installs the built package directly from the repository, so you don't need to clone or build the project locally.
-
-### 2. Basic Usage
-Import the `BotEngine` and start the bot with a built-in strategy:
-```typescript
-import { BotEngine, startApi } from 'zillions';
-
-async function main() {
-    // Optional: Start the dashboard on port 3000
-    startApi(3000);
-
-    const bot = new BotEngine('MACD');
-    await bot.start('BTC/USDT', '15m');
-}
-```
-
-### 3. Custom Strategies
+### Custom Strategies
 
 Zillion's strategy system is highly extensible. You can implement the `IStrategy` interface and inject your instance directly into `BotEngine`.
 
@@ -532,30 +505,7 @@ function calculatePnL(trade: Trade): number {
 }
 ```
 
-### 4. Runtime Usage
-For long-running processes, use the `start()` method with your custom strategy:
-
-```typescript
-import { BotEngine, startApi } from 'zillions';
-
-async function main() {
-    // Optional: Start the dashboard on port 3000
-    startApi(3000);
-
-    // Use your custom strategy in a long-running bot
-    const bot = new BotEngine(new AdvancedStrategy());
-    await bot.start('BTC/USDT', '15m', {
-        // Optional: Strategy-specific configuration
-        rsiPeriod: 14,
-        rsiOverbought: 70,
-        rsiOversold: 30
-    });
-}
-
-main().catch(console.error);
-```
-
-### 5. Serverless / Vercel Usage
+### Serverless / Vercel Usage
 For serverless environments, use the `tick()` method for stateless execution:
 
 ```typescript
