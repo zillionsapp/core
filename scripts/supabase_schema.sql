@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS public.trades (
   leverage numeric,
   margin numeric,
   duration bigint,
+  "breakevenActivated" boolean default false,
   -- Trailing Stop Loss fields
   "trailingStopEnabled" boolean,
   "trailingStopActivated" boolean,
