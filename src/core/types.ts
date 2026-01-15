@@ -62,6 +62,7 @@ export interface Trade {
     leverage?: number;
     margin?: number;
     duration?: number;
+    breakevenActivated?: boolean;
 
     // Trailing Stop Loss fields
     trailingStopEnabled?: boolean;

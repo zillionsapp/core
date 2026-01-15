@@ -661,25 +661,40 @@ The `TradeManager` (`src/core/trade.manager.ts`) provides **global position mana
 - **Improved Risk Control**: Centralized system prevents conflicting risk management logic.
 - **Scalability**: Supports multiple strategies running simultaneously with proper position isolation.
 
-#### Trailing Stop Loss
-The Trailing Stop Loss feature provides **dynamic risk management** that locks in profits as price moves favorably:
+#### Bulletproof Risk Management 🛡️
+Zillion Core now includes a suite of "Bulletproof" features designed to eliminate risk early and adapt to market conditions automatically. These features are **enabled by default** to ensure maximum safety.
 
-- **Activation Threshold**: Trailing begins when profit reaches a configurable percentage (default: 2%).
-- **Trail Distance**: Stop loss follows price at a specified distance (default: 1%).
-- **Automatic Adjustment**: Stop loss moves up (BUY positions) or down (SELL positions) as price continues in your favor.
-- **Break-even Protection**: Ensures you never lose money on profitable trades.
+**1. Breakeven Trigger (The "Safety Net")**
+- **Goal:** Eliminate risk as soon as the trade moves in your favor.
+- **How it works:** When a position reaches a configurable profit percentage (Default: **1%**), the Stop Loss is automatically moved to your **Entry Price + Fees**.
+- **Benefit:** If the market reverses after a small pop, you exit with $0 loss instead of a full Stop Loss hit. This dramatically improves your "non-losing" rate.
 
-**Configuration:**
+**2. ATR-Based Dynamic Stops (The "Smart Guard")**
+- **Goal:** Adapt Stop Loss and Take Profit levels to current market volatility (Noise).
+- **How it works:** Instead of arbitrary fixed percentages (e.g., 5%), the bot calculates the **Average True Range (ATR)** of the last 14 candles.
+    - **Stop Loss:** `1.5 x ATR` (Tighter in quiet markets, wider in volatile ones).
+    - **Take Profit:** `3.0 x ATR` (Ensures a consistent 1:2 Risk/Reward ratio).
+- **Benefit:** Prevents being stopped out by normal market noise while ensuring targets are statistically reachable.
+
+**3. Trailing Stop Loss (The "Profit Locker")**
+- **Goal:** Let winners run while securing gains.
+- **How it works:** Once a trade is profitable (Default: >2%), the Stop Loss trails the price distance (Default: 1%).
+- **Benefit:** Captures the "fat tail" of big trends without manual intervention.
+
+**Configuration (Hardened Defaults):**
 ```env
-TRAILING_STOP_ENABLED=true
-TRAILING_STOP_ACTIVATION_PERCENT=2
-TRAILING_STOP_TRAIL_PERCENT=1
-```
+# Breakeven Trigger
+BREAKEVEN_TRIGGER_PERCENT=1  # Move SL to Entry at 1% profit
 
-**Benefits:**
-- **Maximize Profits**: Capture more upside while protecting gains
-- **Reduce Drawdown**: Smaller losses on reversals
-- **Set-and-Forget**: Automatic adjustment requires no manual intervention
+# Dynamic ATR Stops
+USE_ATR_BASED_STOPS=true     # Enable Volatility Sensing
+ATR_PERIOD=14
+ATR_MULTIPLIER_SL=1.5
+ATR_MULTIPLIER_TP=3.0
+
+# Trailing Stop
+TRAILING_STOP_ENABLED=true   # Enable Profit Locking
+```
 
 ### Position Management
 Zillion Core provides flexible position management to handle conflicting signals and maintain strategy control over risk management:

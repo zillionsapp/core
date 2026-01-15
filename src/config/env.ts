@@ -31,10 +31,19 @@ const envSchema = z.object({
     DEFAULT_TAKE_PROFIT_PERCENT: z.coerce.number().default(10), // 10% of entry price (technical TP)
     RISK_PER_TRADE_PERCENT: z.coerce.number().default(1), // 1% of equity per trade (professional risk)
 
-    // Trailing Stop Loss
-    TRAILING_STOP_ENABLED: z.string().default('false').transform(v => v === 'true'),
+    // Trailing Stop Loss (Bulletproof Default: Enabled)
+    TRAILING_STOP_ENABLED: z.string().default('true').transform(v => v === 'true'),
     TRAILING_STOP_ACTIVATION_PERCENT: z.coerce.number().default(2), // 2% profit to activate trailing
     TRAILING_STOP_TRAIL_PERCENT: z.coerce.number().default(1), // 1% trail distance
+
+    // Breakeven
+    BREAKEVEN_TRIGGER_PERCENT: z.coerce.number().default(1), // Move SL to entry when profit > 1%
+
+    // ATR-Based Stops (Dynamic Risk - Bulletproof Default: Enabled)
+    USE_ATR_BASED_STOPS: z.string().default('true').transform(v => v === 'true'),
+    ATR_PERIOD: z.coerce.number().default(14),
+    ATR_MULTIPLIER_SL: z.coerce.number().default(1.5), // 1.5x ATR for Stop Loss
+    ATR_MULTIPLIER_TP: z.coerce.number().default(3.0), // 3.0x ATR for Take Profit
 
     // Position Management
     ALLOW_MULTIPLE_POSITIONS: z.string().default('false').transform(v => v === 'true'), // Allow hedging/multiple positions
