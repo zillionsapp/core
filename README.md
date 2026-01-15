@@ -736,28 +736,31 @@ Zillions Core natively supports the **Drift Protocol**, allowing you to trade de
 ### 1. Wallet Mode (Standard)
 The bot connects to a Solana wallet and places trades directly on the Drift exchange. This is ideal for personal trading bots using your own capital.
 
-**Configuration (Devnet vs Mainnet):**
+**A. Configuration (Devnet vs Mainnet)**
 
-| Environment | Variables in `.env` | Requirements |
+| Environment | Variables in `.env` | Setup Instructions |
 |:--- |:--- |:--- |
-| **Devnet** | `DRIFT_ENV=devnet`<br>`SOLANA_RPC_URL=https://api.devnet.solana.com` | No real funds needed. Use `deploy_vault.ts` to get airdropped SOL/USDC. |
-| **Mainnet** | `DRIFT_ENV=mainnet-beta`<br>`SOLANA_RPC_URL=https://mainnet.helius-rpc.com/...` | **Real Funds Required.** Wallet must hold SOL (for gas) and USDC (collateral). Use a Private RPC (Helius/Triton) for reliability. |
+| **Devnet** | `DRIFT_ENV=devnet`<br>`SOLANA_RPC_URL=https://api.devnet.solana.com` | 1. Run `npx ts-node scripts/setup_devnet.ts` to get SOL.<br>2. Go to [Drift Devnet](https://app.drift.trade/) to mint test USDC.<br>3. Deposit USDC into your account via the Drift UI. |
+| **Mainnet** | `DRIFT_ENV=mainnet-beta`<br>`SOLANA_RPC_URL=...` | 1. **Real Funds Required**: Wallet must hold SOL (Gas) and USDC (Collateral).<br>2. **Private RPC**: Use Helius/Triton. Public RPCs will fail. |
 
-**Setup:**
+**B. Setup Steps**
 1.  Set `EXCHANGE_DRIVER=DRIFT` in `.env`.
 2.  Provide your wallet credentials (`WALLET_PRIVATE_KEY` or `WALLET_PATH`).
-3.  Configure `DRIFT_ENV` and `SOLANA_RPC_URL` as above.
+3.  Configure `DRIFT_ENV` and `SOLANA_RPC_URL`.
+4.  Run `npm run start`.
 
 ### 2. Vault Mode (Community/Manager)
 The bot acts as a **Vault Manager**, placing trades on behalf of a Drift Vault. Users deposit funds into the vault, and the bot manages the pooled capital.
 
-**Key Features:**
--   **Non-Custodial**: You manage positions, not user funds.
--   **Performance Fees**: Earn management and profit-sharing fees (configured on-chain).
--   **Verified Track Record**: All trades are verifiable on-chain.
+**A. Configuration (Devnet vs Mainnet)**
 
-**Setup:**
-1.  Deploy a new Vault using the helper script: `npx ts-node scripts/vault/deploy_vault.ts`
+| Environment | Variables in `.env` | Setup Instructions |
+|:--- |:--- |:--- |
+| **Devnet** | `DRIFT_ENV=devnet`<br>`SOLANA_RPC_URL=...` | 1. Run `npx ts-node scripts/vault/deploy_vault.ts`.<br>2. This script auto-airdrops SOL and deploys a test vault.<br>3. Note the `Vault Address` output. |
+| **Mainnet** | `DRIFT_ENV=mainnet-beta`<br>`SOLANA_RPC_URL=...` | 1. **Real Funds**: You need ~0.5 SOL to deploy a vault.<br>2. Run `npx ts-node scripts/vault/deploy_vault.ts`.<br>3. **Note**: Mainnet deployment is permanent. |
+
+**B. Setup Steps**
+1.  Deploy a Vault using the instructions above.
 2.  Add the resulting Vault Address to `.env` as `DRIFT_VAULT_ADDRESS`.
 3.  Set `VAULT_ENABLED=true` in `.env`.
 
