@@ -30,6 +30,8 @@ export class BotEngine {
     private lastSnapshotTime: number = 0;
     private isProcessingSignal: boolean = false;
     private timeProvider: ITimeProvider;
+    private lastCommissionAggregationTime: number = 0;
+    private lastPayoutExecutionTime: number = 0;
 
     constructor(
         strategy: string | IStrategy,
@@ -60,6 +62,11 @@ export class BotEngine {
 
         // Connect CommissionManager to TradeManager
         this.tradeManager.setCommissionManager(this.commissionManager);
+
+        // Pass VaultManager to CommissionManager if available
+        if (this.vaultManager) {
+            this.commissionManager.setVaultManager(this.vaultManager);
+        }
 
         // Resolve circular dependency: Vault needs Equity from Portfolio
         if (this.vaultManager) {
@@ -278,6 +285,10 @@ export class BotEngine {
                     this.isProcessingSignal = false;
                 }
             }
+
+            // 4. Periodic Commission Management
+            // REMOVED: Replaced by Real-Time Event-Driven Logic on Trade Close.
+            // CommissionManager.handleTradeClose() is now called immediately in the close block above.
         } catch (error) {
             logger.error('[BotEngine] Error in tick:', error);
         }

@@ -151,4 +151,14 @@ export class VaultManager implements IVaultManager {
         logger.info(`[VaultManager] Withdrawal: ${email} withdrew ${amount.toFixed(2)} for ${shares.toFixed(4)} shares (Price: ${sharePrice.toFixed(4)})`);
         return transaction;
     }
+
+    async payoutCommission(destinationAddress: string, amount: number): Promise<string> {
+        logger.info(`[VaultManager] Payout (Simulation): ${amount} USDC to ${destinationAddress}`);
+        return `simulated-tx-${Date.now()}`;
+    }
+
+    async redeemManagerShares(): Promise<string> {
+        logger.info('[VaultManager] Redeem Manager Shares (Simulation): Redeeming all available fees...');
+        return `simulated-redemption-${Date.now()}`;
+    }
 }

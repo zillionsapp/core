@@ -109,4 +109,10 @@ export interface IDataStore {
     getInvitedUsersCount(inviterId: string): Promise<number>;
     getUserEmail(userId: string): Promise<string>;
     getTotalVaultAssets(): Promise<number>;
+
+    // Payout Management
+    getPendingCommissionPayments(): Promise<any[]>;
+    getUserWallet(userId: string): Promise<string | null>;
+    updateCommissionPaymentStatus(paymentId: string, status: 'PAID' | 'CANCELLED', txHash?: string): Promise<void>;
+    calculateDailyCommissions(targetDate?: string): Promise<number>;
 }

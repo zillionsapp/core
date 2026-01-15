@@ -1,4 +1,4 @@
-export type VaultTransactionType = 'DEPOSIT' | 'WITHDRAWAL' | 'SEND' | 'RECEIVE';
+export type VaultTransactionType = 'DEPOSIT' | 'WITHDRAWAL' | 'SEND' | 'RECEIVE' | 'COMMISSION_EARNED' | 'COMMISSION_PAID';
 
 export interface VaultTransaction {
     id?: string;
@@ -7,6 +7,10 @@ export interface VaultTransaction {
     shares: number;
     type: VaultTransactionType;
     timestamp: number;
+    // Commission fields
+    inviter_id?: string;
+    invited_user_id?: string;
+    commission_rate?: number;
 }
 
 export interface VaultState {
@@ -47,4 +51,17 @@ export interface IVaultManager {
      * This is useful for the "initial balance" logic
      */
     getTotalDepositedBalance(): Promise<number>;
+
+    /**
+     * Pay out commission to a specific wallet address
+     * @param destinationAddress format: depends on implementation (e.g., Solana PublicKey, or Email for Paper)
+     * @param amount amount in USDC
+     */
+    payoutCommission?(destinationAddress: string, amount: number): Promise<string>;
+
+    /**
+     * Redeem manager shares/fees from the vault to the manager's wallet.
+     * Essential for funding the payout wallet.
+     */
+    redeemManagerShares?(): Promise<string>;
 }

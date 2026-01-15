@@ -70,6 +70,8 @@ export interface Trade {
     trailingStopTrailPercent?: number;
     trailingStopHighPrice?: number; // For BUY positions: highest price seen
     trailingStopLowPrice?: number;  // For SELL positions: lowest price seen
+
+    userId?: string; // ID of the user who owns this trade
 }
 
 export interface Signal {

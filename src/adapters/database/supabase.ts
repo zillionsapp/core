@@ -436,7 +436,7 @@ export class SupabaseDataStore implements IDataStore {
             console.log('[InMemoryDB] Saved commission transaction:', transaction);
             return;
         }
-        
+
         // Try saving to commission_transactions table first
         const { error } = await this.supabase.from('commission_transactions').insert({
             inviter_id: transaction.inviter_id,
@@ -446,7 +446,7 @@ export class SupabaseDataStore implements IDataStore {
             invited_daily_pnl: transaction.pnl || 0,
             commission_earned: Math.abs(transaction.amount)
         });
-        
+
         if (error) {
             console.error('Error saving commission transaction:', error);
             // Fallback: try saving to vault_transactions if commission_transactions fails
@@ -641,5 +641,79 @@ export class SupabaseDataStore implements IDataStore {
             if (t.type === 'COMMISSION_PAID') return sum + Number(t.amount); // amount is negative
             return sum;
         }, 0);
+    }
+
+    // Payout Management
+    async getPendingCommissionPayments(): Promise<any[]> {
+        if (!this.supabase) return [];
+
+        const { data, error } = await this.supabase
+            .from('commission_payments')
+            .select('*')
+            .eq('status', 'PENDING');
+
+        if (error) {
+            console.error('Error fetching pending commission payments:', error);
+            return [];
+        }
+
+        return data || [];
+    }
+
+    async getUserWallet(userId: string): Promise<string | null> {
+        if (!this.supabase) return null;
+
+        const { data, error } = await this.supabase
+            .from('user_wallets')
+            .select('wallet_address')
+            .eq('user_id', userId)
+            .maybeSingle();
+
+        if (error) {
+            console.debug(`[SupabaseDataStore] No wallet found for user ${userId}`);
+            return null;
+        }
+
+        return data?.wallet_address || null;
+    }
+
+    async updateCommissionPaymentStatus(paymentId: string, status: 'PAID' | 'CANCELLED', txHash?: string): Promise<void> {
+        if (!this.supabase) return;
+
+        const updates: any = {
+            status,
+            updated_at: new Date().toISOString()
+        };
+
+        if (status === 'PAID') {
+            updates.paid_at = new Date().toISOString();
+        }
+
+        const { error } = await this.supabase
+            .from('commission_payments')
+            .update(updates)
+            .eq('id', paymentId);
+
+        if (error) {
+            console.error(`Error updating commission payment ${paymentId}:`, error);
+        }
+    }
+
+    async calculateDailyCommissions(targetDate?: string): Promise<number> {
+        if (!this.supabase) return 0;
+
+        // Use provided date or today's date
+        const dateStr = targetDate || new Date().toISOString().split('T')[0];
+
+        const { data, error } = await this.supabase.rpc('calculate_daily_commissions', {
+            target_date: dateStr
+        });
+
+        if (error) {
+            console.error('[SupabaseDataStore] Error executing calculate_daily_commissions:', error);
+            return 0;
+        }
+
+        return typeof data === 'number' ? data : 0;
     }
 }
