@@ -27,6 +27,7 @@ export class PaperExchange implements IExchange {
     private timeProvider: ITimeProvider;
     private vaultManager?: IVaultManager;
     private db?: any;
+    private manualPrice: number | null = null;
 
     constructor(
         dataProvider: IMarketDataProvider,
@@ -53,6 +54,18 @@ export class PaperExchange implements IExchange {
         this.balances.set(config.PAPER_BALANCE_ASSET, initialBalance);
     }
 
+    setManualPrice(price: number | null): void {
+        this.manualPrice = price;
+    }
+
+    async reset(): Promise<void> {
+        this.balances.clear();
+        this.orders.clear();
+        this.positions.clear();
+        this.manualPrice = null;
+        await this.start();
+    }
+
     getVaultManager(): IVaultManager | undefined {
         return this.vaultManager;
     }
@@ -63,7 +76,7 @@ export class PaperExchange implements IExchange {
             this.balances.set(config.PAPER_BALANCE_ASSET, vaultBalance);
             console.log(`[PaperExchange] Started with Vault balance: ${vaultBalance.toFixed(2)} ${config.PAPER_BALANCE_ASSET}`);
         } else {
-            // console.log(`[PaperExchange] Started with balance: ${config.PAPER_INITIAL_BALANCE} ${config.PAPER_BALANCE_ASSET}`);
+            this.balances.set(config.PAPER_BALANCE_ASSET, config.PAPER_INITIAL_BALANCE);
         }
     }
 
@@ -72,6 +85,13 @@ export class PaperExchange implements IExchange {
     }
 
     async getTicker(symbol: string): Promise<Ticker> {
+        if (this.manualPrice !== null) {
+            return {
+                symbol,
+                price: this.manualPrice,
+                timestamp: this.timeProvider.now()
+            };
+        }
         return this.dataProvider.getTicker(symbol);
     }
 
@@ -196,7 +216,7 @@ export class PaperExchange implements IExchange {
             quantity: orderRequest.quantity,
             filledQuantity: orderRequest.quantity,
             price: price,
-            timestamp: ('setTime' in this.timeProvider) ? this.timeProvider.now() : Date.now(),
+            timestamp: this.timeProvider.now(),
         };
 
         this.orders.set(order.id, order);

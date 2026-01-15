@@ -23,6 +23,12 @@ export class BacktestRunner {
         this.riskManager = new RiskManager(this.exchange, this.db, this.timeProvider);
     }
     async run(strategyName: string, symbol: string, interval: string, verbose: boolean = process.env.NODE_ENV !== 'test') {
+        // Reset State for clean run
+        this.activeTrade = null;
+        if ((this.exchange as any).reset) {
+            await (this.exchange as any).reset();
+        }
+
         // 0. Start exchange (initializes vault balance if enabled)
         await this.exchange.start();
 
@@ -50,6 +56,9 @@ export class BacktestRunner {
 
         for (let i = 50; i < candles.length; i++) {
             const currentCandle = candles[i];
+
+            // Sync Exchange Price with Backtest Candle
+            this.exchange.setManualPrice(currentCandle.close);
 
             // Update Simulation Time to Candle Close Time
             this.timeProvider.setTime(currentCandle.closeTime || 0);
