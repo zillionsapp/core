@@ -58,7 +58,7 @@ const envSchema = z.object({
     TICK_INTERVAL_SECONDS: z.coerce.number().default(30), // How often to check for signals and manage positions (seconds)
 
     // Backtest Configuration
-    BACKTEST_CANDLE_COUNT: z.coerce.number().default(100),
+    BACKTEST_CANDLE_COUNT: z.coerce.number().default(150),
 
     // Leverage Configuration
     LEVERAGE_ENABLED: z.string().transform(v => v === 'true').default(false as any),
