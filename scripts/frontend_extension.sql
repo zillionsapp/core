@@ -359,7 +359,8 @@ CREATE POLICY "Users can view their commission transactions" ON commission_trans
     FOR SELECT USING (auth.uid() = inviter_id OR auth.uid() = invited_user_id);
 
 -- Function to calculate daily commissions for all inviters
-CREATE OR REPLACE FUNCTION calculate_daily_commissions(target_date DATE DEFAULT CURRENT_DATE)
+-- @deprecated This function is for "Daily Batch Mode". Real-Time mode handles this via BotEngine.
+CREATE OR REPLACE FUNCTION calculate_daily_commissions_legacy(target_date DATE DEFAULT CURRENT_DATE)
 RETURNS INTEGER AS $$
 DECLARE
     commission_record RECORD;
