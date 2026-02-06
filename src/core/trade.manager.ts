@@ -269,12 +269,8 @@ export class TradeManager {
      * Force close a position immediately
      */
     async forceClosePosition(trade: Trade, reason: string): Promise<void> {
-        try {
-            logger.info(`[TradeManager] Force closing position ${trade.id} due to ${reason}`);
-            await this.closePosition(trade, reason);
-        } catch (error) {
-            logger.error(`[TradeManager] Error force closing position ${trade.id}:`, error);
-        }
+        logger.info(`[TradeManager] Force closing position ${trade.id} due to ${reason}`);
+        await this.closePosition(trade, reason);
     }
 
     /**

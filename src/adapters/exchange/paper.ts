@@ -78,6 +78,37 @@ export class PaperExchange implements IExchange {
         } else {
             this.balances.set(config.PAPER_BALANCE_ASSET, config.PAPER_INITIAL_BALANCE);
         }
+
+        // Sync internal positions with Database
+        await this.syncPositionsWithDb();
+    }
+
+    /**
+     * Synchronize internal positions map with open trades in the database.
+     * This ensures consistency across restarts for PAPER trading.
+     */
+    private async syncPositionsWithDb(): Promise<void> {
+        if (!this.db) return;
+
+        try {
+            const openTrades = await this.db.getOpenTrades();
+            for (const trade of openTrades) {
+                // Seed the internal positions map so closing orders are recognized
+                this.positions.set(trade.symbol, {
+                    symbol: trade.symbol,
+                    quantity: trade.quantity,
+                    entryPrice: trade.price,
+                    margin: trade.margin || 0,
+                    leverage: trade.leverage || 1,
+                    side: trade.side
+                });
+            }
+            if (openTrades.length > 0) {
+                console.log(`[PaperExchange] Synced ${openTrades.length} open positions from database.`);
+            }
+        } catch (error) {
+            console.error('[PaperExchange] Error syncing positions with DB:', error);
+        }
     }
 
     async getCandles(symbol: string, interval: string, limit: number = 100): Promise<Candle[]> {

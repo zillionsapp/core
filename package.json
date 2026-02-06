@@ -20,6 +20,8 @@
     "migrate:data": "ts-node scripts/data.migrate.ts",
     "migrate:replay": "ts-node scripts/migrate_replay.ts",
     "cleanup": "ts-node scripts/cleanup.ts",
+    "close:trades": "ts-node scripts/close_trades.ts",
+    "pnl:total": "ts-node scripts/total_pnl.ts",
     "stresstest": "ts-node scripts/stresstest_calculations.ts",
     "build": "tsc",
     "build:sdk": "tsc --project tsconfig.sdk.json",
