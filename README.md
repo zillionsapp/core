@@ -297,6 +297,26 @@ When replay completes:
 
 **Important**: Replay and live trading share the same database. Trades and vault transactions from replay are preserved and visible in the dashboard alongside future live activity.
 
+### Manual Trading
+Open positions manually with professional risk management (SL/TP and sizing calculated automatically based on your `.env` risk settings).
+
+```bash
+# Open a Long position
+npm run open:long -- --symbol=BTC/USDT
+
+# Open a Short position
+npm run open:short -- --symbol=BTC/USDT
+
+# Optional: Custom Stop Loss (sl) and Take Profit (tp) percentages
+npm run open:long -- --symbol=BTC/USDT --sl=1.5 --tp=4.5
+```
+
+### Emergency Stop
+Close all open positions across all symbols immediately.
+```bash
+npm run close:trades
+```
+
 ### Database Cleanup
 **⚠️ DANGER: This will permanently delete ALL data from your database. Only use in development/testing environments.**
 
